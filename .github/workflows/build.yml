@@ -1,0 +1,63 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - 'arena/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Build
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build --stacktrace
+
+      - name: Verify jar
+        run: |
+          set -euo pipefail
+          JAR=$(ls build/libs/herobrine-*.jar | grep -v sources | head -n 1)
+          echo "== jar: $JAR"
+
+          echo "== fabric.mod.json"
+          unzip -p "$JAR" fabric.mod.json
+
+          echo "== mixin config present"
+          unzip -p "$JAR" herobrine.mixins.json > /dev/null
+
+          echo "== compiled classes present"
+          unzip -l "$JAR" | grep -F 'dev/btstudio/herobrine/HerobrineMod.class' > /dev/null
+          unzip -l "$JAR" | grep -F 'dev/btstudio/herobrine/mixin/NaturalSpawnerMixin.class' > /dev/null
+
+          echo "jar verified"
+
+      - name: Upload mod jar
+        uses: actions/upload-artifact@v6
+        with:
+          name: herobrine-jar
+          path: build/libs/herobrine-*.jar
+          if-no-files-found: error
