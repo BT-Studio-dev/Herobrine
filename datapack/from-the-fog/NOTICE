@@ -1,0 +1,28 @@
+From-The-Fog Datapack Code
+==========================
+
+The files in this directory (datapack/from-the-fog/) are derived from
+LunarEclipseStudios' From-The-Fog Minecraft datapack:
+
+  https://github.com/LunarEclipseStudios/From-The-Fog
+
+These files are NOT part of the Herobrine: Haunting Fabric mod. They are
+included here for reference and cross-project comparison only.
+
+License
+-------
+
+From-The-Fog is licensed under the Attribution-NonCommercial-ShareAlike
+4.0 International (CC BY-NC-SA 4.0) license:
+
+  https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+This license is separate from and incompatible with the MIT license that
+covers the rest of the Herobrine: Haunting mod. Do not merge these files
+into the mod's main source tree.
+
+Attribution
+-----------
+
+Original work by LunarEclipseStudios (https://lunareclipse.studio).
+Files copied verbatim from LunarEclipseStudios/From-The-Fog, main branch.
