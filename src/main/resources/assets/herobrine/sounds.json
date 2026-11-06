@@ -1,0 +1,125 @@
+{
+  "ambient": {
+    "category": "ambient",
+    "subtitle": "subtitles.herobrine.ambient",
+    "sounds": [
+      {
+        "name": "herobrine:ambient",
+        "stream": false,
+        "attenuation_distance": 48
+      }
+    ]
+  },
+  "whisper": {
+    "category": "ambient",
+    "subtitle": "subtitles.herobrine.whisper",
+    "sounds": [
+      {
+        "name": "herobrine:whisper",
+        "stream": false,
+        "attenuation_distance": 32
+      }
+    ]
+  },
+  "footstep": {
+    "category": "ambient",
+    "subtitle": "subtitles.herobrine.footstep",
+    "sounds": [
+      "herobrine:footstep",
+      "herobrine:footstep2",
+      "herobrine:footstep3"
+    ]
+  },
+  "jumpscare": {
+    "category": "hostile",
+    "subtitle": "subtitles.herobrine.jumpscare",
+    "sounds": [
+      {
+        "name": "herobrine:jumpscare",
+        "stream": false
+      }
+    ]
+  },
+  "heartbeat": {
+    "category": "ambient",
+    "subtitle": "subtitles.herobrine.heartbeat",
+    "sounds": [
+      {
+        "name": "herobrine:heartbeat",
+        "stream": false
+      }
+    ]
+  },
+  "mining": {
+    "category": "ambient",
+    "subtitle": "subtitles.herobrine.mining",
+    "sounds": [
+      {
+        "name": "herobrine:mining",
+        "stream": false,
+        "attenuation_distance": 32
+      }
+    ]
+  },
+  "fog": {
+    "category": "ambient",
+    "subtitle": "subtitles.herobrine.fog",
+    "sounds": [
+      {
+        "name": "herobrine:fog",
+        "stream": false,
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "glitch": {
+    "category": "hostile",
+    "subtitle": "subtitles.herobrine.glitch",
+    "sounds": [
+      {
+        "name": "herobrine:glitch",
+        "stream": false
+      }
+    ]
+  },
+  "chime": {
+    "category": "player",
+    "subtitle": "subtitles.herobrine.chime",
+    "sounds": [
+      {
+        "name": "herobrine:chime",
+        "stream": false
+      }
+    ]
+  },
+  "void": {
+    "category": "hostile",
+    "subtitle": "subtitles.herobrine.void",
+    "sounds": [
+      {
+        "name": "herobrine:void",
+        "stream": false
+      }
+    ]
+  },
+  "caution": {
+    "category": "ambient",
+    "subtitle": "subtitles.herobrine.caution",
+    "sounds": [
+      {
+        "name": "herobrine:caution",
+        "stream": false
+      }
+    ]
+  },
+  "music_haunt": {
+    "category": "music",
+    "subtitle": "subtitles.herobrine.music_haunt",
+    "sounds": [
+      {
+        "name": "herobrine:music_haunt",
+        "stream": true
+      }
+    ]
+  }
+}

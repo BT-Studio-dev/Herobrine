@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "I": "herobrine:iron_stick",
+    "H": "herobrine:holy_water"
+  },
+  "pattern": [
+    " I ",
+    "IHI",
+    " I "
+  ],
+  "result": {
+    "id": "herobrine:the_cross"
+  }
+}
