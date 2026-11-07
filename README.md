@@ -32,6 +32,10 @@ which is behind its own switch.
 - **Churches** spawn in the world with a holy-water cauldron on the altar; bottle holy water with an empty bottle.
 - **Gold shrine** — eight gold blocks and four redstone torches, lit with flint and steel.
 - **Items** — Iron Stick, Holy Water, The Cross — the cross banishes him when it holds.
+- **Iron-stick gear** — hammer Iron Sticks into a sword, helmet, chestplate, leggings and boots. Iron is the one
+  thing he will not come near: carrying it turns away up to six apparitions in ten, and striking an apparition
+  with it makes him retreat instead of turning on you.
+- **Cold Iron advancement** — awarded for hammering your first piece of iron-stick gear.
 - **Notch Apple ritual** — burn a Notch Apple on netherrack to banish him to the void (or call him back).
 - **Steve friend** — summon Steve to travel with you; set him to stay or follow.
 - **Animated right eye** — Herobrine's right eye has a softly pulsing, shader-style halo on every
@@ -45,6 +49,12 @@ which is behind its own switch.
 - **Commands** — `/herobrine summon`, `haunt`, `apparition`, `mode`, `schizo`, `shrine`, `give`, `config`, `phantom`,
   and more.
 - **No sleep** while he stands nearby.
+- **From The Fog content** (optional, off by default) — the bundled
+  [From The Fog](https://github.com/LunarEclipseStudios/From-The-Fog) datapack by Lunar Eclipse
+  Studios ships with the mod. Its tick and load functions are deliberately *not* registered with
+  Minecraft's `tick`/`load` function tags, so they never run on their own; turn on **From The Fog**
+  in the settings screen or with `/herobrine config fog` to run them. See
+  [Bundled third-party content](#bundled-third-party-content) below.
 
 The settings screen is also available through Mod Menu. Its Haunting and Audio & World tabs group
 the existing controls, including a music-volume slider. Changes apply immediately; Reset defaults
@@ -55,6 +65,7 @@ The world continues running while the settings screen is open.
 
 ## Compatibility
 
+- Herobrine: Haunting 2.9.5
 - Minecraft 26.3
 - Fabric Loader >= 0.19.0
 - Fabric API >= 0.165.0
@@ -62,9 +73,30 @@ The world continues running while the settings screen is open.
 - Suggests Mod Menu >= 21.0.0 for in-game settings integration
 - Runs on both client and server; settings are saved with the world and apply per dimension
 
+## Bundled third-party content
+
+This mod bundles an unmodified copy of the [From The Fog](https://github.com/LunarEclipseStudios/From-The-Fog)
+datapack under `src/main/resources/`, in its own namespaces
+(`lunareclipse.watching`, `lunareclipse.utils`, `from_the_fog`, `watching`). Nothing from its
+`assets/minecraft` or `data/minecraft` folders is included, so **no vanilla textures, sounds,
+shaders or function tags are overridden**, and its tick/load functions are not registered with
+Minecraft's `tick`/`load` tags — they run only when you switch **From The Fog** on.
+
+The bundled content is licensed **CC BY-NC-SA 4.0**, which is a **non-commercial** license: the
+same terms this mod uses. See [LICENSE_FROM_THE_FOG.md](src/main/resources/LICENSE_FROM_THE_FOG.md)
+for the full text.
+
+## Credits
+
+- **From The Fog** by Lunar Eclipse Studios
+  ([https://github.com/LunarEclipseStudios/From-The-Fog](https://github.com/LunarEclipseStudios/From-The-Fog)),
+  CC BY-NC-SA 4.0. Bundled verbatim, unmodified, in its own namespaces.
+
 ## License
 
-CC-BY-NC-SA-4.0 — see [LICENSE](LICENSE).
+Herobrine: Haunting is **CC BY-NC-SA 4.0** — see [LICENSE](LICENSE). Bundling From The Fog does not
+change that: both are non-commercial Share-Alike, so the combined work stays
+**CC BY-NC-SA 4.0** and may not be used commercially.
 
 ## Source
 
@@ -81,8 +113,8 @@ https://github.com/BT-Studio-dev/Herobrine
 /herobrine torches | curse | candles | sign | donation | door | fire
 /herobrine phantom [add|clear]
 /herobrine mode [full|purist|toggle]
-/herobrine schizo [on|off] | hauntstate | banish [on|off] | config [herd|miner|arson]
-/herobrine shrine [gold] | church | give <iron_stick|holy_water|the_cross>
+/herobrine schizo [on|off] | hauntstate | settings | banish [on|off] | config [herd|miner|arson]
+/herobrine shrine [gold] | church | give <iron_stick|iron_sword|iron_helmet|iron_chestplate|iron_leggings|iron_boots|holy_water|the_cross>
 ```
 
 The fog closes in when he is close. His own sounds are in the subtitles.

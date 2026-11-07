@@ -51,6 +51,9 @@ import net.minecraft.world.phys.Vec3;
  * in twelve starts a <b>chase mode</b> frenzy where all of this happens three times as fast. A
  * <b>Notch Apple</b> burned on netherrack ({@link NotchAppleRitual}) sets the per-dimension banished
  * flag, and then nothing in here runs at all.
+ *
+ * <p>Iron works the other way: the iron-stick gear ({@link IronWard}) lowers the chance of an
+ * apparition for whoever is carrying it, and it makes him retreat when it hits him.
  */
 public final class HauntingEvents {
     /** Chance per player per second at stage 0 (1/180 is roughly once every 3 min). */
@@ -332,6 +335,9 @@ public final class HauntingEvents {
      *
      * <p>Early on he mostly just watches. By stage 2 the four are equally likely, so the odds of him
      * standing behind you or in your face go up the longer the world has been running.
+     *
+     * <p>Iron is the one thing that lowers those odds again: a player carrying or wearing the
+     * iron-stick gear ({@link IronWard}) turns a share of the sightings away, up to six in ten.
      */
     public static HerobrineEntity spawnApparition(ServerLevel level, ServerPlayer player, RandomSource random,
                                                   int stage) {
@@ -339,7 +345,16 @@ public final class HauntingEvents {
             return null;
         }
 
+        // He keeps his distance from iron: the sighting is dropped, and nothing is built or moved
+        // to make up for it.
+        if (IronWard.turnsAway(player, random)) {
+            return null;
+        }
+
         Apparition apparition = pickApparition(random, stage);
+        // Automatic rolls never tell the player when they find no ground: a sighting that cannot
+        // be placed simply is not placed, and the next roll happens on its own. Only the operator
+        // command reports a failure.
         HerobrineEntity herobrine = Apparitions.spawn(level, player, apparition, random);
 
         if (herobrine != null) {

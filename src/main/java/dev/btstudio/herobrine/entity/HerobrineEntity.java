@@ -26,6 +26,7 @@ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 
+import dev.btstudio.herobrine.event.IronWard;
 import dev.btstudio.herobrine.sound.ModSounds;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -258,9 +259,18 @@ public class HerobrineEntity extends Monster {
     /**
      * "Don't hit him." Any hit lands on an apparition, so the apparition drops its act: the scare
      * that was only standing behind you turns into a hunter.
+     *
+     * <p>Unless the hit came from iron. Iron-stick gear repels him: an apparition struck with it
+     * recoils and is gone, and the hunting form is driven back a few blocks
+     * ({@link dev.btstudio.herobrine.event.IronWard}).
      */
     @Override
     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+        if (IronWard.repel(level, this, source)) {
+            // He is already gone; there is nothing left to hurt.
+            return true;
+        }
+
         if (!this.isHostile()) {
             this.setHostile(true);
         }

@@ -1,0 +1,79 @@
+{
+  "parent": "minecraft:story/smelt_iron",
+  "display": {
+    "icon": {
+      "id": "herobrine:iron_sword"
+    },
+    "title": {
+      "translate": "herobrine.advancement.iron_ward.title"
+    },
+    "description": {
+      "translate": "herobrine.advancement.iron_ward.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "iron_sword": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "herobrine:iron_sword"
+          }
+        ]
+      }
+    },
+    "iron_helmet": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "herobrine:iron_helmet"
+          }
+        ]
+      }
+    },
+    "iron_chestplate": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "herobrine:iron_chestplate"
+          }
+        ]
+      }
+    },
+    "iron_leggings": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "herobrine:iron_leggings"
+          }
+        ]
+      }
+    },
+    "iron_boots": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "herobrine:iron_boots"
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "iron_sword",
+      "iron_helmet",
+      "iron_chestplate",
+      "iron_leggings",
+      "iron_boots"
+    ]
+  ]
+}

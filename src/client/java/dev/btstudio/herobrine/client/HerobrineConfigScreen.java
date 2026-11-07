@@ -25,6 +25,9 @@ public class HerobrineConfigScreen extends Screen {
     private static final int CONTROL_HEIGHT = 20;
     private static final int REFRESH_TICKS = 20;
     private static final int VOLUME_DEBOUNCE = 8;
+    /** Rows per page: the haunting page carries the From The Fog switch as a fifth row. */
+    private static final int HAUNTING_ROWS = 5;
+    private static final int AUDIO_WORLD_ROWS = 4;
 
     private enum Page { HAUNTING, AUDIO_WORLD }
 
@@ -57,7 +60,7 @@ public class HerobrineConfigScreen extends Screen {
         this.panelLeft = sidebarWidth + 16;
         this.panelRight = this.width - 10;
         this.rowTop = 58;
-        this.rowHeight = Math.max(23, Math.min(38, (this.height - 100) / 4));
+        this.rowHeight = Math.max(23, Math.min(38, (this.height - 100) / this.rows()));
 
         this.addRenderableWidget(Button.builder(Component.translatable("herobrine.screen.tab.haunting"),
                         b -> this.changePage(Page.HAUNTING))
@@ -75,6 +78,9 @@ public class HerobrineConfigScreen extends Screen {
                     "herobrine config arson", HerobrineSettings::isArson, new ItemStack(Items.FLINT_AND_STEEL));
             this.addToggle(3, "herobrine.screen.schizo", "herobrine.screen.desc.schizo",
                     "herobrine schizo", HerobrineSettings::isSchizo, new ItemStack(Items.SOUL_LANTERN));
+            // Bundled third-party content: opt-in, and off unless someone turns it on.
+            this.addToggle(4, "herobrine.screen.fog", "herobrine.screen.desc.fog",
+                    "herobrine config fog", HerobrineSettings::isFog, new ItemStack(Items.SCULK_CATALYST));
         } else {
             this.addToggle(0, "herobrine.screen.music", "herobrine.screen.desc.music",
                     "herobrine config music", HerobrineSettings::isMusic, new ItemStack(Items.MUSIC_DISC_13));
@@ -99,6 +105,11 @@ public class HerobrineConfigScreen extends Screen {
         this.addRenderableWidget(Button.builder(Component.translatable("herobrine.screen.done"),
                         b -> this.onClose())
                 .pos(this.panelRight - 92, bottomY).size(92, CONTROL_HEIGHT).build());
+    }
+
+    /** How many setting rows the open page draws, so no empty card is left at the bottom. */
+    private int rows() {
+        return this.page == Page.HAUNTING ? HAUNTING_ROWS : AUDIO_WORLD_ROWS;
     }
 
     private void changePage(Page next) {
@@ -186,7 +197,7 @@ public class HerobrineConfigScreen extends Screen {
         graphics.fill(4, 38, this.panelLeft - 5, this.height - 32, 0xD5101115);
         graphics.fill(this.panelLeft, 38, this.panelRight, this.height - 32, 0xE0181A20);
         graphics.outline(this.panelLeft, 38, this.panelRight - this.panelLeft, this.height - 70, 0xFF454955);
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < this.rows(); i++) {
             int y = this.rowTop + i * this.rowHeight;
             graphics.fill(this.panelLeft + 4, y, this.panelRight - 4, y + this.rowHeight - 2, 0xC00C0E12);
         }

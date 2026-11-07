@@ -29,6 +29,9 @@ import net.minecraft.world.level.saveddata.SavedDataType;
  *       default on servers? No: on by default, at 70%.</li>
  *   <li><b>arson</b> - whether he may start a fire near you. The only event that can damage a
  *       build, so it is the one that gets its own switch, exposed in the settings screen.</li>
+ *   <li><b>fog</b> - whether the bundled <i>From The Fog</i> content (see
+ *       {@link dev.btstudio.herobrine.event.FromTheFog}) is allowed to tick. Off by default, so its
+ *       functions never run alongside our own haunting unless a player asks for them.</li>
  * </ul>
  */
 public class HerobrineSettings extends SavedData {
@@ -42,7 +45,8 @@ public class HerobrineSettings extends SavedData {
                     Codec.BOOL.optionalFieldOf("miner", true).forGetter(HerobrineSettings::isMiner),
                     Codec.BOOL.optionalFieldOf("arson", true).forGetter(HerobrineSettings::isArson),
                     Codec.BOOL.optionalFieldOf("music", true).forGetter(HerobrineSettings::isMusic),
-                    Codec.INT.optionalFieldOf("music_volume", 70).forGetter(HerobrineSettings::musicVolume))
+                    Codec.INT.optionalFieldOf("music_volume", 70).forGetter(HerobrineSettings::musicVolume),
+                    Codec.BOOL.optionalFieldOf("from_the_fog", false).forGetter(HerobrineSettings::isFog))
             .apply(instance, HerobrineSettings::new));
 
     public static final SavedDataType<HerobrineSettings> TYPE = new SavedDataType<>(
@@ -60,14 +64,15 @@ public class HerobrineSettings extends SavedData {
     private boolean arson;
     private boolean music;
     private int musicVolume;
+    private boolean fog;
 
     public HerobrineSettings() {
-        this(false, false, true, 0L, true, true, true, true, 70);
+        this(false, false, true, 0L, true, true, true, true, 70, false);
     }
 
     public HerobrineSettings(boolean purist, boolean banished, boolean schizo, long chaseUntil,
                              boolean herd, boolean miner, boolean arson, boolean music,
-                             int musicVolume) {
+                             int musicVolume, boolean fog) {
         this.purist = purist;
         this.banished = banished;
         this.schizo = schizo;
@@ -77,6 +82,7 @@ public class HerobrineSettings extends SavedData {
         this.arson = arson;
         this.music = music;
         this.musicVolume = musicVolume;
+        this.fog = fog;
     }
 
     public boolean isPurist() {
@@ -166,6 +172,21 @@ public class HerobrineSettings extends SavedData {
 
         if (this.musicVolume != clamped) {
             this.musicVolume = clamped;
+            this.setDirty();
+        }
+    }
+
+    /**
+     * Whether the bundled <i>From The Fog</i> functions may run. Off unless a player turns it on:
+     * those functions are their own haunting, and running both at once is not the point.
+     */
+    public boolean isFog() {
+        return this.fog;
+    }
+
+    public void setFog(boolean fog) {
+        if (this.fog != fog) {
+            this.fog = fog;
             this.setDirty();
         }
     }
@@ -296,6 +317,17 @@ public class HerobrineSettings extends SavedData {
         HerobrineSettings settings = of(level);
         settings.setMusicVolume(volume);
         return settings.musicVolume();
+    }
+
+    public static boolean fog(ServerLevel level) {
+        return of(level).isFog();
+    }
+
+    /** Flips the bundled <i>From The Fog</i> switch and returns the new state. */
+    public static boolean toggleFog(ServerLevel level) {
+        HerobrineSettings settings = of(level);
+        settings.setFog(!settings.isFog());
+        return settings.isFog();
     }
 
     public static boolean arson(ServerLevel level) {

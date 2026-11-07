@@ -12,6 +12,8 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 
 /**
@@ -20,6 +22,11 @@ import net.minecraft.world.level.levelgen.Heightmap;
  *
  * <p>Every helper here only ever picks a spot that already has two blocks of air and solid ground
  * underneath, so nothing is ever carved out of the world to make room for him.
+ *
+ * <p>The End is the awkward one: it is mostly void, so the surface heightmap that the Overworld
+ * sightings lean on reports nothing useful out there. There the search looks for the island's own
+ * ground - end stone and obsidian - by scanning the columns it picks, and if the horizon really has
+ * nothing to stand on it falls back to whatever ground there is next to the player.
  */
 public final class Apparitions {
     /** He stands this far behind you for a scare. */
@@ -28,6 +35,13 @@ public final class Apparitions {
     private static final int JUMPSCARE_DISTANCE = 4;
     /** ...and this far away for a spike. */
     private static final int SPIKE_DISTANCE = 9;
+
+    /**
+     * How far above and below the player to look for End ground. The island sits around Y 63 and
+     * the outer islands a little higher, so this covers standing on one or falling past it.
+     */
+    private static final int END_SCAN_UP = 12;
+    private static final int END_SCAN_DOWN = 24;
 
     private Apparitions() {
     }
@@ -52,6 +66,12 @@ public final class Apparitions {
             case DWELLING -> spotNear(level, player.blockPosition()
                     .relative(player.getDirection().getOpposite(), 8), 4, random);
         };
+
+        // The End is mostly void, so a horizon sighting can come back empty even when the player
+        // is standing on the island. Rather than give up, take whatever ground is next to them.
+        if (pos == null && isEnd(level)) {
+            pos = spotNear(level, player.blockPosition(), 6, random);
+        }
 
         if (pos == null) {
             return null;
@@ -152,6 +172,19 @@ public final class Apparitions {
             double distance = minDistance + random.nextInt(maxDistance - minDistance + 1);
             int x = (int) Math.floor(player.getX() + Math.cos(angle) * distance);
             int z = (int) Math.floor(player.getZ() + Math.sin(angle) * distance);
+
+            // In the End the heightmap is mostly void, and what ground there is end stone or
+            // obsidian, so scan the column for the island instead of asking for the surface.
+            if (isEnd(level)) {
+                BlockPos end = endGround(level, player, x, z, random);
+
+                if (end != null) {
+                    return end;
+                }
+
+                continue;
+            }
+
             // Under the Nether's bedrock roof the heightmap is useless: stay on the player's level.
             boolean underground = player.getY() < 50.0 || level.dimension().equals(Level.NETHER);
 
@@ -176,6 +209,47 @@ public final class Apparitions {
         }
 
         return null;
+    }
+
+    /** True in the End, where the ground has to be hunted for rather than looked up. */
+    private static boolean isEnd(ServerLevel level) {
+        return level.dimension().equals(Level.END);
+    }
+
+    /**
+     * Ground out on the End island: end stone or obsidian with two blocks of air above it. The
+     * heightmap is no help over the void, so the column is scanned around the player's height
+     * instead, with a couple of neighbouring columns tried before giving up on this spot.
+     */
+    private static BlockPos endGround(ServerLevel level, ServerPlayer player, int x, int z,
+                                      RandomSource random) {
+        int centerY = (int) Math.floor(player.getY());
+        int lowest = Math.max(level.getMinY(), centerY - END_SCAN_DOWN);
+        int highest = Math.min(level.getMaxY() - 2, centerY + END_SCAN_UP);
+
+        for (int attempt = 0; attempt < 3; attempt++) {
+            int columnX = attempt == 0 ? x : x + random.nextInt(5) - 2;
+            int columnZ = attempt == 0 ? z : z + random.nextInt(5) - 2;
+
+            for (int y = highest; y >= lowest; y--) {
+                BlockPos pos = new BlockPos(columnX, y, columnZ);
+
+                if (isStandable(level, pos) && isEndGround(level, pos.below())) {
+                    return pos;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** What he will actually stand on out there: the island itself, or obsidian. */
+    private static boolean isEndGround(ServerLevel level, BlockPos pos) {
+        return isEndGround(level.getBlockState(pos));
+    }
+
+    private static boolean isEndGround(BlockState state) {
+        return state.is(Blocks.END_STONE) || state.is(Blocks.OBSIDIAN);
     }
 
     private static boolean isStandable(ServerLevel level, BlockPos pos) {

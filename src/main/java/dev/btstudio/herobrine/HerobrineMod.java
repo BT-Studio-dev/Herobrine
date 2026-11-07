@@ -4,6 +4,7 @@ import dev.btstudio.herobrine.command.HerobrineCommand;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
 import dev.btstudio.herobrine.event.BedWatcher;
+import dev.btstudio.herobrine.event.FromTheFog;
 import dev.btstudio.herobrine.event.HauntingEvents;
 import dev.btstudio.herobrine.event.HolyWater;
 import dev.btstudio.herobrine.event.NotchAppleRitual;
@@ -50,6 +51,8 @@ public class HerobrineMod implements ModInitializer {
         BedWatcher.register();
         // The mod's own sound set (assets/herobrine/sounds.json).
         ModSounds.register();
+        // Bundled From The Fog content: ticks only where the per-dimension setting allows it.
+        FromTheFog.register();
 
         // "No sleep": a bed does not work while he is standing nearby.
         EntitySleepEvents.ALLOW_SLEEPING.register((player, sleepingPos) ->
