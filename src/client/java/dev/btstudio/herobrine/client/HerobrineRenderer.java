@@ -12,15 +12,13 @@ import net.minecraft.resources.Identifier;
 
 /**
  * Renders Herobrine with a plain humanoid model: white eyes for the stalker, red eyes for the
- * gold shrine's hostile form, black with red eyes for the elite, and a charred body
- * with burning eyes for the inferno form.
+ * gold shrine's hostile form, and black with red eyes for the elite.
  */
 public class HerobrineRenderer extends HumanoidMobRenderer<HerobrineEntity, HerobrineRenderState,
         HumanoidModel<HerobrineRenderState>> {
     private static final Identifier TEXTURE = HerobrineMod.id("textures/entity/herobrine.png");
     private static final Identifier TEXTURE_HOSTILE = HerobrineMod.id("textures/entity/herobrine_hostile.png");
     private static final Identifier TEXTURE_ELITE = HerobrineMod.id("textures/entity/herobrine_elite.png");
-    private static final Identifier TEXTURE_INFERNO = HerobrineMod.id("textures/entity/herobrine_inferno.png");
 
     /** The vanilla skin layout is 64x64, including the hat/sleeve overlay areas. */
     private static final int TEXTURE_WIDTH = 64;
@@ -33,7 +31,6 @@ public class HerobrineRenderer extends HumanoidMobRenderer<HerobrineEntity, Hero
         this.addLayer(new HerobrineEyesLayer(this, HerobrineEyesLayer.Form.STALKER));
         this.addLayer(new HerobrineEyesLayer(this, HerobrineEyesLayer.Form.HOSTILE));
         this.addLayer(new HerobrineEyesLayer(this, HerobrineEyesLayer.Form.ELITE));
-        this.addLayer(new HerobrineEyesLayer(this, HerobrineEyesLayer.Form.INFERNO));
     }
 
     /**
@@ -60,17 +57,11 @@ public class HerobrineRenderer extends HumanoidMobRenderer<HerobrineEntity, Hero
         super.extractRenderState(entity, state, partialTick);
         state.hostile = entity.isHostile();
         state.elite = entity.isElite();
-        state.inferno = entity.isInferno();
         state.eyeGlowPhase = Math.floorMod(entity.getId(), 60);
     }
 
     @Override
     public Identifier getTextureLocation(HerobrineRenderState state) {
-        // Match the eye layer's precedence when a saved entity has both flags.
-        if (state.inferno) {
-            return TEXTURE_INFERNO;
-        }
-
         if (state.elite) {
             return TEXTURE_ELITE;
         }

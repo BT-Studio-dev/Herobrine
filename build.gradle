@@ -54,8 +54,7 @@ processResources {
 // layout; eye masks use the same UV layout at 256x256 to give both eyes a softer halo.
 tasks.register('verifyEntityTextures') {
     def textures = ['herobrine', 'herobrine_eyes', 'herobrine_hostile', 'herobrine_hostile_eyes',
-                    'herobrine_elite', 'herobrine_elite_eyes', 'herobrine_inferno',
-                    'herobrine_inferno_eyes', 'steve_friend']
+                    'herobrine_elite', 'herobrine_elite_eyes', 'steve_friend']
     def textureDir = layout.projectDirectory.dir('src/main/resources/assets/herobrine/textures/entity')
     inputs.files(textures.collect { textureDir.file("${it}.png") })
     doLast {

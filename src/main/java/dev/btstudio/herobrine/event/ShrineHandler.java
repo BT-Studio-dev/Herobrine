@@ -26,8 +26,8 @@ import net.minecraft.world.level.block.Blocks;
  * </pre>
  *
  * Light the top of the netherrack with flint and steel. The lightning is visual only; what arrives
- * is the red-eyed hostile Herobrine. The old four-block iron rite is gone - the elite and inferno
- * forms are summoned with {@code /herobrine summon elite|inferno} instead.
+ * is the red-eyed hostile Herobrine. The old four-block iron rite is gone - the elite form is
+ * summoned with {@code /herobrine summon elite} instead.
  */
 public final class ShrineHandler {
     private ShrineHandler() {

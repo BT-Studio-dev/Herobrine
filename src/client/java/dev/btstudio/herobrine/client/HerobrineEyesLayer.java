@@ -26,7 +26,6 @@ public class HerobrineEyesLayer extends RenderLayer<HerobrineRenderState,
     private static final Identifier EYES_STALKER = HerobrineMod.id("textures/entity/herobrine_eyes.png");
     private static final Identifier EYES_HOSTILE = HerobrineMod.id("textures/entity/herobrine_hostile_eyes.png");
     private static final Identifier EYES_ELITE = HerobrineMod.id("textures/entity/herobrine_elite_eyes.png");
-    private static final Identifier EYES_INFERNO = HerobrineMod.id("textures/entity/herobrine_inferno_eyes.png");
 
     private final Form form;
     private final RenderType renderType;
@@ -39,7 +38,6 @@ public class HerobrineEyesLayer extends RenderLayer<HerobrineRenderState,
             case STALKER -> EYES_STALKER;
             case HOSTILE -> EYES_HOSTILE;
             case ELITE -> EYES_ELITE;
-            case INFERNO -> EYES_INFERNO;
         });
     }
 
@@ -71,16 +69,13 @@ public class HerobrineEyesLayer extends RenderLayer<HerobrineRenderState,
         /** Red eyes for the gold shrine's hunter. */
         HOSTILE,
         /** Red eyes on an all-black body for the elite. */
-        ELITE,
-        /** Burning orange eyes for the inferno form. */
-        INFERNO;
+        ELITE;
 
         boolean matches(HerobrineRenderState state) {
             return switch (this) {
-                case STALKER -> !state.hostile && !state.elite && !state.inferno;
-                case HOSTILE -> state.hostile && !state.elite && !state.inferno;
-                case ELITE -> state.elite && !state.inferno;
-                case INFERNO -> state.inferno;
+                case STALKER -> !state.hostile && !state.elite;
+                case HOSTILE -> state.hostile && !state.elite;
+                case ELITE -> state.elite;
             };
         }
     }

@@ -1,9 +1,9 @@
 {
   "entity.herobrine.herobrine": "Herobrine",
-  "herobrine.command.help": "Herobrine commands:\n/herobrine summon <stalker|hostile|elite|inferno|watcher>\n/herobrine haunt [player]\n/herobrine apparition <watch|scare|jumpscare|spike|runner|lurking|dwelling> [player]\n/herobrine leaves | tunnel | structure [water] | tree | cobble | warts\n/herobrine gravel | marker | herd | miner | window\n/herobrine torches | curse | candles | sign | donation | door | fire\n/herobrine phantom [add|clear]\n/herobrine mode [full|purist|toggle]\n/herobrine schizo [on|off] | hauntstate | settings | banish [on|off] | config [herd|miner|arson]\n/herobrine shrine [gold] | church | give <iron_stick|iron_sword|iron_helmet|iron_chestplate|iron_leggings|iron_boots|holy_water|the_cross>\nThe fog closes in when he is close. His own sounds are in the subtitles.",
+  "herobrine.command.help": "Herobrine commands:\n/herobrine summon <stalker|hostile|elite|watcher>\n/herobrine haunt [player]\n/herobrine apparition <watch|scare|jumpscare|spike|runner|lurking|dwelling> [player]\n/herobrine leaves | tunnel | structure [water] | tree | cobble | warts\n/herobrine gravel | marker | herd | miner | window\n/herobrine torches | curse | candles | sign | donation | door | fire\n/herobrine phantom [add|clear]\n/herobrine mode [full|purist|toggle]\n/herobrine schizo [on|off] | hauntstate | settings | banish [on|off] | config [herd|miner|arson]\n/herobrine shrine [gold] | church | give <iron_stick|iron_sword|iron_helmet|iron_chestplate|iron_leggings|iron_boots|holy_water|the_cross>\nThe fog closes in when he is close. His own sounds are in the subtitles.",
   "herobrine.command.summon.success": "Summoned a %s Herobrine",
   "herobrine.command.summon.failed": "Could not summon Herobrine here",
-  "herobrine.command.summon.unknown_form": "Unknown form '%s' - use stalker, hostile, elite, inferno or watcher",
+  "herobrine.command.summon.unknown_form": "Unknown form '%s' - use stalker, hostile, elite or watcher",
   "herobrine.command.haunt.success": "Something stirs around %s",
   "herobrine.command.shrine.success": "Built the gold shrine (8 gold blocks, 4 redstone torches) - light the netherrack with flint and steel",
   "herobrine.command.shrine.unknown_ring": "Unknown ring '%s' - the shrine is built from eight gold blocks and four redstone torches",

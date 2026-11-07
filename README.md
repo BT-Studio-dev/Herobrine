@@ -39,7 +39,7 @@ which is behind its own switch.
 - **Notch Apple ritual** — burn a Notch Apple on netherrack to banish him to the void (or call him back).
 - **Steve friend** — summon Steve to travel with you; set him to stay or follow.
 - **Animated glowing eyes** — both of Herobrine's eyes carry a softly pulsing, unlit halo on every
-  entity form: white for the stalker, red for the hostile and elite forms, orange for the inferno.
+  entity form: white for the stalker and red for the hostile and elite forms.
   The halo is masked to the front face of the head, so it stays off the hair, the nose and the body.
   This is a client-side rendering effect, not an animated player skin or dynamic world lighting.
 - **Purist mode** (True Herobrine rules) — he never edits a block, never sends chat, never attacks — he only ever
@@ -106,7 +106,7 @@ https://github.com/BT-Studio-dev/Herobrine
 ## Commands
 
 ```
-/herobrine summon <stalker|hostile|elite|inferno|watcher>
+/herobrine summon <stalker|hostile|elite|watcher>
 /herobrine haunt [player]
 /herobrine apparition <watch|scare|jumpscare|spike|runner|lurking|dwelling> [player]
 /herobrine leaves | tunnel | structure [water] | tree | cobble | warts

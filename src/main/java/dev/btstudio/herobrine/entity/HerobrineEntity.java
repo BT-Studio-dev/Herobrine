@@ -38,15 +38,13 @@ import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Herobrine has three forms:
+ * Herobrine has four forms:
  * <ul>
  *   <li><b>Stalker</b> (default, spawned by haunting events): stands motionless, stares at the
  *       nearest player and vanishes if looked at for too long, approached, or after ~20s.</li>
  *   <li><b>Hostile</b> (gold shrine): red eyes, hunts and attacks players.</li>
  *   <li><b>Elite</b> ({@code /herobrine summon elite}): black and red, tougher than the
  *       gold shrine's Herobrine.</li>
- *   <li><b>Inferno</b>: charred black with burning eyes - immune to fire, sets whatever it hits
- *       alight and leaves a trail of flame behind it.</li>
  *   <li><b>Watcher</b>: the <i>True Herobrine</i> form. He does nothing but stand still and look
  *       at you for two full minutes, and vanishes the moment you come within 25 blocks.</li>
  * </ul>
@@ -55,8 +53,6 @@ public class HerobrineEntity extends Monster {
     private static final EntityDataAccessor<Boolean> HOSTILE =
             SynchedEntityData.defineId(HerobrineEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> ELITE =
-            SynchedEntityData.defineId(HerobrineEntity.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> INFERNO =
             SynchedEntityData.defineId(HerobrineEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> WATCHER =
             SynchedEntityData.defineId(HerobrineEntity.class, EntityDataSerializers.BOOLEAN);
@@ -74,12 +70,6 @@ public class HerobrineEntity extends Monster {
     private static final double ELITE_ARMOR = 12.0;
     private static final double ELITE_KNOCKBACK_RESISTANCE = 0.8;
     private static final double ELITE_MOVEMENT_SPEED = 0.34;
-
-    // Attributes of the inferno form.
-    private static final double INFERNO_MAX_HEALTH = 100.0;
-    private static final double INFERNO_ATTACK_DAMAGE = 12.0;
-    private static final double INFERNO_ARMOR = 6.0;
-    private static final double INFERNO_MOVEMENT_SPEED = 0.36;
 
     /** True Herobrine rules: he watches for two full minutes. */
     private static final int WATCHER_MAX_TICKS = 2400;
@@ -144,7 +134,6 @@ public class HerobrineEntity extends Monster {
         super.defineSynchedData(builder);
         builder.define(HOSTILE, false);
         builder.define(ELITE, false);
-        builder.define(INFERNO, false);
         builder.define(WATCHER, false);
     }
 
@@ -228,34 +217,6 @@ public class HerobrineEntity extends Monster {
         this.apparition = apparition == null ? Apparition.WATCH : apparition;
     }
 
-    /** True for the inferno form, which burns everything it touches. */
-    public boolean isInferno() {
-        return this.entityData.get(INFERNO);
-    }
-
-    /** Turns this Herobrine into the burning form: fire immune, sets its victims alight. */
-    public void setInferno(boolean inferno) {
-        this.entityData.set(INFERNO, inferno);
-
-        if (!inferno) {
-            return;
-        }
-
-        // The inferno form always hunts - it is the one that stopped pretending.
-        this.entityData.set(HOSTILE, true);
-        this.setNoAi(false);
-        this.setAttributeBase(Attributes.MAX_HEALTH, INFERNO_MAX_HEALTH);
-        this.setAttributeBase(Attributes.ATTACK_DAMAGE, INFERNO_ATTACK_DAMAGE);
-        this.setAttributeBase(Attributes.ARMOR, INFERNO_ARMOR);
-        this.setAttributeBase(Attributes.MOVEMENT_SPEED, INFERNO_MOVEMENT_SPEED);
-        this.setPersistenceRequired();
-    }
-
-    @Override
-    public boolean fireImmune() {
-        return this.isInferno() || super.fireImmune();
-    }
-
     /**
      * "Don't hit him." Any hit lands on an apparition, so the apparition drops its act: the scare
      * that was only standing behind you turns into a hunter.
@@ -282,12 +243,8 @@ public class HerobrineEntity extends Monster {
     public boolean doHurtTarget(ServerLevel level, Entity target) {
         boolean hit = super.doHurtTarget(level, target);
 
-        if (hit && target != null) {
-            if (this.isInferno()) {
-                target.igniteForSeconds(8.0F);
-            } else if (this.isElite()) {
-                target.igniteForSeconds(4.0F);
-            }
+        if (hit && target != null && this.isElite()) {
+            target.igniteForSeconds(4.0F);
         }
 
         return hit;
@@ -547,7 +504,6 @@ public class HerobrineEntity extends Monster {
         super.addAdditionalSaveData(output);
         output.putBoolean("Hostile", this.isHostile());
         output.putBoolean("Elite", this.isElite());
-        output.putBoolean("Inferno", this.isInferno());
         output.putBoolean("Watcher", this.isWatcher());
         output.putString("Apparition", this.apparition.name());
     }
@@ -558,7 +514,7 @@ public class HerobrineEntity extends Monster {
         // Attributes and health are restored by super, so elite only re-applies the base values.
         this.setHostile(input.getBooleanOr("Hostile", false));
         this.setElite(input.getBooleanOr("Elite", false));
-        this.setInferno(input.getBooleanOr("Inferno", false));
+        // "Inferno" is gone: an old save that still carries the key simply has it ignored.
         this.setWatcher(input.getBooleanOr("Watcher", false));
         Apparition saved = Apparition.byName(input.getStringOr("Apparition", Apparition.WATCH.name()));
         this.apparition = saved == null ? Apparition.WATCH : saved;

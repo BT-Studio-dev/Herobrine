@@ -71,7 +71,7 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class HerobrineCommand {
     private static final SuggestionProvider<CommandSourceStack> FORM_SUGGESTIONS =
-            (context, builder) -> SharedSuggestionProvider.suggest(List.of("stalker", "hostile", "elite", "inferno", "watcher"), builder);
+            (context, builder) -> SharedSuggestionProvider.suggest(List.of("stalker", "hostile", "elite", "watcher"), builder);
     private static final SuggestionProvider<CommandSourceStack> APPARITION_SUGGESTIONS =
             (context, builder) -> SharedSuggestionProvider.suggest(
                     List.of("watch", "scare", "jumpscare", "spike", "runner", "lurking", "dwelling"), builder);
@@ -217,7 +217,7 @@ public final class HerobrineCommand {
         Vec3 pos = source.getPosition();
 
         if (!form.equals("stalker") && !form.equals("hostile") && !form.equals("elite")
-                && !form.equals("inferno") && !form.equals("watcher")) {
+                && !form.equals("watcher")) {
             source.sendFailure(Component.translatable("herobrine.command.summon.unknown_form", form));
             return 0;
         }
@@ -233,8 +233,6 @@ public final class HerobrineCommand {
 
         if (form.equals("stalker")) {
             herobrine.setHostile(false);
-        } else if (form.equals("inferno")) {
-            herobrine.setInferno(true);
         } else if (form.equals("watcher")) {
             herobrine.setWatcher(true);
         } else {
@@ -248,8 +246,8 @@ public final class HerobrineCommand {
         herobrine.finalizeSpawn(level, level.getCurrentDifficultyAt(herobrine.blockPosition()),
                 EntitySpawnReason.COMMAND, null);
 
-        // A freshly spawned elite or inferno has the base 60 HP of the normal mob until topped up.
-        if (herobrine.isElite() || herobrine.isInferno()) {
+        // A freshly spawned elite has the base 60 HP of the normal mob until topped up.
+        if (herobrine.isElite()) {
             herobrine.setHealth(herobrine.getMaxHealth());
         }
 
