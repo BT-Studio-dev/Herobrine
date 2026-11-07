@@ -128,6 +128,10 @@ To make the light only appear in the dark, add a `located` block to the `match` 
 Without LambDynamicLights installed nothing changes and nothing breaks — the file is simply never
 read.
 
+The track is synthesised rather than recorded, and the generator that builds it is in the repository
+at `tools/generate_haunting_track.py` — pip install numpy and soundfile, then run it from the repo
+root to regenerate the file. Tweak the bell times, the melody or the drone partials and re-run.
+
 ## Bundled third-party content
 
 This mod bundles an unmodified copy of the [From The Fog](https://github.com/LunarEclipseStudios/From-The-Fog)
