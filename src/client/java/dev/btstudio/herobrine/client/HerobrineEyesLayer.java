@@ -14,14 +14,12 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 
 /**
- * Glowing eyes. {@link RenderTypes#eyes(Identifier)} is the unlit render type vanilla uses for a
- * spider's eyes, so these pixels are drawn at full brightness no matter how dark the world is: in a
- * pitch black cave or at 3am the only thing you see is two burning eyes coming at you.
+ * Animated right-eye glow. {@link RenderTypes#eyes(Identifier)} is the unlit render type vanilla
+ * uses for spider eyes. A high-resolution, translucent eye mask gives the glow a soft halo on the
+ * face; it is not a shader-pack bloom effect and does not illuminate the world.
  *
- * <p>The layer submits the model itself rather than calling into {@code EyesLayer}: in 26.x a layer
- * has to hand the model to the node collector explicitly. Four layers, one per form, each only
- * submitting while the render state matches. The emissive layer pulses gently without changing the
- * underlying skin or the eye color for each form.
+ * <p>Four layers, one per form, each submit only while the render state matches. The emissive
+ * layer pulses gently without changing the underlying skin or the eye color for each form.
  */
 public class HerobrineEyesLayer extends RenderLayer<HerobrineRenderState,
         HumanoidModel<HerobrineRenderState>> {
@@ -52,13 +50,10 @@ public class HerobrineEyesLayer extends RenderLayer<HerobrineRenderState,
             return;
         }
 
-        // Only the head is submitted. The eyes live in a four pixel strip of a 64x64 skin, so
-        // drawing the whole body with that texture is asking for those pixels to land somewhere
-        // else; the head part carries exactly the UVs the strip was painted for.
-        // ageInTicks includes the partial tick, making this smooth between game ticks. Tint the
-        // emissive pixels rather than changing alpha, so the transparent rest of the skin remains
-        // transparent and white, red and orange eyes retain their own colors. The cycle is three
-        // seconds at 20 ticks per second and never goes completely dark.
+        // The head uses the standard skin UVs. The 256x256 mask is four times the resolution of
+        // the 64x64 skin, providing a softer halo on the character's right (viewer's left) eye.
+        // Tinting the emissive pixels leaves the other eye and the body skin unchanged. The cycle
+        // is three seconds at 20 ticks per second, with partial ticks for smooth animation.
         double phase = (state.ageInTicks + state.eyeGlowPhase) * (2.0 * Math.PI / 60.0);
         int brightness = (int) Math.round(255.0 * (0.7 + 0.3 * Math.sin(phase)));
         int tint = 0xFF000000 | (brightness << 16) | (brightness << 8) | brightness;

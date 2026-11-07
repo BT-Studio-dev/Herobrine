@@ -50,8 +50,8 @@ processResources {
     }
 }
 
-// Catch missing or malformed entity skins before publishing a jar. The renderer expects 64x64
-// player-layout textures for every form, including the separate glowing-eye layers.
+// Catch missing or malformed entity skins before publishing a jar. Bodies use the 64x64 player
+// layout; eye masks use the same UV layout at 256x256 to provide a softer right-eye halo.
 tasks.register('verifyEntityTextures') {
     def textures = ['herobrine', 'herobrine_eyes', 'herobrine_hostile', 'herobrine_hostile_eyes',
                     'herobrine_elite', 'herobrine_elite_eyes', 'herobrine_inferno',
@@ -65,8 +65,25 @@ tasks.register('verifyEntityTextures') {
                 throw new GradleException("Missing entity texture: ${file}")
             }
             def image = javax.imageio.ImageIO.read(file)
-            if (image == null || image.width != 64 || image.height != 64) {
-                throw new GradleException("Invalid entity texture (expected 64x64 PNG): ${file}")
+            def size = name.endsWith('_eyes') ? 256 : 64
+            if (image == null || image.width != size || image.height != size) {
+                throw new GradleException("Invalid entity texture (expected ${size}x${size} PNG): ${file}")
+            }
+            if (name.endsWith('_eyes')) {
+                // The character's right eye appears on the viewer's left. The opposite eye must
+                // have no emissive pixels, and the halo must remain on the front face of the head.
+                for (int y = 0; y < size; y++) {
+                    for (int x = 0; x < size; x++) {
+                        if (((image.getRGB(x, y) >>> 24) & 0xff) != 0 &&
+                            (x < 32 || x > 47 || y < 32 || y > 63)) {
+                            throw new GradleException("Eye glow outside right-eye region: ${file}")
+                        }
+                    }
+                }
+                if (((image.getRGB(38, 50) >>> 24) & 0xff) != 255 ||
+                    ((image.getRGB(35, 50) >>> 24) & 0xff) == 0) {
+                    throw new GradleException("Missing right-eye core or halo: ${file}")
+                }
             }
         }
     }
