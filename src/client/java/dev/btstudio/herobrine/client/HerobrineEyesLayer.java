@@ -63,7 +63,7 @@ public class HerobrineEyesLayer extends RenderLayer<HerobrineRenderState,
         int brightness = (int) Math.round(255.0 * (0.7 + 0.3 * Math.sin(phase)));
         int tint = 0xFF000000 | (brightness << 16) | (brightness << 8) | brightness;
         submitNodeCollector.order(1).submitModelPart(this.getParentModel().head, poseStack,
-                this.renderType, lightCoords, OverlayTexture.NO_OVERLAY, null, tint, null);
+                this.renderType, lightCoords, OverlayTexture.NO_OVERLAY, null, tint, 0);
     }
 
     public enum Form {
