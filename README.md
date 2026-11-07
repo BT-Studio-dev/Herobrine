@@ -34,6 +34,8 @@ which is behind its own switch.
 - **Items** — Iron Stick, Holy Water, The Cross — the cross banishes him when it holds.
 - **Notch Apple ritual** — burn a Notch Apple on netherrack to banish him to the void (or call him back).
 - **Steve friend** — summon Steve to travel with you; set him to stay or follow.
+- **Animated eyes** — Herobrine's glowing eyes gently pulse on every entity form while retaining
+  their white, red or orange color. This is a mod rendering effect, not an animated player skin.
 - **Purist mode** (True Herobrine rules) — he never edits a block, never sends chat, never attacks — he only ever
   appears above Y 60 in the Overworld and watches.
 - **Banish toggle** — send him to the void until you call him back.

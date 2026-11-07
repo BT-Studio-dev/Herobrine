@@ -61,6 +61,7 @@ public class HerobrineRenderer extends HumanoidMobRenderer<HerobrineEntity, Hero
         state.hostile = entity.isHostile();
         state.elite = entity.isElite();
         state.inferno = entity.isInferno();
+        state.eyeGlowPhase = Math.floorMod(entity.getId(), 60);
     }
 
     @Override
