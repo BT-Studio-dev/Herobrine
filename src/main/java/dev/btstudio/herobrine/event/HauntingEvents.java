@@ -78,7 +78,12 @@ public final class HauntingEvents {
     private static final boolean FAKE_CHAT_MESSAGES = true;
 
     /** Stops a single roll from shredding a whole forest. */
-    private static final int MAX_LEAVES_STRIPPED = 48;
+    /** The base of a sand pyramid, in blocks from the centre. A radius of 3 steps 7-5-3-1. */
+    private static final int PYRAMID_RADIUS = 3;
+    /** How far out the bare grove reaches, in blocks. */
+    private static final int GROVE_RADIUS = 6;
+    private static final int GROVE_HEIGHT_ABOVE = 10;
+    private static final int GROVE_DEPTH_BELOW = 2;
     /** ...or from felling every tree and fungus nearby. */
     private static final int MAX_TREE_LOGS_REMOVED = 24;
     private static final int MAX_WARTS_STRIPPED = 32;
@@ -106,7 +111,9 @@ public final class HauntingEvents {
     private static final Map<UUID, Long> LAST_MUSIC = new HashMap<>();
 
     /** How many blocks the dug tunnel runs into the hillside. */
-    private static final int TUNNEL_LENGTH = 5;
+    private static final int TUNNEL_LENGTH = 24;
+    /** A corridor shorter than this is not worth the hole in the surface, so nothing is dug. */
+    private static final int MIN_TUNNEL_LENGTH = 6;
 
     /**
      * Event weights. The roll is 0-99 and each event owns everything below its threshold, so the
@@ -630,6 +637,7 @@ public final class HauntingEvents {
                 }
 
                 if (Apparitions.spawnAt(level, outside, Apparition.WATCH, player) != null) {
+                    lightTheWindow(level, outside, glass);
                     level.playSound(null, outside.getX() + 0.5, outside.getY() + 0.5, outside.getZ() + 0.5,
                             ModSounds.WHISPER, SoundSource.AMBIENT, 1.0F, 0.9F);
                     return true;
@@ -638,6 +646,25 @@ public final class HauntingEvents {
         }
 
         return false;
+    }
+
+    /**
+     * Sets a soul torch beside him on the far side of the pane. Without it a night-time sighting is
+     * a silhouette you cannot actually make out, which defeats the point of him standing there.
+     * Only air over solid ground is used, and the pane itself is never replaced.
+     */
+    private static void lightTheWindow(ServerLevel level, BlockPos outside, BlockPos glass) {
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            BlockPos pos = outside.relative(direction);
+
+            if (pos.equals(glass) || !level.getBlockState(pos).isAir()
+                    || level.getBlockState(pos.below()).isAir()) {
+                continue;
+            }
+
+            level.setBlock(pos, Blocks.SOUL_TORCH.defaultBlockState(), 3);
+            return;
+        }
     }
 
     /** "Gravel mounds": a small pile of gravel where nothing was a second ago. */
@@ -686,25 +713,25 @@ public final class HauntingEvents {
     }
 
     /**
-     * Removes the leaves from a nearby tree but leaves the trunk standing - the "who stripped my
-     * tree?" sign that the original story is built on.
+     * Strips every leaf in a grove-sized sphere and leaves the trunks standing - the "who stripped
+     * my trees?" sign that the original story is built on. The whole stand goes at once rather than
+     * a fixed handful of blocks, so what is left is a ring of bare trunks with open sky above them.
      */
     public static void stripLeaves(ServerLevel level, ServerPlayer player, RandomSource random) {
         BlockPos centre = randomSurfacePos(level, player, random, 8, 24);
-        int removed = 0;
+        int radiusSquared = GROVE_RADIUS * GROVE_RADIUS;
 
-        for (int dx = -5; dx <= 5; dx++) {
-            for (int dy = -5; dy <= 6; dy++) {
-                for (int dz = -5; dz <= 5; dz++) {
-                    if (removed >= MAX_LEAVES_STRIPPED) {
-                        return;
+        for (int dx = -GROVE_RADIUS; dx <= GROVE_RADIUS; dx++) {
+            for (int dy = -GROVE_DEPTH_BELOW; dy <= GROVE_HEIGHT_ABOVE; dy++) {
+                for (int dz = -GROVE_RADIUS; dz <= GROVE_RADIUS; dz++) {
+                    if (dx * dx + dy * dy + dz * dz > radiusSquared) {
+                        continue;
                     }
 
                     BlockPos pos = centre.offset(dx, dy, dz);
 
                     if (level.getBlockState(pos).is(BlockTags.LEAVES)) {
                         level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
-                        removed++;
                     }
                 }
             }
@@ -736,23 +763,50 @@ public final class HauntingEvents {
         corridor.add(floor);
         corridor.add(floor.relative(side));
 
-        for (int step = 1; step <= TUNNEL_LENGTH; step++) {
-            BlockPos column = floor.relative(direction, step);
-            corridor.add(column);
-            corridor.add(column.above());
-            corridor.add(column.relative(side));
-            corridor.add(column.relative(side).above());
-        }
-
         for (BlockPos pos : corridor) {
-            if (!level.getBlockState(pos).isAir() && !isNaturalGround(level.getBlockState(pos))) {
+            if (!isDiggable(level, pos)) {
                 return;
             }
+        }
+
+        // The corridor runs on until the hillside stops being natural. Carving as far as the
+        // ground allows - rather than abandoning the whole tunnel the moment one block is wrong -
+        // is what lets it run long: a 24 block corridor almost always meets a cave or an ore
+        // seam part of the way, and a tunnel that stops there is still a tunnel.
+        int carved = 0;
+
+        for (int step = 1; step <= TUNNEL_LENGTH; step++) {
+            BlockPos column = floor.relative(direction, step);
+            List<BlockPos> ring = List.of(column, column.above(), column.relative(side),
+                    column.relative(side).above());
+            boolean clear = true;
+
+            for (BlockPos pos : ring) {
+                clear &= isDiggable(level, pos);
+            }
+
+            if (!clear) {
+                break;
+            }
+
+            corridor.addAll(ring);
+            carved = step;
+        }
+
+        if (carved < MIN_TUNNEL_LENGTH) {
+            return;
         }
 
         for (BlockPos pos : corridor) {
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
         }
+    }
+
+    /** Air, or ground that was there before the player was: stone, dirt, netherrack and friends. */
+    private static boolean isDiggable(ServerLevel level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+
+        return state.isAir() || isNaturalGround(state);
     }
 
     /**
@@ -778,17 +832,21 @@ public final class HauntingEvents {
     }
 
     private static void pyramidAt(ServerLevel level, BlockPos base) {
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                BlockPos pos = base.offset(dx, 0, dz);
+        for (int layer = PYRAMID_RADIUS; layer >= 1; layer--) {
+            int y = PYRAMID_RADIUS - layer;
 
-                if (isReplaceableForSand(level, pos)) {
-                    level.setBlock(pos, Blocks.SAND.defaultBlockState(), 3);
+            for (int dx = -layer; dx <= layer; dx++) {
+                for (int dz = -layer; dz <= layer; dz++) {
+                    BlockPos pos = base.offset(dx, y, dz);
+
+                    if (isReplaceableForSand(level, pos)) {
+                        level.setBlock(pos, Blocks.SAND.defaultBlockState(), 3);
+                    }
                 }
             }
         }
 
-        BlockPos cap = base.above();
+        BlockPos cap = base.above(PYRAMID_RADIUS);
 
         if (isReplaceableForSand(level, cap)) {
             level.setBlock(cap, Blocks.SAND.defaultBlockState(), 3);

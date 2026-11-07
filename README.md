@@ -27,10 +27,12 @@ which is behind its own switch.
 - **13 original sounds** with in-game subtitles (whispers, footsteps, heartbeat, mining, glitches, fog, the haunting
   track, and more).
 - **World events** — torches placed, lights snuffed or swapped, signs with one line, doors opening themselves, sand
-  pyramids (including out in water), gravel mounds, gold-and-redstone markers, mined trees, haunted animals, ghost
-  miner pickaxe sounds, window sightings.
+  pyramids (including out in water), gravel mounds, gold-and-redstone markers, mined trees, groves stripped bare,
+  haunted animals, ghost miner pickaxe sounds, long 2x2 tunnels running into the hillside, and window sightings
+  lit by a soul torch so you can actually make him out at night.
 - **Churches** spawn in the world with a holy-water cauldron on the altar; bottle holy water with an empty bottle.
-- **Gold shrine** — eight gold blocks and four redstone torches, lit with flint and steel.
+- **Gold shrine** — eight gold blocks and four redstone torches, sunk one block into the ground so only the
+  netherrack and the torches break the surface, lit with flint and steel.
 - **Items** — Iron Stick, Holy Water, The Cross — the cross banishes him when it holds.
 - **Iron-stick gear** — hammer Iron Sticks into a sword, helmet, chestplate, leggings and boots. Iron is the one
   thing he will not come near: carrying it turns away up to six apparitions in ten, and striking an apparition

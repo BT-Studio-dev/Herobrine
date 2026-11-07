@@ -18,13 +18,17 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
 
 /**
- * The summoning shrine: netherrack in the centre, a full ring of <b>eight</b> gold blocks around it,
- * and a redstone torch on top of each of the four cardinal gold blocks.
+ * The summoning shrine, sunk one block into the ground: netherrack in the centre, a full ring of
+ * <b>eight</b> gold blocks around it at the same level, and a redstone torch standing on each of the
+ * four cardinal gold blocks. The plate is recessed, so the torches sit at the pit's rim and only
+ * they and the netherrack break the surface.
  *
  * <pre>
- *   G G G          G = gold block (8 of them)
- *   G N G          N = netherrack (centre)
- *   G G G          the four cardinals carry a redstone torch on top
+ *   from above:       side on:
+ *     . T .             ~ T ~          G = gold block (8 of them), below the surface
+ *     T N T             G N G          N = netherrack (centre), below the surface
+ *     . T .             ~ ~ ~          T = redstone torch (4 of them), at the rim
+ *                                      ~ = the surface the pit is cut into
  * </pre>
  *
  * Light the top of the netherrack with flint and steel. The lightning is visual only; what arrives

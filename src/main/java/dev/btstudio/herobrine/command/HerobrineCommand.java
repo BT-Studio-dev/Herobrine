@@ -857,7 +857,7 @@ public final class HerobrineCommand {
         return 1;
     }
 
-    /** Builds the eight-block gold shrine two blocks in front of the player. */
+    /** Builds the eight-block gold shrine two blocks in front of the player, sunk into the ground. */
     private static int buildShrine(CommandContext<CommandSourceStack> context, String ring)
             throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
@@ -875,14 +875,17 @@ public final class HerobrineCommand {
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel level = source.getLevel();
 
-        // Two blocks ahead of the player, so the netherrack is not placed where they stand.
-        BlockPos center = player.blockPosition().relative(player.getDirection(), 2);
+        // Two blocks ahead of the player, so the netherrack is not placed where they stand, and one
+        // down: the shrine is sunk in a shallow pit. The plate sits below the surface with only the
+        // netherrack and the four torches showing at the rim.
+        BlockPos center = player.blockPosition().relative(player.getDirection(), 2).below();
 
         level.setBlock(center, Blocks.NETHERRACK.defaultBlockState(), 3);
         level.setBlock(center.above(), Blocks.AIR.defaultBlockState(), 3);
         level.setBlock(center.above(2), Blocks.AIR.defaultBlockState(), 3);
 
-        // The full ring: all eight horizontal neighbours, not just the four sides.
+        // The full ring: all eight horizontal neighbours, not just the four sides. The block above
+        // each one is cleared so the pit is open and the torches have somewhere to stand.
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 if (dx == 0 && dz == 0) {
@@ -890,6 +893,7 @@ public final class HerobrineCommand {
                 }
 
                 level.setBlock(center.offset(dx, 0, dz), Blocks.GOLD_BLOCK.defaultBlockState(), 3);
+                level.setBlock(center.offset(dx, 1, dz), Blocks.AIR.defaultBlockState(), 3);
             }
         }
 
