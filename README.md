@@ -86,7 +86,7 @@ The world continues running while the settings screen is open.
 
 ## Compatibility
 
-- Herobrine: Haunting 2.9.5
+- Herobrine: Haunting 3.0.0
 - Minecraft 26.3
 - Fabric Loader >= 0.19.0
 - Fabric API >= 0.165.0

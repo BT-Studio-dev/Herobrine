@@ -84,6 +84,14 @@ public final class HauntingEvents {
     private static final int GROVE_RADIUS = 6;
     private static final int GROVE_HEIGHT_ABOVE = 10;
     private static final int GROVE_DEPTH_BELOW = 2;
+
+    /**
+     * A backstop, not a design limit: a grove is meant to take a whole stand of trees, but a dense
+     * jungle canopy inside that radius can run to well over a thousand blocks, and clearing that
+     * many in a single tick is a stutter everyone on the server feels. Generous enough that no
+     * normal grove ever notices it.
+     */
+    private static final int MAX_LEAVES_PER_GROVE = 512;
     /** ...or from felling every tree and fungus nearby. */
     private static final int MAX_TREE_LOGS_REMOVED = 24;
     private static final int MAX_WARTS_STRIPPED = 32;
@@ -161,18 +169,23 @@ public final class HauntingEvents {
 
                 ServerLevel level = player.level();
 
+                // Read the settings once per player per second rather than three or four times:
+                // every lookup goes through the saved-data store, and this runs on every tick of
+                // every world on the server.
+                HerobrineSettings settings = HerobrineSettings.of(level);
+
                 // Banished to the void by the Notch Apple ritual: nothing happens at all.
-                if (HerobrineSettings.banished(level)) {
+                if (settings.isBanished()) {
                     continue;
                 }
 
                 RandomSource random = player.getRandom();
 
-                if (random.nextInt(intervalFor(level, stageOf(player))) == 0) {
-                    runRandomEvent(server, player, random);
+                if (random.nextInt(intervalFor(settings, stageOf(player))) == 0) {
+                    runRandomEvent(server, player, random, settings);
                 }
 
-                maybePlayMusic(level, player);
+                maybePlayMusic(level, player, settings);
             }
         });
     }
@@ -182,14 +195,13 @@ public final class HauntingEvents {
      * the floor, played when he is genuinely close. It is a setting, it has a volume, and the
      * gap between plays is longer than the track, so it never interrupts itself.
      */
-    private static void maybePlayMusic(ServerLevel level, ServerPlayer player) {
+    private static void maybePlayMusic(ServerLevel level, ServerPlayer player, HerobrineSettings settings) {
         long gameTime = level.getLevelData().getGameTime();
 
+        // Checked before anything else is looked at: most calls fall out here, once a second.
         if (gameTime % MUSIC_CHECK_TICKS != 0) {
             return;
         }
-
-        HerobrineSettings settings = HerobrineSettings.of(level);
 
         if (!settings.isMusic() || settings.musicVolume() <= 0) {
             return;
@@ -241,9 +253,14 @@ public final class HauntingEvents {
 
     /** The effective roll interval: three times as fast while a chase frenzy is running. */
     public static int intervalFor(ServerLevel level, int stage) {
+        return intervalFor(HerobrineSettings.of(level), stage);
+    }
+
+    /** As {@link #intervalFor(ServerLevel, int)}, for a caller that already has the settings. */
+    public static int intervalFor(HerobrineSettings settings, int stage) {
         int base = oneInFor(stage);
 
-        if (!HerobrineSettings.isChasing(level)) {
+        if (!settings.isChasing()) {
             return base;
         }
 
@@ -251,8 +268,13 @@ public final class HauntingEvents {
     }
 
     public static void runRandomEvent(MinecraftServer server, ServerPlayer player, RandomSource random) {
+        runRandomEvent(server, player, random, HerobrineSettings.of(player.level()));
+    }
+
+    /** As {@link #runRandomEvent(MinecraftServer, ServerPlayer, RandomSource)}, reusing the caller's settings. */
+    public static void runRandomEvent(MinecraftServer server, ServerPlayer player, RandomSource random,
+                                      HerobrineSettings settings) {
         ServerLevel level = player.level();
-        HerobrineSettings settings = HerobrineSettings.of(level);
 
         if (settings.isBanished()) {
             return;
@@ -740,10 +762,15 @@ public final class HauntingEvents {
     public static void stripLeaves(ServerLevel level, ServerPlayer player, RandomSource random) {
         BlockPos centre = randomSurfacePos(level, player, random, 8, 24);
         int radiusSquared = GROVE_RADIUS * GROVE_RADIUS;
+        int removed = 0;
 
         for (int dx = -GROVE_RADIUS; dx <= GROVE_RADIUS; dx++) {
             for (int dy = -GROVE_DEPTH_BELOW; dy <= GROVE_HEIGHT_ABOVE; dy++) {
                 for (int dz = -GROVE_RADIUS; dz <= GROVE_RADIUS; dz++) {
+                    if (removed >= MAX_LEAVES_PER_GROVE) {
+                        return;
+                    }
+
                     if (dx * dx + dy * dy + dz * dz > radiusSquared) {
                         continue;
                     }
@@ -752,6 +779,7 @@ public final class HauntingEvents {
 
                     if (level.getBlockState(pos).is(BlockTags.LEAVES)) {
                         level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+                        removed++;
                     }
                 }
             }

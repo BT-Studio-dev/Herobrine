@@ -61,6 +61,10 @@ public class HerobrineEntity extends Monster {
             SynchedEntityData.defineId(HerobrineEntity.class, EntityDataSerializers.BOOLEAN);
 
     /** ~20 seconds at 20 ticks per second. */
+    /** How often the name setting is re-read, in ticks. He ticks twenty times a second and the
+     *  name changes perhaps once in a world's lifetime. */
+    private static final int NAME_CHECK_INTERVAL = 20;
+
     private static final int MAX_STALK_TICKS = 400;
     /** ~1.5 seconds of being stared at. */
     private static final int MAX_STARE_TICKS = 30;
@@ -119,6 +123,10 @@ public class HerobrineEntity extends Monster {
     private int lifeTicks;
     private int stareTicks;
     private Apparition apparition = Apparition.WATCH;
+
+    /** The name last written to the nametag, so the tick compares strings instead of components. */
+    private String appliedName;
+    private int nameCheckTicks;
 
     public HerobrineEntity(EntityType<? extends HerobrineEntity> type, Level level) {
         super(type, level);
@@ -299,11 +307,21 @@ public class HerobrineEntity extends Monster {
      * exactly when you want to see it.
      */
     private void refreshName(ServerLevel level) {
-        Component wanted = HerobrineName.component(HerobrineSettings.name(level));
-
-        if (!wanted.equals(this.getCustomName())) {
-            this.setCustomName(wanted);
+        // Nothing has been applied yet, so look immediately; after that, once a second is plenty.
+        if (this.appliedName != null && --this.nameCheckTicks > 0) {
+            return;
         }
+
+        this.nameCheckTicks = NAME_CHECK_INTERVAL;
+
+        String wanted = HerobrineSettings.name(level);
+
+        if (wanted.equals(this.appliedName)) {
+            return;
+        }
+
+        this.appliedName = wanted;
+        this.setCustomName(HerobrineName.component(wanted));
     }
 
     /** The classic sighting: stand still, stare, and be gone once you get close. */
