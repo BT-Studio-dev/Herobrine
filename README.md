@@ -25,7 +25,12 @@ which is behind its own switch.
   a figure in your face, with a 1-in-12 chance of starting a chase frenzy.
 - **Chase mode** — a few minutes where apparitions come three times as often and he refuses to leave you alone.
 - **13 original sounds** with in-game subtitles (whispers, footsteps, heartbeat, mining, glitches, fog, the haunting
-  track, and more).
+  track, and more). Every one is synthesised for this mod; no audio is taken from any other mod or resource pack.
+- **A ten minute haunting track** — drone, wind, distant bells and something moving under the floor, that builds,
+  peaks and thins out again. It plays when he is genuinely close, with more than ten minutes between plays so it
+  never overlaps itself, and it fades to silence at both ends so it loops cleanly. Named `herobrine:music_haunt`,
+  so you can play it any time with `/playsound herobrine:music_haunt music @s` — handy if you want it under a
+  recording.
 - **World events** — torches placed, lights snuffed or swapped, signs with one line, doors opening themselves, sand
   pyramids (including out in water), gravel mounds, gold-and-redstone markers, mined trees, groves stripped bare,
   haunted animals, ghost miner pickaxe sounds, long 2x2 tunnels running into the hillside, and window sightings

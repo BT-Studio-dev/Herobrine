@@ -101,7 +101,9 @@ public final class HauntingEvents {
     /** The haunting track plays when he is this close... */
     private static final double MUSIC_RANGE = 28.0;
     /** ...at most once every five minutes... */
-    private static final int MUSIC_COOLDOWN_TICKS = 6_000;
+    /** Ten minutes, plus half a minute of quiet: the track is ten minutes long, so a shorter
+     * gap would start a second one on top of the first. */
+    private static final int MUSIC_COOLDOWN_TICKS = 12_600;
     /** ...and it is only ever considered every ten seconds. */
     private static final int MUSIC_CHECK_TICKS = 200;
     /** Played at this fraction of the configured volume: music, not a siren. */
@@ -176,8 +178,9 @@ public final class HauntingEvents {
     }
 
     /**
-     * The haunting track: fifty seconds of drone and distant bells, played when he is genuinely
-     * close. It is a setting, it has a volume, and it never interrupts itself.
+     * The haunting track: ten minutes of drone, wind, distant bells and something moving under
+     * the floor, played when he is genuinely close. It is a setting, it has a volume, and the
+     * gap between plays is longer than the track, so it never interrupts itself.
      */
     private static void maybePlayMusic(ServerLevel level, ServerPlayer player) {
         long gameTime = level.getLevelData().getGameTime();

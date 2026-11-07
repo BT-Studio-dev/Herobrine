@@ -82,7 +82,7 @@ public enum Feature {
     // ---- Sound ----
     /** The footsteps behind you and the cave noises that answer them. */
     SOUNDS(Group.SOUND, Items.SOUL_LANTERN, "schizo"),
-    /** The fifty second haunting track, played when he is genuinely close. */
+    /** The ten minute haunting track, played when he is genuinely close. */
     MUSIC(Group.SOUND, Items.MUSIC_DISC_13, "music"),
 
     // ---- Presence: the bigger pieces of the mod. ----

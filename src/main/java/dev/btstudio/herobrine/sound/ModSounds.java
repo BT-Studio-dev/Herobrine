@@ -33,7 +33,7 @@ public final class ModSounds {
     public static final SoundEvent CHIME = sound("chime");
     /** Reverse swell and a low boom - banished to the void. */
     public static final SoundEvent VOID = sound("void");
-    /** Fifty seconds of drone, wind, distant bells and something moving under the floor. */
+    /** Ten minutes of drone, wind, distant bells and something moving under the floor. */
     public static final SoundEvent MUSIC_HAUNT = sound("music_haunt");
     /** Two tense notes under a "caution" caption. */
     public static final SoundEvent CAUTION = sound("caution");
