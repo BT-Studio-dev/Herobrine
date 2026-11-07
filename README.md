@@ -43,6 +43,13 @@ which is behind its own switch.
   and more.
 - **No sleep** while he stands nearby.
 
+The settings screen is also available through Mod Menu. Its Haunting and Audio & World tabs group
+the existing controls, including a music-volume slider. Changes apply immediately; Reset defaults
+restores the current dimension's settings. Join a world before changing settings: commands require
+cheats in singleplayer or operator permission on a server. In multiplayer, install the same mod
+version on the server and check chat for confirmation; the screen cannot read server settings.
+The world continues running while the settings screen is open.
+
 ## Compatibility
 
 - Minecraft 26.3
@@ -54,7 +61,7 @@ which is behind its own switch.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+CC-BY-NC-SA-4.0 — see [LICENSE](LICENSE).
 
 ## Source
 
@@ -70,7 +77,7 @@ https://github.com/BT-Studio-dev/Herobrine
 /herobrine gravel | marker | herd | miner | window
 /herobrine torches | curse | candles | sign | donation | door | fire
 /herobrine phantom [add|clear]
-/herobrine mode [full|purist]
+/herobrine mode [full|purist|toggle]
 /herobrine schizo [on|off] | hauntstate | banish [on|off] | config [herd|miner|arson]
 /herobrine shrine [gold] | church | give <iron_stick|holy_water|the_cross>
 ```

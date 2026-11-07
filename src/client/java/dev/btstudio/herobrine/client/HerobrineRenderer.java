@@ -65,12 +65,13 @@ public class HerobrineRenderer extends HumanoidMobRenderer<HerobrineEntity, Hero
 
     @Override
     public Identifier getTextureLocation(HerobrineRenderState state) {
-        if (state.elite) {
-            return TEXTURE_ELITE;
-        }
-
+        // Match the eye layer's precedence when a saved entity has both flags.
         if (state.inferno) {
             return TEXTURE_INFERNO;
+        }
+
+        if (state.elite) {
+            return TEXTURE_ELITE;
         }
 
         return state.hostile ? TEXTURE_HOSTILE : TEXTURE;

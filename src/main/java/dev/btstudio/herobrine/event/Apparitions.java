@@ -165,10 +165,11 @@ public final class Apparitions {
             }
 
             if (underground) {
-                int y = (int) Math.floor(player.getY()) + random.nextInt(13) - 6;
-                BlockPos cave = new BlockPos(x, y, z);
+                // A single random Y rarely lands exactly on a cave floor. Search the nearby
+                // vertical range (and a few adjacent columns) for a safe standing position.
+                BlockPos cave = spotNear(level, new BlockPos(x, (int) Math.floor(player.getY()), z), 6, random);
 
-                if (isStandable(level, cave)) {
+                if (cave != null) {
                     return cave;
                 }
             }

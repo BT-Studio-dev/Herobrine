@@ -50,6 +50,29 @@ processResources {
     }
 }
 
+// Catch missing or malformed entity skins before publishing a jar. The renderer expects 64x64
+// player-layout textures for every form, including the separate glowing-eye layers.
+tasks.register('verifyEntityTextures') {
+    def textures = ['herobrine', 'herobrine_eyes', 'herobrine_hostile', 'herobrine_hostile_eyes',
+                    'herobrine_elite', 'herobrine_elite_eyes', 'herobrine_inferno',
+                    'herobrine_inferno_eyes', 'steve_friend']
+    def textureDir = layout.projectDirectory.dir('src/main/resources/assets/herobrine/textures/entity')
+    inputs.files(textures.collect { textureDir.file("${it}.png") })
+    doLast {
+        textures.each { name ->
+            def file = textureDir.file("${name}.png").asFile
+            if (!file.isFile()) {
+                throw new GradleException("Missing entity texture: ${file}")
+            }
+            def image = javax.imageio.ImageIO.read(file)
+            if (image == null || image.width != 64 || image.height != 64) {
+                throw new GradleException("Invalid entity texture (expected 64x64 PNG): ${file}")
+            }
+        }
+    }
+}
+tasks.named('check') { dependsOn tasks.named('verifyEntityTextures') }
+
 tasks.withType(JavaCompile).configureEach {
     it.options.release = 25
 }

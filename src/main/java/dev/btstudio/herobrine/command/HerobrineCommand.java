@@ -54,7 +54,7 @@ import net.minecraft.world.phys.Vec3;
  * /herobrine leaves | tunnel | structure [water] | tree | cobble | warts
  * /herobrine torches | curse | candles | sign | donation | door | fire
  * /herobrine phantom [add|clear]
- * /herobrine mode [full|purist]
+ * /herobrine mode [full|purist|toggle]
  * /herobrine apparition &lt;watch|scare|jumpscare|spike|runner|lurking|dwelling&gt; [&lt;player&gt;]
  * /herobrine schizo [on|off]
  * /herobrine hauntstate
@@ -124,6 +124,7 @@ public final class HerobrineCommand {
 
             root.then(Commands.literal("config")
                     .executes(HerobrineCommand::configStatus)
+                    .then(Commands.literal("reset").executes(HerobrineCommand::resetConfig))
                     .then(Commands.literal("herd").executes(context -> toggleHerd(context)))
                     .then(Commands.literal("miner").executes(context -> toggleMiner(context)))
                     .then(Commands.literal("arson").executes(context -> toggleArson(context)))
@@ -148,7 +149,9 @@ public final class HerobrineCommand {
             root.then(Commands.literal("mode")
                     .executes(HerobrineCommand::modeStatus)
                     .then(Commands.literal("full").executes(context -> setMode(context, false)))
-                    .then(Commands.literal("purist").executes(context -> setMode(context, true))));
+                    .then(Commands.literal("purist").executes(context -> setMode(context, true)))
+                    .then(Commands.literal("toggle").executes(context ->
+                            setMode(context, !HerobrineSettings.purist(context.getSource().getLevel())))));
 
             root.then(Commands.literal("apparition")
                     .then(Commands.argument("type", StringArgumentType.word())
@@ -356,7 +359,9 @@ public final class HerobrineCommand {
             return 0;
         }
 
-        ServerLevel level = source.getLevel();
+        // The command can target a player in another dimension; search and spawn in their world,
+        // not the world from which the command was run.
+        ServerLevel level = (ServerLevel) target.level();
         HerobrineEntity herobrine = Apparitions.spawn(level, target, apparition, level.getRandom());
 
         if (herobrine == null) {
@@ -456,6 +461,22 @@ public final class HerobrineCommand {
 
     private static String modeKey(boolean purist) {
         return purist ? "herobrine.command.mode.purist" : "herobrine.command.mode.full";
+    }
+
+    /** Restore the user-facing settings to the defaults for this dimension. */
+    private static int resetConfig(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        HerobrineSettings settings = HerobrineSettings.of(source.getLevel());
+        settings.setHerd(true);
+        settings.setMiner(true);
+        settings.setArson(true);
+        settings.setSchizo(true);
+        settings.setMusic(true);
+        settings.setMusicVolume(70);
+        settings.setPurist(false);
+        settings.setBanished(false);
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.reset"), true);
+        return 1;
     }
 
     private static int configStatus(CommandContext<CommandSourceStack> context) {
