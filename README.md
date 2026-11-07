@@ -1,3 +1,5 @@
+![Herobrine beneath the moon in a snowy landscape](gallery/herobrine-snow-one-moon.png)
+
 # Herobrine: Haunting
 
 Herobrine for Fabric on Minecraft 26.3: staged hauntings, seven apparitions, the fog closing in, 13 original sounds,
