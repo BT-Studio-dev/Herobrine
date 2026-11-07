@@ -1,0 +1,7 @@
+{
+	"replace": false,
+	"values": [
+		"lunareclipse.watching:main/reload",
+		"lunareclipse.utils:main/reload"
+	]
+}
