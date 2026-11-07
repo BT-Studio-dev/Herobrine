@@ -38,8 +38,9 @@ which is behind its own switch.
 - **Cold Iron advancement** — awarded for hammering your first piece of iron-stick gear.
 - **Notch Apple ritual** — burn a Notch Apple on netherrack to banish him to the void (or call him back).
 - **Steve friend** — summon Steve to travel with you; set him to stay or follow.
-- **Animated right eye** — Herobrine's right eye has a softly pulsing, shader-style halo on every
-  entity form, in its white, red or orange color. The other eye remains part of the normal skin.
+- **Animated glowing eyes** — both of Herobrine's eyes carry a softly pulsing, unlit halo on every
+  entity form: white for the stalker, red for the hostile and elite forms, orange for the inferno.
+  The halo is masked to the front face of the head, so it stays off the hair, the nose and the body.
   This is a client-side rendering effect, not an animated player skin or dynamic world lighting.
 - **Purist mode** (True Herobrine rules) — he never edits a block, never sends chat, never attacks — he only ever
   appears above Y 60 in the Overworld and watches.

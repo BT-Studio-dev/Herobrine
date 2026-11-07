@@ -14,9 +14,9 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 
 /**
- * Animated right-eye glow. {@link RenderTypes#eyes(Identifier)} is the unlit render type vanilla
- * uses for spider eyes. A high-resolution, translucent eye mask gives the glow a soft halo on the
- * face; it is not a shader-pack bloom effect and does not illuminate the world.
+ * Animated glowing eyes. {@link RenderTypes#eyes(Identifier)} is the unlit render type vanilla
+ * uses for spider eyes. A high-resolution, translucent eye mask gives <b>both</b> eyes a soft halo
+ * on the face; it is not a shader-pack bloom effect and does not illuminate the world.
  *
  * <p>Four layers, one per form, each submit only while the render state matches. The emissive
  * layer pulses gently without changing the underlying skin or the eye color for each form.
@@ -51,9 +51,13 @@ public class HerobrineEyesLayer extends RenderLayer<HerobrineRenderState,
         }
 
         // The head uses the standard skin UVs. The 256x256 mask is four times the resolution of
-        // the 64x64 skin, providing a softer halo on the character's right (viewer's left) eye.
-        // Tinting the emissive pixels leaves the other eye and the body skin unchanged. The cycle
-        // is three seconds at 20 ticks per second, with partial ticks for smooth animation.
+        // the 64x64 skin, so the halo can fade out softly instead of in whole pixels. The head's
+        // front face is skin 8,8 to 16,16, which is x 32-63, y 32-63 on the mask, and the mask
+        // carries both eyes as mirrors of each other about the centre of that face: the bridge of
+        // the nose sits between x=47 and x=48, so a pixel at x pairs with 95 - x. Skin pixels 9-10
+        // glow through mask x 36-43, and skin pixels 13-14 through mask x 52-59.
+        // Tinting the emissive pixels leaves the rest of the skin unchanged. The cycle is three
+        // seconds at 20 ticks per second, with partial ticks for smooth animation.
         double phase = (state.ageInTicks + state.eyeGlowPhase) * (2.0 * Math.PI / 60.0);
         int brightness = (int) Math.round(255.0 * (0.7 + 0.3 * Math.sin(phase)));
         int tint = 0xFF000000 | (brightness << 16) | (brightness << 8) | brightness;
