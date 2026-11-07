@@ -119,7 +119,7 @@ https://github.com/BT-Studio-dev/Herobrine
 ## Commands
 
 ```
-/herobrine summon <stalker|hostile|elite|watcher>
+/herobrine summon [stalker|hostile|elite|watcher]   (no form = stalker)
 /herobrine haunt [player]
 /herobrine apparition <watch|scare|jumpscare|spike|runner|lurking|dwelling> [player]
 /herobrine leaves | tunnel | structure [water] | tree | cobble | warts

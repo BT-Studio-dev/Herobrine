@@ -236,5 +236,6 @@
   "herobrine.sign.akta_dig": "akta dig",
   "herobrine.sign.spring": "spring",
   "herobrine.command.config.musictest.playing": "Playing the haunting track at %s. If you hear nothing, check the Music volume slider in your sound options.",
-  "herobrine.command.config.musictest.silent": "The haunting track cannot play: music is %s and the volume is %s."
+  "herobrine.command.config.musictest.silent": "The haunting track cannot play: music is %s and the volume is %s.",
+  "herobrine.command.summon.removed_form": "The %s form was removed from the mod. Use stalker, hostile, elite or watcher."
 }

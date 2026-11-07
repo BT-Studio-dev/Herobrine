@@ -3,6 +3,7 @@ package dev.btstudio.herobrine.command;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -55,7 +56,7 @@ import net.minecraft.world.phys.Vec3;
  * tested without hunting for a haunting or stacking blocks by hand.
  *
  * <pre>
- * /herobrine summon &lt;stalker|hostile|elite&gt;
+ * /herobrine summon [&lt;stalker|hostile|elite|watcher&gt;]
  * /herobrine haunt [&lt;player&gt;]
  * /herobrine leaves | tunnel | structure [water] | tree | cobble | warts
  * /herobrine torches | curse | candles | sign | donation | door | fire
@@ -77,6 +78,26 @@ import net.minecraft.world.phys.Vec3;
 public final class HerobrineCommand {
     private static final SuggestionProvider<CommandSourceStack> FORM_SUGGESTIONS =
             (context, builder) -> SharedSuggestionProvider.suggest(List.of("stalker", "hostile", "elite", "watcher"), builder);
+
+    /**
+     * What each accepted word means, including the obvious guesses. These last are worth carrying:
+     * "summon herobrine" is what everyone types first, and bouncing it back as an unknown form is
+     * unhelpful when there is exactly one thing it could mean.
+     */
+    private static final Map<String, String> FORMS = Map.ofEntries(
+            Map.entry("stalker", "stalker"),
+            Map.entry("hostile", "hostile"),
+            Map.entry("elite", "elite"),
+            Map.entry("watcher", "watcher"),
+            Map.entry("herobrine", "stalker"),
+            Map.entry("default", "stalker"),
+            Map.entry("normal", "stalker"),
+            Map.entry("passive", "stalker"),
+            Map.entry("aggressive", "hostile"),
+            Map.entry("angry", "hostile"));
+
+    /** Forms that used to exist and were deliberately taken out, so they can be named as such. */
+    private static final Set<String> REMOVED_FORMS = Set.of("inferno");
     private static final SuggestionProvider<CommandSourceStack> APPARITION_SUGGESTIONS =
             (context, builder) -> SharedSuggestionProvider.suggest(
                     List.of("watch", "scare", "jumpscare", "spike", "runner", "lurking", "dwelling"), builder);
@@ -126,10 +147,14 @@ public final class HerobrineCommand {
                         return 1;
                     });
 
+            // The form is optional: /herobrine summon on its own gives you the stalker rather
+            // than a syntax error.
             root.then(op("summon")
+                    .executes(context -> summon(context, "stalker"))
                     .then(Commands.argument("form", StringArgumentType.word())
                             .suggests(FORM_SUGGESTIONS)
-                            .executes(HerobrineCommand::summon)));
+                            .executes(context -> summon(context,
+                                    StringArgumentType.getString(context, "form")))));
 
             root.then(op("haunt")
                     .executes(HerobrineCommand::hauntSelf)
@@ -229,15 +254,17 @@ public final class HerobrineCommand {
         return Commands.literal(name).requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS));
     }
 
-    private static int summon(CommandContext<CommandSourceStack> context) {
+    private static int summon(CommandContext<CommandSourceStack> context, String word) {
         CommandSourceStack source = context.getSource();
-        String form = StringArgumentType.getString(context, "form").toLowerCase(Locale.ROOT);
+        String asked = word.toLowerCase(Locale.ROOT);
+        String form = FORMS.get(asked);
         ServerLevel level = source.getLevel();
         Vec3 pos = source.getPosition();
 
-        if (!form.equals("stalker") && !form.equals("hostile") && !form.equals("elite")
-                && !form.equals("watcher")) {
-            source.sendFailure(Component.translatable("herobrine.command.summon.unknown_form", form));
+        if (form == null) {
+            source.sendFailure(REMOVED_FORMS.contains(asked)
+                    ? Component.translatable("herobrine.command.summon.removed_form", asked)
+                    : Component.translatable("herobrine.command.summon.unknown_form", asked));
             return 0;
         }
 
