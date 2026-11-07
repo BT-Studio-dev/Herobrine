@@ -321,8 +321,10 @@ public final class HauntingEvents {
             fakeJoinLeave(server, random, HerobrineSettings.name(level));
         } else if (FAKE_CHAT_MESSAGES && roll < MESSAGE_ROLL) {
             creepyMessage(server, HerobrineSettings.name(level));
-        } else if (settings.enabled(Feature.FIRE) && roll < ARSON_ROLL) {
-            Sabotage.arson(level, player, random);
+        } else if (roll < ARSON_ROLL) {
+            if (settings.enabled(Feature.FIRE)) {
+                Sabotage.arson(level, player, random);
+            }
         } else if (roll < STRUCTURE_ROLL) {
             // "Perfect sand pyramids in the oceans or rivers" first, a dry one if there is no water.
             if (settings.enabled(Feature.STRUCTURES) && !buildPyramid(level, player, random, true)) {
