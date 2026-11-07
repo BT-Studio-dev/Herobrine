@@ -9,6 +9,7 @@ import dev.btstudio.herobrine.event.HauntingEvents;
 import dev.btstudio.herobrine.event.HolyWater;
 import dev.btstudio.herobrine.event.NotchAppleRitual;
 import dev.btstudio.herobrine.item.ModItems;
+import dev.btstudio.herobrine.network.HerobrineNetwork;
 import dev.btstudio.herobrine.sound.ModSounds;
 import dev.btstudio.herobrine.event.ShrineHandler;
 
@@ -51,6 +52,8 @@ public class HerobrineMod implements ModInitializer {
         BedWatcher.register();
         // The mod's own sound set (assets/herobrine/sounds.json).
         ModSounds.register();
+        // Tells each client whether the fog may close in, and what he is called.
+        HerobrineNetwork.register();
         // Bundled From The Fog content: ticks only where the per-dimension setting allows it.
         FromTheFog.register();
 

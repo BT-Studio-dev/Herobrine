@@ -3,6 +3,7 @@ package dev.btstudio.herobrine.event;
 import dev.btstudio.herobrine.entity.Apparition;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
+import dev.btstudio.herobrine.world.HerobrineSettings;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -47,11 +48,24 @@ public final class Apparitions {
     }
 
     /**
+     * Whether this way of showing himself is switched on in this dimension. Bed sightings, the
+     * cave ambience that turns into a lurker and the random rolls all come through here, so one
+     * check covers every place an apparition can come from.
+     */
+    private static boolean allowed(ServerLevel level, Apparition apparition) {
+        return apparition != null && HerobrineSettings.enabled(level, apparition.feature());
+    }
+
+    /**
      * Creates and places one apparition, already facing the player. Returns null when no valid
      * standing spot was found, in which case nothing is added to the world.
      */
     public static HerobrineEntity spawn(ServerLevel level, ServerPlayer player, Apparition apparition,
                                         RandomSource random) {
+        if (!allowed(level, apparition)) {
+            return null;
+        }
+
         BlockPos pos = switch (apparition) {
             case SCARE -> spotNear(level, player.blockPosition()
                     .relative(player.getDirection().getOpposite(), SCARE_DISTANCE), 4, random);
@@ -101,7 +115,7 @@ public final class Apparitions {
      * is). Nothing is added when the spot is not two blocks of air over solid ground.
      */
     public static HerobrineEntity spawnAt(ServerLevel level, BlockPos pos, Apparition apparition, Player player) {
-        if (!isStandable(level, pos)) {
+        if (!allowed(level, apparition) || !isStandable(level, pos)) {
             return null;
         }
 

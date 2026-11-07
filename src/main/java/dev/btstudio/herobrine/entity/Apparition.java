@@ -2,6 +2,8 @@ package dev.btstudio.herobrine.entity;
 
 import java.util.Locale;
 
+import dev.btstudio.herobrine.world.Feature;
+
 /**
  * The four ways he shows himself, straight out of <i>Him - Herobrine</i>.
  *
@@ -49,5 +51,39 @@ public enum Apparition {
 
     public String id() {
         return this.name().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * The switch that turns this one sighting off. Every other part of the haunting keeps running;
+     * only this way of showing himself goes quiet.
+     */
+    public Feature feature() {
+        return switch (this) {
+            case WATCH -> Feature.WATCH;
+            case SCARE -> Feature.SCARE;
+            case JUMPSCARE -> Feature.JUMPSCARE;
+            case SPIKE -> Feature.SPIKE;
+            case RUNNER -> Feature.RUNNER;
+            case LURKING -> Feature.LURKING;
+            case DWELLING -> Feature.DWELLING;
+        };
+    }
+
+    /**
+     * How often this sighting is rolled, out of 100, before stage 2 and from stage 2 onwards. The
+     * early game is mostly him standing and watching; the longer a world has been running, the more
+     * often he is right behind you or in your face.
+     */
+    public int weight(int stage) {
+        boolean early = stage < 2;
+        return switch (this) {
+            case WATCH -> early ? 30 : 15;
+            case RUNNER -> 15;
+            case LURKING -> 20;
+            case DWELLING -> early ? 15 : 20;
+            case SCARE -> early ? 10 : 12;
+            case JUMPSCARE -> early ? 7 : 10;
+            case SPIKE -> early ? 3 : 8;
+        };
     }
 }

@@ -24,10 +24,13 @@ import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.monster.Monster;
 
 import dev.btstudio.herobrine.event.IronWard;
 import dev.btstudio.herobrine.sound.ModSounds;
+import dev.btstudio.herobrine.world.HerobrineName;
+import dev.btstudio.herobrine.world.HerobrineSettings;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -266,6 +269,8 @@ public class HerobrineEntity extends Monster {
             return;
         }
 
+        this.refreshName(serverLevel);
+
         this.lifeTicks++;
 
         Player player = serverLevel.getNearestPlayer(this, SEARCH_RANGE);
@@ -282,6 +287,22 @@ public class HerobrineEntity extends Monster {
             case RUNNER -> this.tickRunner(serverLevel, player);
             case LURKING, DWELLING -> this.tickWatch(serverLevel, player);
             default -> this.tickWatch(serverLevel, player);
+        }
+    }
+
+    /**
+     * Keeps his name in step with the setting: the one the world has given him is the one on his
+     * nametag, on his death messages and in the chat lines he sends. It is stored as a custom name
+     * rather than looked up on demand, because that is the part Minecraft syncs to every client -
+     * and it is deliberately not made visible, so he still does not walk around with a label over
+     * his head. Vanilla shows the nametag of a named entity you are looking straight at, which is
+     * exactly when you want to see it.
+     */
+    private void refreshName(ServerLevel level) {
+        Component wanted = HerobrineName.component(HerobrineSettings.name(level));
+
+        if (!wanted.equals(this.getCustomName())) {
+            this.setCustomName(wanted);
         }
     }
 

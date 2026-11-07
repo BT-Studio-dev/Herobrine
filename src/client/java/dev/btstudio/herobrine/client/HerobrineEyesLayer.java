@@ -7,7 +7,7 @@ import dev.btstudio.herobrine.HerobrineMod;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
-import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.client.renderer.entity.layers.EyesLayer;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -18,10 +18,14 @@ import net.minecraft.resources.Identifier;
  * uses for spider eyes. A high-resolution, translucent eye mask gives <b>both</b> eyes a soft halo
  * on the face; it is not a shader-pack bloom effect and does not illuminate the world.
  *
- * <p>Four layers, one per form, each submit only while the render state matches. The emissive
+ * <p>Three layers, one per form, each submit only while the render state matches. The emissive
  * layer pulses gently without changing the underlying skin or the eye color for each form.
+ *
+ * <p>It extends vanilla's {@link EyesLayer} rather than reimplementing {@code RenderLayer}, so the
+ * eyes travel the same code path as an enderman's or a spider's - the one renderer patches, shader
+ * packs among them, already know how to handle.
  */
-public class HerobrineEyesLayer extends RenderLayer<HerobrineRenderState,
+public class HerobrineEyesLayer extends EyesLayer<HerobrineRenderState,
         HumanoidModel<HerobrineRenderState>> {
     private static final Identifier EYES_STALKER = HerobrineMod.id("textures/entity/herobrine_eyes.png");
     private static final Identifier EYES_HOSTILE = HerobrineMod.id("textures/entity/herobrine_hostile_eyes.png");
@@ -39,6 +43,16 @@ public class HerobrineEyesLayer extends RenderLayer<HerobrineRenderState,
             case HOSTILE -> EYES_HOSTILE;
             case ELITE -> EYES_ELITE;
         });
+    }
+
+    /**
+     * The render type for this layer's form. Vanilla's {@link EyesLayer} calls this itself, and
+     * renderer patches - shader packs included - recognise the class, so the eyes go down the same
+     * path an enderman's or a spider's do instead of one only this mod knows about.
+     */
+    @Override
+    public RenderType renderType() {
+        return this.renderType;
     }
 
     @Override

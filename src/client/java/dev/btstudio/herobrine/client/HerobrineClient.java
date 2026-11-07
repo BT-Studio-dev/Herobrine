@@ -3,6 +3,7 @@ package dev.btstudio.herobrine.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.brigadier.CommandDispatcher;
 
+import dev.btstudio.herobrine.HerobrineMod;
 import dev.btstudio.herobrine.entity.ModEntities;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -11,6 +12,9 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -37,6 +41,13 @@ public class HerobrineClient implements ClientModInitializer {
                 openSettings(client);
             }
         });
+
+        // The fog switch and his name, sent by the server for the dimension we are standing in.
+        HerobrineClientState.register();
+
+        // The fog, drawn in screen space for as long as a shader pack is refusing to draw it.
+        HudElementRegistry.attachElementBefore(VanillaHudElements.MISC_OVERLAYS,
+                HerobrineMod.id("closing_fog"), HerobrineFogOverlay::render);
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
                 registerCommand(dispatcher));

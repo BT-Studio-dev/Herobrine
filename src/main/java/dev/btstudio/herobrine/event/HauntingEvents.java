@@ -10,6 +10,8 @@ import dev.btstudio.herobrine.entity.Apparition;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
 import dev.btstudio.herobrine.sound.ModSounds;
+import dev.btstudio.herobrine.world.Feature;
+import dev.btstudio.herobrine.world.HerobrineName;
 import dev.btstudio.herobrine.world.HerobrineSettings;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -236,95 +238,141 @@ public final class HauntingEvents {
             return;
         }
 
-        boolean schizo = settings.isSchizo();
+        boolean sounds = settings.enabled(Feature.SOUNDS);
         boolean nether = level.dimension().equals(Level.NETHER);
         int roll = random.nextInt(100);
 
+        // Every branch below is one roll of the dice, and every one of them starts by asking
+        // whether that particular thing is switched on. A switch that is off is not a failure:
+        // whatever he would have done simply does not happen, and the next roll comes on its own.
         if (roll < TORCH_ROLL) {
-            placeTorch(level, player, random);
+            if (settings.enabled(Feature.TORCHES)) {
+                placeTorch(level, player, random);
+            }
         } else if (roll < FOOTSTEP_ROLL) {
-            // /herobrine schizo off: the noises stop, the rest of him does not.
-            if (schizo) {
+            // "Fearful footsteps". With the sounds off he used to leave a torch instead, and he
+            // still does - but only while torches are switched on too.
+            if (sounds) {
                 footsteps(level, player, random);
-            } else {
+            } else if (settings.enabled(Feature.TORCHES)) {
                 placeTorch(level, player, random);
             }
         } else if (roll < SOUND_ROLL) {
-            if (schizo) {
+            if (sounds) {
                 creepySound(level, player, random);
-            } else {
+            } else if (settings.enabled(Feature.DOORS)) {
                 Sabotage.ghostDoor(level, player, random);
             }
         } else if (roll < SNUFF_ROLL) {
-            Sabotage.snuffLights(level, player, random);
+            if (settings.enabled(Feature.CANDLES)) {
+                Sabotage.snuffLights(level, player, random);
+            }
         } else if (roll < CURSE_ROLL) {
-            if (random.nextBoolean()) {
-                Sabotage.curseLights(level, player, random);
+            // Two halves of one branch: the crimson curse, or every candle and campfire going out.
+            // Whichever he reaches for first, he falls back on the other when it is switched off.
+            boolean curseFirst = random.nextBoolean();
+
+            if (curseFirst) {
+                if (settings.enabled(Feature.CURSE)) {
+                    Sabotage.curseLights(level, player, random);
+                } else if (settings.enabled(Feature.CANDLES)) {
+                    Sabotage.douseFlames(level, player, random);
+                }
             } else {
-                Sabotage.douseFlames(level, player, random);
+                if (settings.enabled(Feature.CANDLES)) {
+                    Sabotage.douseFlames(level, player, random);
+                } else if (settings.enabled(Feature.CURSE)) {
+                    Sabotage.curseLights(level, player, random);
+                }
             }
         } else if (roll < LEAVE_ROLL) {
             // In the Nether there are no leaves to strip, so he takes the wart blocks instead.
             if (nether) {
-                stripNetherWarts(level, player);
-            } else {
+                if (settings.enabled(Feature.WARTS)) {
+                    stripNetherWarts(level, player);
+                }
+            } else if (settings.enabled(Feature.LEAVES)) {
                 stripLeaves(level, player, random);
             }
         } else if (roll < TUNNEL_ROLL) {
-            digTunnel(level, player, random);
+            if (settings.enabled(Feature.TUNNELS)) {
+                digTunnel(level, player, random);
+            }
         } else if (roll < SIGN_ROLL) {
-            Sabotage.creepySign(level, player, random);
+            if (settings.enabled(Feature.SIGNS)) {
+                Sabotage.creepySign(level, player, random, HerobrineSettings.name(level));
+            }
         } else if (roll < DONATION_ROLL) {
-            Sabotage.donation(level, player, random);
+            if (settings.enabled(Feature.DONATION)) {
+                Sabotage.donation(level, player, random);
+            }
         } else if (roll < DOOR_ROLL) {
-            Sabotage.ghostDoor(level, player, random);
+            if (settings.enabled(Feature.DOORS)) {
+                Sabotage.ghostDoor(level, player, random);
+            }
         } else if (FAKE_CHAT_MESSAGES && roll < JOIN_ROLL) {
-            fakeJoinLeave(server, random);
+            fakeJoinLeave(server, random, HerobrineSettings.name(level));
         } else if (FAKE_CHAT_MESSAGES && roll < MESSAGE_ROLL) {
-            creepyMessage(server);
-        } else if (settings.isArson() && roll < ARSON_ROLL) {
+            creepyMessage(server, HerobrineSettings.name(level));
+        } else if (settings.enabled(Feature.FIRE) && roll < ARSON_ROLL) {
             Sabotage.arson(level, player, random);
         } else if (roll < STRUCTURE_ROLL) {
             // "Perfect sand pyramids in the oceans or rivers" first, a dry one if there is no water.
-            if (!buildPyramid(level, player, random, true)) {
+            if (settings.enabled(Feature.STRUCTURES) && !buildPyramid(level, player, random, true)) {
                 buildPyramid(level, player, random, false);
             }
         } else if (roll < COBBLE_ROLL) {
-            placeCobblestone(level, player, random);
+            if (settings.enabled(Feature.COBBLE)) {
+                placeCobblestone(level, player, random);
+            }
         } else if (roll < TREE_ROLL) {
             // "Mined trees": the logs are gone, the leaves are still floating there.
             if (nether) {
-                stripNetherWarts(level, player);
-            } else {
+                if (settings.enabled(Feature.WARTS)) {
+                    stripNetherWarts(level, player);
+                }
+            } else if (settings.enabled(Feature.TREES)) {
                 stripTreeLogs(level, player, random);
             }
         } else if (roll < WART_ROLL) {
             if (nether) {
-                stripNetherWarts(level, player);
-            } else {
+                if (settings.enabled(Feature.WARTS)) {
+                    stripNetherWarts(level, player);
+                }
+            } else if (settings.enabled(Feature.COBBLE)) {
                 placeCobblestone(level, player, random);
             }
         } else if (roll < CHURCH_ROLL) {
             // "Things spawn that you don't remember building": a chapel out in the plains.
-            Churches.spawnNearPlayer(level, player, random);
+            if (settings.enabled(Feature.CHURCHES)) {
+                Churches.spawnNearPlayer(level, player, random);
+            }
         } else if (roll < GRAVEL_ROLL) {
-            placeGravelMound(level, player, random);
+            if (settings.enabled(Feature.GRAVEL)) {
+                placeGravelMound(level, player, random);
+            }
         } else if (roll < MARKER_ROLL) {
-            placeMarker(level, player, random);
+            if (settings.enabled(Feature.MARKERS)) {
+                placeMarker(level, player, random);
+            }
         } else if (roll < HERD_ROLL) {
-            // "Haunted herd": one of the animals nearby stops behaving like an animal.
-            if (!settings.isHerd() || !herdEvent(level, player, random)) {
+            // "Haunted herd": one of the animals nearby stops behaving like an animal. No animal
+            // to possess, and he leaves a block of cobblestone instead - if he is allowed to.
+            if (!(settings.enabled(Feature.HERD) && herdEvent(level, player, random))
+                    && settings.enabled(Feature.COBBLE)) {
                 placeCobblestone(level, player, random);
             }
         } else if (roll < MINER_ROLL) {
             // "Ghost miner": a pickaxe in stone that nobody is swinging.
-            if (settings.isMiner()) {
+            if (settings.enabled(Feature.MINER)) {
                 ghostMiner(level, player, random);
-            } else {
+            } else if (sounds) {
                 creepySound(level, player, random);
             }
         } else if (roll < WINDOW_ROLL) {
-            windowSighting(level, player, random);
+            if (settings.enabled(Feature.WINDOW)) {
+                windowSighting(level, player, random);
+            }
         } else {
             spawnApparition(level, player, random, stageOf(player));
         }
@@ -351,7 +399,12 @@ public final class HauntingEvents {
             return null;
         }
 
-        Apparition apparition = pickApparition(random, stage);
+        Apparition apparition = pickApparition(level, random, stage);
+
+        if (apparition == null) {
+            return null;
+        }
+
         // Automatic rolls never tell the player when they find no ground: a sighting that cannot
         // be placed simply is not placed, and the next roll happens on its own. Only the operator
         // command reports a failure.
@@ -364,46 +417,40 @@ public final class HauntingEvents {
         return herobrine;
     }
 
-    private static Apparition pickApparition(RandomSource random, int stage) {
-        int roll = random.nextInt(100);
+    /**
+     * Picks one of the sightings that are switched on, weighted by {@link Apparition#weight(int)}.
+     * With all seven on the weights add up to 100, so this rolls exactly as it always did; with some
+     * of them off the others take their share. Null when every sighting is switched off, in which
+     * case no apparition is placed at all.
+     */
+    public static Apparition pickApparition(ServerLevel level, RandomSource random, int stage) {
+        int total = 0;
 
-        if (stage < 2) {
-            if (roll < 30) {
-                return Apparition.WATCH;
+        for (Apparition apparition : Apparition.values()) {
+            if (HerobrineSettings.enabled(level, apparition.feature())) {
+                total += apparition.weight(stage);
+            }
+        }
+
+        if (total <= 0) {
+            return null;
+        }
+
+        int roll = random.nextInt(total);
+
+        for (Apparition apparition : Apparition.values()) {
+            if (!HerobrineSettings.enabled(level, apparition.feature())) {
+                continue;
             }
 
-            if (roll < 45) {
-                return Apparition.RUNNER;
+            roll -= apparition.weight(stage);
+
+            if (roll < 0) {
+                return apparition;
             }
-
-            if (roll < 65) {
-                return Apparition.LURKING;
-            }
-
-            if (roll < 80) {
-                return Apparition.DWELLING;
-            }
-
-            return roll < 90 ? Apparition.SCARE : roll < 97 ? Apparition.JUMPSCARE : Apparition.SPIKE;
         }
 
-        if (roll < 15) {
-            return Apparition.WATCH;
-        }
-
-        if (roll < 30) {
-            return Apparition.RUNNER;
-        }
-
-        if (roll < 50) {
-            return Apparition.LURKING;
-        }
-
-        if (roll < 70) {
-            return Apparition.DWELLING;
-        }
-
-        return roll < 82 ? Apparition.SCARE : roll < 92 ? Apparition.JUMPSCARE : Apparition.SPIKE;
+        return null;
     }
 
     /** Chase mode: a few minutes where he cannot leave you alone. */
@@ -836,20 +883,24 @@ public final class HauntingEvents {
         return false;
     }
 
-    private static void fakeJoinLeave(MinecraftServer server, RandomSource random) {
+    /**
+     * The oldest trick in the book: a line in chat saying he joined, or left, when he did neither.
+     * He goes by whatever name the world has given him.
+     */
+    private static void fakeJoinLeave(MinecraftServer server, RandomSource random, String name) {
         String key = random.nextBoolean() ? "multiplayer.player.joined" : "multiplayer.player.left";
 
         server.getPlayerList().broadcastSystemMessage(
-                Component.translatable(key, Component.literal("Herobrine"))
+                Component.translatable(key, HerobrineName.component(name))
                         .withStyle(ChatFormatting.YELLOW),
                 false);
     }
 
-    /** Herobrine answers in chat with the one word the original creepypasta is famous for. */
-    private static void creepyMessage(MinecraftServer server) {
+    /** He answers in chat with the one word the original creepypasta is famous for. */
+    private static void creepyMessage(MinecraftServer server, String name) {
         server.getPlayerList().broadcastSystemMessage(
                 Component.translatable("chat.type.text",
-                        Component.literal("Herobrine").withStyle(ChatFormatting.DARK_RED),
+                        HerobrineName.component(name).withStyle(ChatFormatting.DARK_RED),
                         Component.translatable("herobrine.message.stop")),
                 false);
     }

@@ -5,6 +5,7 @@ import java.util.List;
 
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.sound.ModSounds;
+import dev.btstudio.herobrine.world.Feature;
 import dev.btstudio.herobrine.world.HerobrineSettings;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -48,7 +49,9 @@ public final class NotchAppleRitual {
             }
 
             for (ServerLevel level : server.getAllLevels()) {
-                offerBurningApples(server, level);
+                if (HerobrineSettings.enabled(level, Feature.NOTCH_APPLE)) {
+                    offerBurningApples(server, level);
+                }
             }
         });
     }

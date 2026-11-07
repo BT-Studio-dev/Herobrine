@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 
+import dev.btstudio.herobrine.world.HerobrineName;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -48,23 +50,26 @@ public final class Sabotage {
     private static final int MAX_CHANGES = 4;
 
     /**
-     * The one line he leaves behind. Inferno's signs are short - "Stop", warnings in Swedish - so the
-     * last three are exactly that.
+     * The lang keys of the one line he leaves behind. Inferno's signs are short - "Stop", warnings
+     * in Swedish - and the three in the middle are the ones that name him, which is why every line
+     * is translated with his name as an argument: the ones that do not use it simply drop it.
      */
-    private static final String[] SIGN_LINES = {
-            "stop",
-            "come outside",
-            "i see you",
-            "leave now",
-            "he is here",
-            "look behind you",
-            "don't sleep",
-            "wake up",
-            "run",
+    private static final String[] SIGN_KEYS = {
+            "herobrine.sign.stop",
+            "herobrine.sign.come_outside",
+            "herobrine.sign.i_see_you",
+            "herobrine.sign.leave_now",
+            "herobrine.sign.was_here",
+            "herobrine.sign.sees_you",
+            "herobrine.sign.is_here",
+            "herobrine.sign.look_behind_you",
+            "herobrine.sign.dont_sleep",
+            "herobrine.sign.wake_up",
+            "herobrine.sign.run",
             // Swedish warnings, straight out of the same mod.
-            "jag ser dig",
-            "akta dig",
-            "spring",
+            "herobrine.sign.jag_ser_dig",
+            "herobrine.sign.akta_dig",
+            "herobrine.sign.spring",
     };
 
     /** The sign is not always oak: Inferno's mod ships every wood variant. */
@@ -165,8 +170,12 @@ public final class Sabotage {
         return doused;
     }
 
-    /** "Sinister signs": an oak sign appears nearby with a single line on it. */
-    public static boolean creepySign(ServerLevel level, ServerPlayer player, RandomSource random) {
+    /**
+     * "Sinister signs": a sign appears nearby with a single line on it, and the lines that name him
+     * use the name this world has given him.
+     */
+    public static boolean creepySign(ServerLevel level, ServerPlayer player, RandomSource random,
+                                     String name) {
         BlockPos pos = findSignSpot(level, player, random);
 
         if (pos == null) {
@@ -182,8 +191,9 @@ public final class Sabotage {
 
         List<Component> messages = new ArrayList<>(List.of(Component.empty(), Component.empty(),
                 Component.empty(), Component.empty()));
+        String key = SIGN_KEYS[random.nextInt(SIGN_KEYS.length)];
         messages.set(random.nextInt(messages.size()),
-                Component.literal(SIGN_LINES[random.nextInt(SIGN_LINES.length)]));
+                Component.translatable(key, HerobrineName.component(name)));
 
         sign.setText(new SignText(messages, messages, DyeColor.RED, false), SignTextSlot.FRONT);
         return true;

@@ -2,6 +2,7 @@ package dev.btstudio.herobrine.command;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -20,6 +21,8 @@ import dev.btstudio.herobrine.event.HauntingEvents;
 import dev.btstudio.herobrine.event.NotchAppleRitual;
 import dev.btstudio.herobrine.event.Sabotage;
 import dev.btstudio.herobrine.item.ModItems;
+import dev.btstudio.herobrine.world.Feature;
+import dev.btstudio.herobrine.world.HerobrineName;
 import dev.btstudio.herobrine.world.HerobrineSettings;
 import dev.btstudio.herobrine.world.PhantomPresence;
 
@@ -63,7 +66,7 @@ import net.minecraft.world.phys.Vec3;
  * /herobrine banish [on|off]
  * /herobrine shrine [gold]
  * /herobrine gravel | marker | herd | miner | window
- * /herobrine config [herd|miner|arson|music|musicvolume]
+ * /herobrine config [&lt;setting&gt; | all on|off | name &lt;text&gt;|reset | reset | musicvolume]
  * /herobrine steve [spawn|dismiss|stay|follow]
  * /herobrine church
  * /herobrine give &lt;iron_stick|iron_sword|iron_helmet|iron_chestplate|iron_leggings|iron_boots|holy_water|the_cross&gt;
@@ -81,6 +84,31 @@ public final class HerobrineCommand {
                             "iron_boots", "holy_water", "the_cross"), builder);
     private static final SuggestionProvider<CommandSourceStack> RING_SUGGESTIONS =
             (context, builder) -> SharedSuggestionProvider.suggest(List.of("gold"), builder);
+
+    /**
+     * Which switch governs each one-off trace command. Kept next to the command tree it belongs to
+     * so that turning a thing off really does stop it, however it was asked for.
+     */
+    private static final Map<String, Feature> TRACE_FEATURES = Map.ofEntries(
+            Map.entry("leaves", Feature.LEAVES),
+            Map.entry("tunnel", Feature.TUNNELS),
+            Map.entry("structure", Feature.STRUCTURES),
+            Map.entry("structure.water", Feature.STRUCTURES),
+            Map.entry("tree", Feature.TREES),
+            Map.entry("cobble", Feature.COBBLE),
+            Map.entry("warts", Feature.WARTS),
+            Map.entry("gravel", Feature.GRAVEL),
+            Map.entry("marker", Feature.MARKERS),
+            Map.entry("herd", Feature.HERD),
+            Map.entry("miner", Feature.MINER),
+            Map.entry("window", Feature.WINDOW),
+            Map.entry("torches", Feature.CANDLES),
+            Map.entry("curse", Feature.CURSE),
+            Map.entry("candles", Feature.CANDLES),
+            Map.entry("sign", Feature.SIGNS),
+            Map.entry("donation", Feature.DONATION),
+            Map.entry("door", Feature.DOORS),
+            Map.entry("fire", Feature.FIRE));
 
     private HerobrineCommand() {
     }
@@ -127,18 +155,7 @@ public final class HerobrineCommand {
                     .then(Commands.literal("stay").executes(context -> steveStay(context, true)))
                     .then(Commands.literal("follow").executes(context -> steveStay(context, false))));
 
-            root.then(op("config")
-                    .executes(HerobrineCommand::configStatus)
-                    .then(Commands.literal("reset").executes(HerobrineCommand::resetConfig))
-                    .then(Commands.literal("herd").executes(context -> toggleHerd(context)))
-                    .then(Commands.literal("miner").executes(context -> toggleMiner(context)))
-                    .then(Commands.literal("arson").executes(context -> toggleArson(context)))
-                    .then(Commands.literal("fog").executes(context -> toggleFog(context)))
-                    .then(Commands.literal("music").executes(context -> toggleMusic(context)))
-                    .then(Commands.literal("musicvolume")
-                            .executes(HerobrineCommand::cycleMusicVolume)
-                            .then(Commands.argument("percent", IntegerArgumentType.integer(0, 100))
-                                    .executes(HerobrineCommand::setMusicVolume))));
+            root.then(configBranch());
             root.then(op("torches").executes(context -> trace(context, "torches")));
             root.then(op("curse").executes(context -> trace(context, "curse")));
             root.then(op("candles").executes(context -> trace(context, "candles")));
@@ -285,6 +302,11 @@ public final class HerobrineCommand {
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel level = source.getLevel();
         RandomSource random = level.getRandom();
+        Feature feature = TRACE_FEATURES.getOrDefault(trace, Feature.FIRE);
+
+        if (switchedOff(source, feature)) {
+            return 0;
+        }
 
         switch (trace) {
             case "leaves" -> HauntingEvents.stripLeaves(level, player, random);
@@ -307,7 +329,7 @@ public final class HerobrineCommand {
             case "torches" -> Sabotage.snuffLights(level, player, random);
             case "curse" -> Sabotage.curseLights(level, player, random);
             case "candles" -> Sabotage.douseFlames(level, player, random);
-            case "sign" -> Sabotage.creepySign(level, player, random);
+            case "sign" -> Sabotage.creepySign(level, player, random, HerobrineSettings.name(level));
             case "donation" -> Sabotage.donation(level, player, random);
             case "door" -> Sabotage.ghostDoor(level, player, random);
             default -> Sabotage.arson(level, player, random);
@@ -374,6 +396,10 @@ public final class HerobrineCommand {
 
         if (apparition == null) {
             source.sendFailure(Component.translatable("herobrine.command.apparition.unknown", name));
+            return 0;
+        }
+
+        if (switchedOff(source, apparition.feature())) {
             return 0;
         }
 
@@ -462,43 +488,37 @@ public final class HerobrineCommand {
         int stage = stageOf(source);
         MutableComponent message = Component.translatable("herobrine.command.settings.header");
 
-        message.append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.mode",
-                        Component.translatable(modeKey(settings.isPurist()))))
-                .append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.banished",
-                        Component.translatable(onOffKey(settings.isBanished()))))
-                .append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.schizo",
-                        Component.translatable(onOffKey(settings.isSchizo()))))
-                .append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.herd",
-                        Component.translatable(onOffKey(settings.isHerd()))))
-                .append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.miner",
-                        Component.translatable(onOffKey(settings.isMiner()))))
-                .append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.arson",
-                        Component.translatable(onOffKey(settings.isArson()))))
-                .append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.music",
-                        Component.translatable(onOffKey(settings.isMusic()))))
-                .append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.volume",
-                        settings.musicVolume() + "%"))
-                .append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.fog",
-                        Component.translatable(onOffKey(settings.isFog()))))
-                .append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.stage", stage))
-                .append(Component.literal("\n"))
-                .append(Component.translatable("herobrine.command.settings.interval",
-                        HauntingEvents.intervalFor(level, stage)))
-                .append(Component.literal("\n"))
-                .append(chaseLine(chaseSeconds(level)));
+        line(message, "herobrine.command.settings.name", Component.literal(settings.name()));
+        line(message, "herobrine.command.settings.mode",
+                Component.translatable(modeKey(settings.isPurist())));
+        line(message, "herobrine.command.settings.banished",
+                Component.translatable(onOffKey(settings.isBanished())));
+        line(message, "herobrine.command.settings.volume", Component.literal(settings.musicVolume() + "%"));
+        line(message, "herobrine.command.settings.stage", Component.literal(String.valueOf(stage)));
+        line(message, "herobrine.command.settings.interval",
+                Component.literal(String.valueOf(HauntingEvents.intervalFor(level, stage))));
+        message.append(Component.literal("\n")).append(chaseLine(chaseSeconds(level)));
+
+        // Then every switch there is, filed under the same headings the settings screen uses.
+        for (Feature.Group group : Feature.Group.values()) {
+            message.append(Component.literal("\n"))
+                    .append(Component.translatable("herobrine.command.settings.group."
+                            + group.name().toLowerCase(Locale.ROOT)));
+
+            for (Feature feature : Feature.inGroup(group)) {
+                line(message, "herobrine.command.settings.feature",
+                        Component.translatable(feature.titleKey()),
+                        Component.translatable(onOffKey(settings.enabled(feature))));
+            }
+        }
 
         source.sendSuccess(() -> message, false);
         return 1;
+    }
+
+    /** One indented line on the settings listing. */
+    private static void line(MutableComponent message, String key, Object... args) {
+        message.append(Component.literal("\n")).append(Component.translatable(key, args));
     }
 
     /** Seconds left in the current chase frenzy; 0 when he is not chasing anyone. */
@@ -544,54 +564,134 @@ public final class HerobrineCommand {
         return purist ? "herobrine.command.mode.purist" : "herobrine.command.mode.full";
     }
 
+    /**
+     * {@code /herobrine config}: one branch that flips a single switch, plus the branches that set
+     * them all at once, rename him, and put everything back. Every literal under it is built from
+     * {@link Feature#commandIds()}, so adding a switch to the enum is all it takes to add its
+     * command - and the old names ({@code arson}, {@code fog}) stay where they have always been.
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> configBranch() {
+        LiteralArgumentBuilder<CommandSourceStack> config = op("config")
+                .executes(HerobrineCommand::configStatus)
+                .then(Commands.literal("reset").executes(HerobrineCommand::resetConfig))
+                .then(Commands.literal("all")
+                        .then(Commands.literal("on").executes(context -> setAllFeatures(context, true)))
+                        .then(Commands.literal("off").executes(context -> setAllFeatures(context, false))))
+                .then(Commands.literal("name")
+                        .executes(HerobrineCommand::showName)
+                        .then(Commands.literal("reset").executes(HerobrineCommand::resetName))
+                        .then(Commands.argument("value", StringArgumentType.word())
+                                .executes(HerobrineCommand::setName)))
+                .then(Commands.literal("musicvolume")
+                        .executes(HerobrineCommand::cycleMusicVolume)
+                        .then(Commands.argument("percent", IntegerArgumentType.integer(0, 100))
+                                .executes(HerobrineCommand::setMusicVolume)));
+
+        for (String id : Feature.commandIds()) {
+            config.then(Commands.literal(id).executes(context -> toggleFeature(context, id)));
+        }
+
+        return config;
+    }
+
+    /** Flips one switch and says so. */
+    private static int toggleFeature(CommandContext<CommandSourceStack> context, String id) {
+        CommandSourceStack source = context.getSource();
+        Feature feature = Feature.byCommandId(id);
+        boolean on = HerobrineSettings.toggle(source.getLevel(), feature);
+
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
+                Component.translatable(feature.titleKey()),
+                Component.translatable(onOffKey(on))), true);
+        return on ? 1 : 0;
+    }
+
+    /** Every switch at once: {@code /herobrine config all on|off}. */
+    private static int setAllFeatures(CommandContext<CommandSourceStack> context, boolean on) {
+        CommandSourceStack source = context.getSource();
+        HerobrineSettings.setAll(source.getLevel(), on);
+
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.all",
+                Component.translatable(onOffKey(on))), true);
+        return 1;
+    }
+
+    private static int showName(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.name.show",
+                HerobrineSettings.name(source.getLevel())), false);
+        return 1;
+    }
+
+    /**
+     * {@code /herobrine config name <text>}: the name he goes by. One short line when the name will
+     * not do, rather than a silent correction to something he never said.
+     */
+    private static int setName(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        String value = StringArgumentType.getString(context, "value");
+
+        if (!HerobrineName.isValid(value)) {
+            source.sendFailure(Component.translatable("herobrine.command.config.name.invalid",
+                    HerobrineName.MAX_LENGTH));
+            return 0;
+        }
+
+        HerobrineSettings.of(source.getLevel()).setName(value);
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.name.set", value), true);
+        return 1;
+    }
+
+    /** {@code /herobrine config name reset}: back to the name he has always gone by. */
+    private static int resetName(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        HerobrineSettings.of(source.getLevel()).setName(HerobrineName.DEFAULT);
+
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.name.reset",
+                Component.translatable("herobrine.name.default")), true);
+        return 1;
+    }
+
+    /**
+     * True when this part of the haunting is switched off in the sender's dimension, having told
+     * them so. Used by every command that reaches for a feature directly.
+     */
+    private static boolean switchedOff(CommandSourceStack source, Feature feature) {
+        if (HerobrineSettings.enabled(source.getLevel(), feature)) {
+            return false;
+        }
+
+        source.sendFailure(Component.translatable("herobrine.command.feature.off",
+                Component.translatable(feature.titleKey())));
+        return true;
+    }
+
     /** Restore the user-facing settings to the defaults for this dimension. */
     private static int resetConfig(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         HerobrineSettings settings = HerobrineSettings.of(source.getLevel());
-        settings.setHerd(true);
-        settings.setMiner(true);
-        settings.setArson(true);
-        settings.setSchizo(true);
-        settings.setMusic(true);
+
+        for (Feature feature : Feature.values()) {
+            settings.setEnabled(feature, feature.defaultOn());
+        }
+
         settings.setMusicVolume(70);
         settings.setPurist(false);
         settings.setBanished(false);
-        // The bundled From The Fog content stays off unless a player asks for it.
-        settings.setFog(false);
+        settings.setName(HerobrineName.DEFAULT);
         source.sendSuccess(() -> Component.translatable("herobrine.command.config.reset"), true);
         return 1;
     }
 
+    /**
+     * {@code /herobrine config} on its own: a one line reminder of what the branch does rather than
+     * a dump of thirty-odd values, which is what {@code /herobrine settings} is for.
+     */
     private static int configStatus(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        HerobrineSettings settings = HerobrineSettings.of(source.getLevel());
-
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.status",
-                Component.translatable(onOffKey(settings.isHerd())),
-                Component.translatable(onOffKey(settings.isMiner())),
-                Component.translatable(onOffKey(settings.isArson())),
-                Component.translatable(onOffKey(settings.isMusic()))), false);
+        context.getSource().sendSuccess(
+                () -> Component.translatable("herobrine.command.config.status"), false);
         return 1;
-    }
-
-    private static int toggleHerd(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        boolean on = HerobrineSettings.toggleHerd(source.getLevel());
-
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
-                Component.translatable("herobrine.command.config.herd"),
-                Component.translatable(onOffKey(on))), true);
-        return on ? 1 : 0;
-    }
-
-    private static int toggleMiner(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        boolean on = HerobrineSettings.toggleMiner(source.getLevel());
-
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
-                Component.translatable("herobrine.command.config.miner"),
-                Component.translatable(onOffKey(on))), true);
-        return on ? 1 : 0;
     }
 
     /** Every Steve belonging to this player, in this dimension. */
@@ -604,6 +704,11 @@ public final class HerobrineCommand {
     /** Summons the friendly Steve three blocks in front of you. One per player, not a crowd. */
     private static int steveSpawn(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
+
+        if (switchedOff(source, Feature.STEVE)) {
+            return 0;
+        }
+
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel level = source.getLevel();
 
@@ -677,16 +782,6 @@ public final class HerobrineCommand {
         return 1;
     }
 
-    private static int toggleMusic(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        boolean on = HerobrineSettings.toggleMusic(source.getLevel());
-
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
-                Component.translatable("herobrine.command.config.music"),
-                Component.translatable(onOffKey(on))), true);
-        return on ? 1 : 0;
-    }
-
     private static int cycleMusicVolume(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         int volume = HerobrineSettings.cycleMusicVolume(source.getLevel());
@@ -704,30 +799,14 @@ public final class HerobrineCommand {
         return volume;
     }
 
-    private static int toggleArson(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        boolean on = HerobrineSettings.toggleArson(source.getLevel());
-
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
-                Component.translatable("herobrine.command.config.arson"),
-                Component.translatable(onOffKey(on))), true);
-        return on ? 1 : 0;
-    }
-
-    /** The bundled From The Fog content: off unless a player turns it on. */
-    private static int toggleFog(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        boolean on = HerobrineSettings.toggleFog(source.getLevel());
-
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
-                Component.translatable("herobrine.command.config.fog"),
-                Component.translatable(onOffKey(on))), true);
-        return on ? 1 : 0;
-    }
-
     /** Raises a church (and its holy water) eight blocks in front of the player. */
     private static int buildChurch(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
+
+        if (switchedOff(source, Feature.CHURCHES)) {
+            return 0;
+        }
+
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel level = source.getLevel();
         BlockPos ahead = player.blockPosition().relative(player.getDirection(), 8);
@@ -782,6 +861,11 @@ public final class HerobrineCommand {
     private static int buildShrine(CommandContext<CommandSourceStack> context, String ring)
             throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
+
+        if (switchedOff(source, Feature.SHRINE)) {
+            return 0;
+        }
+
 
         if (!ring.equals("gold")) {
             source.sendFailure(Component.translatable("herobrine.command.shrine.unknown_ring", ring));

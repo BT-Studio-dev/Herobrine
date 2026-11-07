@@ -2,6 +2,8 @@ package dev.btstudio.herobrine.event;
 
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
+import dev.btstudio.herobrine.world.Feature;
+import dev.btstudio.herobrine.world.HerobrineSettings;
 
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 
@@ -43,7 +45,9 @@ public final class ShrineHandler {
 
             BlockPos center = hit.getBlockPos();
 
-            if (serverLevel.getBlockState(center).is(Blocks.NETHERRACK) && isShrine(serverLevel, center)) {
+            if (HerobrineSettings.enabled(serverLevel, Feature.SHRINE)
+                    && serverLevel.getBlockState(center).is(Blocks.NETHERRACK)
+                    && isShrine(serverLevel, center)) {
                 summon(serverLevel, center);
             }
 
