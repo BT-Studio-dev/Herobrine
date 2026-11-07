@@ -504,7 +504,7 @@ public final class HauntingEvents {
 
     /** Chase mode: a few minutes where he cannot leave you alone. */
     private static void maybeStartChase(ServerLevel level, RandomSource random) {
-        if (HerobrineSettings.isChasing(level) || random.nextInt(CHASE_ONE_IN) != 0) {
+        if (HerobrineSettings.of(level).isChasing(level) || random.nextInt(CHASE_ONE_IN) != 0) {
             return;
         }
 

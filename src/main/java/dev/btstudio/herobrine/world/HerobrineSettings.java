@@ -423,10 +423,6 @@ public class HerobrineSettings extends SavedData {
         return of(level).name();
     }
 
-    public static boolean isChasing(ServerLevel level) {
-        return of(level).isChasing(level);
-    }
-
     /**
      * True while a chase frenzy is running. It needs the world as well as the settings, because a
      * frenzy is a deadline in game time rather than a flag that is switched off when it expires.
