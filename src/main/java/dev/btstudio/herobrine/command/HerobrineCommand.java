@@ -21,6 +21,7 @@ import dev.btstudio.herobrine.event.HauntingEvents;
 import dev.btstudio.herobrine.event.NotchAppleRitual;
 import dev.btstudio.herobrine.event.Sabotage;
 import dev.btstudio.herobrine.item.ModItems;
+import dev.btstudio.herobrine.sound.ModSounds;
 import dev.btstudio.herobrine.world.Feature;
 import dev.btstudio.herobrine.world.HerobrineName;
 import dev.btstudio.herobrine.world.HerobrineSettings;
@@ -38,6 +39,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Entity;
@@ -585,7 +587,8 @@ public final class HerobrineCommand {
                 .then(Commands.literal("musicvolume")
                         .executes(HerobrineCommand::cycleMusicVolume)
                         .then(Commands.argument("percent", IntegerArgumentType.integer(0, 100))
-                                .executes(HerobrineCommand::setMusicVolume)));
+                                .executes(HerobrineCommand::setMusicVolume)))
+                .then(Commands.literal("musictest").executes(HerobrineCommand::musicTest));
 
         for (String id : Feature.commandIds()) {
             config.then(Commands.literal(id).executes(context -> toggleFeature(context, id)));
@@ -681,6 +684,33 @@ public final class HerobrineCommand {
         settings.setBanished(false);
         settings.setName(HerobrineName.DEFAULT);
         source.sendSuccess(() -> Component.translatable("herobrine.command.config.reset"), true);
+        return 1;
+    }
+
+    /**
+     * {@code /herobrine config musictest}: plays the haunting track there and then, at the volume
+     * the dimension is set to, skipping the two things that normally gate it - he has to be within
+     * 28 blocks, and he has not played it in the last five minutes. If you hear it, the sound and
+     * the volume are fine and what you are really looking at is how rarely those conditions line
+     * up; if you hear nothing, the switch or the volume is what is wrong.
+     */
+    private static int musicTest(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        ServerLevel level = source.getLevel();
+        HerobrineSettings settings = HerobrineSettings.of(level);
+        float volume = HauntingEvents.musicTestVolume(level);
+
+        if (volume <= 0.0F) {
+            source.sendFailure(Component.translatable("herobrine.command.config.musictest.silent",
+                    Component.translatable(onOffKey(settings.isMusic())),
+                    Component.literal(settings.musicVolume() + "%")));
+            return 0;
+        }
+
+        Vec3 at = source.getPosition();
+        level.playSound(null, at.x(), at.y(), at.z(), ModSounds.MUSIC_HAUNT, SoundSource.MUSIC, volume, 1.0F);
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.musictest.playing",
+                Component.literal(Math.round(volume * 100) + "%")), false);
         return 1;
     }
 

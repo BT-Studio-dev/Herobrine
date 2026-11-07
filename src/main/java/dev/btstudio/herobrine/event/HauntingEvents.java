@@ -210,6 +210,21 @@ public final class HauntingEvents {
                 SoundSource.MUSIC, MUSIC_BASE_VOLUME * settings.musicVolume() / 100.0F, 1.0F);
     }
 
+    /**
+     * The volume the haunting track would play at right now, or 0 when it would not play at all -
+     * the switch is off, the volume is zero, or he is not within {@link #MUSIC_RANGE}. Nothing is
+     * played and no cooldown is touched: this is what {@code /herobrine config musictest} reports.
+     */
+    public static float musicTestVolume(ServerLevel level) {
+        HerobrineSettings settings = HerobrineSettings.of(level);
+
+        if (!settings.isMusic() || settings.musicVolume() <= 0) {
+            return 0.0F;
+        }
+
+        return MUSIC_BASE_VOLUME * settings.musicVolume() / 100.0F;
+    }
+
     /** 0-3, one step every two in-game days, so a long-lived world gets noticeably worse. */
     public static int stageOf(ServerPlayer player) {
         long days = player.level().getLevelData().getGameTime() / TICKS_PER_STAGE;
