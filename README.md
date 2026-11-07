@@ -45,8 +45,16 @@ which is behind its own switch.
 - **Purist mode** (True Herobrine rules) — he never edits a block, never sends chat, never attacks — he only ever
   appears above Y 60 in the Overworld and watches.
 - **Banish toggle** — send him to the void until you call him back.
-- **Settings screen** (H key or `/herobrine_settings`) saved per world: haunted herd, ghost miner, fire/arson, noises,
-  music, purist, banished, music volume.
+- **A switch for everything** — every feature below can be turned off on its own, per dimension. World events,
+  each of the seven apparitions, sounds, music, the fog closing in, churches, Steve, the Notch Apple ritual, the
+  shrine and the bundled From The Fog content. **All on** / **All off** does the lot in one press. Everything
+  defaults to the behaviour it has always had, so an existing world keeps running exactly as you left it.
+- **Name him what you like** — one name, up to 16 characters of letters, numbers and underscores, used for the
+  fake join and leave messages, his line of chat, his nametag and death messages, the jumpscare subtitle and the
+  signs he leaves. Server-wide, read by everyone, changed only by an operator. **Reset name** puts him back to
+  Herobrine.
+- **Settings screen** (H key or `/herobrine_settings`) saved per world: five tabs — World, Apparitions, Sound,
+  Presence, Name — plus purist, banished and the music-volume slider.
 - **Commands** — `/herobrine summon`, `haunt`, `apparition`, `mode`, `schizo`, `shrine`, `give`, `config`, `phantom`,
   and more.
 - **No sleep** while he stands nearby.
@@ -73,6 +81,9 @@ The world continues running while the settings screen is open.
 - Java >= 25
 - Suggests Mod Menu >= 21.0.0 for in-game settings integration
 - Runs on both client and server; settings are saved with the world and apply per dimension
+- Works with shader packs (Iris and others). The fog and the glowing eyes are drawn so that a shader pack
+  cannot drop them: the eyes travel the same path vanilla uses for an enderman's, and the fog falls back to
+  a HUD-layer overlay when a pack replaces the fog pipeline. With no shader pack loaded nothing changes.
 
 ## Bundled third-party content
 
@@ -114,8 +125,20 @@ https://github.com/BT-Studio-dev/Herobrine
 /herobrine torches | curse | candles | sign | donation | door | fire
 /herobrine phantom [add|clear]
 /herobrine mode [full|purist|toggle]
-/herobrine schizo [on|off] | hauntstate | settings | banish [on|off] | config [herd|miner|arson]
+/herobrine schizo [on|off] | hauntstate | settings | banish [on|off]
 /herobrine shrine [gold] | church | give <iron_stick|iron_sword|iron_helmet|iron_chestplate|iron_leggings|iron_boots|holy_water|the_cross>
+
+/herobrine config <setting>              toggle one feature on or off
+/herobrine config all <on|off>           switch every feature on or off at once
+/herobrine config reset                  restore every feature to its default
+/herobrine config name <text>            the name he goes by (16 characters, letters/numbers/underscores)
+/herobrine config name reset             back to "Herobrine"
+
+settings: torches leaves tunnels structures trees cobble warts gravel markers
+          herd miner window doors signs candles curse donation fire
+          watch runner lurking dwelling scare jumpscare spike
+          sounds music fog_closing_in churches steve notch_apple shrine from_the_fog
+aliases:  schizo = sounds   arson = fire   fog = from_the_fog
 ```
 
 The fog closes in when he is close. His own sounds are in the subtitles.
