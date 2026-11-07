@@ -181,7 +181,7 @@ public final class HauntingEvents {
 
                 RandomSource random = player.getRandom();
 
-                if (random.nextInt(intervalFor(settings, stageOf(player))) == 0) {
+                if (random.nextInt(intervalFor(settings, level, stageOf(player))) == 0) {
                     runRandomEvent(server, player, random, settings);
                 }
 
@@ -253,14 +253,14 @@ public final class HauntingEvents {
 
     /** The effective roll interval: three times as fast while a chase frenzy is running. */
     public static int intervalFor(ServerLevel level, int stage) {
-        return intervalFor(HerobrineSettings.of(level), stage);
+        return intervalFor(HerobrineSettings.of(level), level, stage);
     }
 
     /** As {@link #intervalFor(ServerLevel, int)}, for a caller that already has the settings. */
-    public static int intervalFor(HerobrineSettings settings, int stage) {
+    public static int intervalFor(HerobrineSettings settings, ServerLevel level, int stage) {
         int base = oneInFor(stage);
 
-        if (!settings.isChasing()) {
+        if (!settings.isChasing(level)) {
             return base;
         }
 
