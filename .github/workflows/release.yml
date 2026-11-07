@@ -9,7 +9,7 @@ on:
       tag:
         description: 'Tag to publish (must match mod_version in gradle.properties)'
         required: true
-        default: 'v2.9.4'
+        default: 'v2.9.5'
 
 permissions:
   contents: write
@@ -96,9 +96,21 @@ jobs:
             TARGET=""
           fi
 
-          gh release create "$TAG" "$JAR" \
+          ASSETS=("$JAR")
+          # The shader is a separate, experimental MIT-licensed pack, not part of the mod JAR.
+          if [ "$TAG" = "v2.9.5" ]; then
+            ASSETS+=("shaders/optimism-26.3-test.zip")
+          fi
+          NOTES_FILE="release-notes/$TAG.md"
+          if [ -f "$NOTES_FILE" ]; then
+            NOTES=(--notes-file "$NOTES_FILE")
+          else
+            NOTES=(--generate-notes)
+          fi
+
+          gh release create "$TAG" "${ASSETS[@]}" \
             --title "Herobrine: Haunting ${TAG#v} for Minecraft 26.3" \
-            --generate-notes \
+            "${NOTES[@]}" \
             $TARGET
 
       - name: Upload workflow artifact
