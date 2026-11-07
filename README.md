@@ -40,10 +40,15 @@ which is behind its own switch.
 - **Cold Iron advancement** — awarded for hammering your first piece of iron-stick gear.
 - **Notch Apple ritual** — burn a Notch Apple on netherrack to banish him to the void (or call him back).
 - **Steve friend** — summon Steve to travel with you; set him to stay or follow.
-- **Animated glowing eyes** — both of Herobrine's eyes carry a softly pulsing, unlit halo on every
-  entity form: white for the stalker and red for the hostile and elite forms.
-  The halo is masked to the front face of the head, so it stays off the hair, the nose and the body.
-  This is a client-side rendering effect, not an animated player skin or dynamic world lighting.
+- **Animated glowing eyes** — both of Herobrine's eyes carry a softly pulsing halo on every entity
+  form: white for the stalker and red for the hostile and elite forms. The halo is masked to the
+  front face of the head, so it stays off the hair, the nose and the body. The halo itself is a
+  client-side rendering effect, not an animated player skin.
+- **His eyes cast real light** (optional) — install
+  [LambDynamicLights](https://modrinth.com/mod/lambdynamiclights) and he lights the ground around
+  him: the snow at his feet, the walls of a tunnel, whatever he is standing in. The halo alone
+  illuminates nothing, which a shader pack will show you the moment you shoot him in the dark.
+  See [Eye lighting](#eye-lighting) below.
 - **Purist mode** (True Herobrine rules) — he never edits a block, never sends chat, never attacks — he only ever
   appears above Y 60 in the Overworld and watches.
 - **Banish toggle** — send him to the void until you call him back.
@@ -83,9 +88,40 @@ The world continues running while the settings screen is open.
 - Java >= 25
 - Suggests Mod Menu >= 21.0.0 for in-game settings integration
 - Runs on both client and server; settings are saved with the world and apply per dimension
+- Suggests LambDynamicLights for eye lighting; the mod ships the definition, nothing is required
 - Works with shader packs (Iris and others). The fog and the glowing eyes are drawn so that a shader pack
   cannot drop them: the eyes travel the same path vanilla uses for an enderman's, and the fog falls back to
   a HUD-layer overlay when a pack replaces the fog pipeline. With no shader pack loaded nothing changes.
+
+## Eye lighting
+
+The glowing halo on his eyes is drawn on the surface of the model: it is bright, but it does not
+light anything. Stand him in snow at midnight with a shader pack on and he reads as a bright
+texture on an unlit figure.
+
+For real illumination the mod ships an entity lighting definition for
+[LambDynamicLights](https://modrinth.com/mod/lambdynamiclights), the dynamic lighting mod that
+shader packs understand. With it installed he carries a light of **10** — enough to pool on the
+ground at his feet and catch on falling snow, not so much that he looks like a walking torch.
+Nothing is required of you beyond putting the mod in your mods folder: the definition is already in
+the jar at `assets/herobrine/dynamiclights/entity/herobrine.json`.
+
+To change how bright he is, override that file in a resource pack. Values are Minecraft light
+levels, 0 to 15 — for reference, the mod gives an allay 8, a blaze 10 and a glow item frame 12.
+To make the light only appear in the dark, add a `located` block to the `match` section:
+
+```json
+{
+  "match": {
+    "type": "herobrine:herobrine",
+    "located": { "light": { "sky": { "max": 7 } } }
+  },
+  "luminance": 12
+}
+```
+
+Without LambDynamicLights installed nothing changes and nothing breaks — the file is simply never
+read.
 
 ## Bundled third-party content
 
