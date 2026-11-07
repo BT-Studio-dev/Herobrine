@@ -13,6 +13,8 @@ import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * In-world settings, opened with Mod Menu, H or /herobrine_settings.
@@ -26,7 +28,7 @@ public class HerobrineConfigScreen extends Screen {
 
     private enum Page { HAUNTING, AUDIO_WORLD }
 
-    private record Row(int y, String titleKey, String descriptionKey, Button button,
+    private record Row(int y, String titleKey, String descriptionKey, ItemStack icon, Button button,
                        Predicate<HerobrineSettings> getter) { }
 
     private final Screen parent;
@@ -66,21 +68,21 @@ public class HerobrineConfigScreen extends Screen {
 
         if (this.page == Page.HAUNTING) {
             this.addToggle(0, "herobrine.screen.herd", "herobrine.screen.desc.herd",
-                    "herobrine config herd", HerobrineSettings::isHerd);
+                    "herobrine config herd", HerobrineSettings::isHerd, new ItemStack(Items.COW_SPAWN_EGG));
             this.addToggle(1, "herobrine.screen.miner", "herobrine.screen.desc.miner",
-                    "herobrine config miner", HerobrineSettings::isMiner);
+                    "herobrine config miner", HerobrineSettings::isMiner, new ItemStack(Items.IRON_PICKAXE));
             this.addToggle(2, "herobrine.screen.arson", "herobrine.screen.desc.arson",
-                    "herobrine config arson", HerobrineSettings::isArson);
+                    "herobrine config arson", HerobrineSettings::isArson, new ItemStack(Items.FLINT_AND_STEEL));
             this.addToggle(3, "herobrine.screen.schizo", "herobrine.screen.desc.schizo",
-                    "herobrine schizo", HerobrineSettings::isSchizo);
+                    "herobrine schizo", HerobrineSettings::isSchizo, new ItemStack(Items.SOUL_LANTERN));
         } else {
             this.addToggle(0, "herobrine.screen.music", "herobrine.screen.desc.music",
-                    "herobrine config music", HerobrineSettings::isMusic);
+                    "herobrine config music", HerobrineSettings::isMusic, new ItemStack(Items.MUSIC_DISC_13));
             this.addVolume(1);
             this.addToggle(2, "herobrine.screen.purist", "herobrine.screen.desc.purist",
-                    "herobrine mode toggle", HerobrineSettings::isPurist);
+                    "herobrine mode toggle", HerobrineSettings::isPurist, new ItemStack(Items.ENDER_EYE));
             this.addToggle(3, "herobrine.screen.banished", "herobrine.screen.desc.banished",
-                    "herobrine banish", HerobrineSettings::isBanished);
+                    "herobrine banish", HerobrineSettings::isBanished, new ItemStack(Items.BARRIER));
         }
 
         int bottomY = this.height - CONTROL_HEIGHT - 8;
@@ -111,7 +113,7 @@ public class HerobrineConfigScreen extends Screen {
     }
 
     private void addToggle(int index, String titleKey, String descriptionKey, String command,
-                           Predicate<HerobrineSettings> getter) {
+                           Predicate<HerobrineSettings> getter, ItemStack icon) {
         int y = this.rowTop + index * this.rowHeight;
         int width = this.controlWidth();
         Button button = Button.builder(toggleLabel(currentSettings(), getter), pressed -> {
@@ -121,7 +123,7 @@ public class HerobrineConfigScreen extends Screen {
                 .size(width, CONTROL_HEIGHT).build();
         button.active = this.inWorld();
         this.addRenderableWidget(button);
-        this.rows.add(new Row(y, titleKey, descriptionKey, button, getter));
+        this.rows.add(new Row(y, titleKey, descriptionKey, icon, button, getter));
     }
 
     private void addVolume(int index) {
@@ -133,7 +135,7 @@ public class HerobrineConfigScreen extends Screen {
                 y + (this.rowHeight - CONTROL_HEIGHT) / 2, width, initial, settings != null);
         this.volumeSlider.active = this.inWorld();
         this.addRenderableWidget(this.volumeSlider);
-        this.rows.add(new Row(y, "herobrine.screen.musicvolume", "herobrine.screen.desc.volume", null, null));
+        this.rows.add(new Row(y, "herobrine.screen.musicvolume", "herobrine.screen.desc.volume", new ItemStack(Items.NOTE_BLOCK), null, null));
     }
 
     private static Component toggleLabel(HerobrineSettings settings, Predicate<HerobrineSettings> getter) {
@@ -196,15 +198,16 @@ public class HerobrineConfigScreen extends Screen {
         graphics.text(this.font, Component.translatable(this.page == Page.HAUNTING
                 ? "herobrine.screen.section.haunting" : "herobrine.screen.section.sound"),
                 this.panelLeft + 10, 43, 0xFF9AABF0);
-        int maxTextWidth = this.panelRight - this.panelLeft - this.controlWidth() - 28;
+        int maxTextWidth = this.panelRight - this.panelLeft - this.controlWidth() - 48;
         for (Row row : this.rows) {
+            graphics.item(row.icon(), this.panelLeft + 8, row.y() + (this.rowHeight - 16) / 2);
             String title = Component.translatable(row.titleKey()).getString();
             graphics.text(this.font, this.font.plainSubstrByWidth(title, Math.max(0, maxTextWidth)),
-                    this.panelLeft + 10, row.y() + (this.rowHeight >= 32 ? 5 : 7), 0xFFFFFFFF);
+                    this.panelLeft + 30, row.y() + (this.rowHeight >= 32 ? 5 : 7), 0xFFFFFFFF);
             if (this.rowHeight >= 32) {
                 String description = Component.translatable(row.descriptionKey()).getString();
                 graphics.text(this.font, this.font.plainSubstrByWidth(description, Math.max(0, maxTextWidth)),
-                        this.panelLeft + 10, row.y() + 18, 0xFFAAAAAA);
+                        this.panelLeft + 30, row.y() + 18, 0xFFAAAAAA);
             }
         }
     }
