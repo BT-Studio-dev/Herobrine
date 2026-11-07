@@ -8,8 +8,9 @@ import dev.btstudio.herobrine.world.Feature;
 import dev.btstudio.herobrine.world.HerobrineName;
 import dev.btstudio.herobrine.world.HerobrineSettings;
 
+import com.mojang.blaze3d.platform.InputConstants;
+
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

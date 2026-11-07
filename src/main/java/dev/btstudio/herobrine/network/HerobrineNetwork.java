@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -67,8 +68,10 @@ public final class HerobrineNetwork {
 
     /** The state of the dimension this player is standing in, right now. */
     private static HerobrineStatePayload stateFor(ServerPlayer player) {
+        ServerLevel level = player.level();
+
         return new HerobrineStatePayload(
-                HerobrineSettings.enabled(player.serverLevel(), Feature.FOG_CLOSING_IN),
-                HerobrineSettings.name(player.serverLevel()));
+                HerobrineSettings.enabled(level, Feature.FOG_CLOSING_IN),
+                HerobrineSettings.name(level));
     }
 }
