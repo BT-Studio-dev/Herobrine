@@ -31,6 +31,7 @@ body {
     radial-gradient(ellipse at 74% 8%, rgba(109, 161, 190, 0.15), transparent 34rem),
     linear-gradient(180deg, #08121b 0%, var(--night) 50%, #09151d 100%);
   color: var(--ink);
+  isolation: isolate;
 }
 body::before {
   position: fixed;
@@ -38,9 +39,14 @@ body::before {
   z-index: -1;
   pointer-events: none;
   content: "";
-  opacity: 0.2;
-  background-image: radial-gradient(rgba(225, 241, 250, 0.34) 0.7px, transparent 0.7px);
-  background-size: 31px 31px;
+  background-image:
+    radial-gradient(rgba(225, 241, 250, 0.18) 0.7px, transparent 0.7px),
+    linear-gradient(90deg, rgba(4, 11, 17, 0.84) 0%, rgba(5, 13, 20, 0.64) 54%, rgba(4, 11, 17, 0.82) 100%),
+    linear-gradient(180deg, rgba(4, 11, 17, 0.14) 0%, rgba(4, 11, 17, 0.48) 55%, rgba(7, 16, 24, 0.88) 100%),
+    url("./assets/herobrine-shader-background.webp");
+  background-size: 31px 31px, 100% 100%, 100% 100%, cover;
+  background-position: 0 0, center, center, center 42%;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
   mask-image: linear-gradient(to bottom, black, transparent 70%);
 }
 a { color: inherit; }
@@ -295,4 +301,11 @@ h2 span { color: var(--ice); }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
+@media (max-width: 650px) {
+  body::before {
+    background-size: 31px 31px, 100% 100%, 100% 100%, auto 100%;
+    background-position: 0 0, center, center, 72% center;
+  }
 }
