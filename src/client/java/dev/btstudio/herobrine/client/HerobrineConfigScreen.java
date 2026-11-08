@@ -73,9 +73,14 @@ public class HerobrineConfigScreen extends Screen {
         }
     }
 
+    /** What a row carries: a switch, the volume slider, or the button that plays the track. */
+    private enum Kind {
+        SWITCH, VOLUME, MUSIC_TEST
+    }
+
     /** One row of the panel: what it is called, what it does, and the command that flips it. */
-    private record Entry(String titleKey, String descriptionKey, ItemStack icon, String command,
-                        Predicate<HerobrineSettings> getter) { }
+    private record Entry(Kind kind, String titleKey, String descriptionKey, ItemStack icon,
+                        String command, Predicate<HerobrineSettings> getter) { }
 
     private record Row(int y, String titleKey, String descriptionKey, ItemStack icon, Button button,
                        Predicate<HerobrineSettings> getter) { }
@@ -188,24 +193,27 @@ public class HerobrineConfigScreen extends Screen {
 
         if (this.page.group != null) {
             for (Feature feature : Feature.inGroup(this.page.group)) {
-                entries.add(new Entry(feature.titleKey(), feature.descriptionKey(),
+                entries.add(new Entry(Kind.SWITCH, feature.titleKey(), feature.descriptionKey(),
                         icon(feature.icon()), "herobrine config " + feature.key(),
                         settings -> settings.enabled(feature)));
             }
         }
 
         if (this.page == Page.SOUND) {
-            // The music volume is not a switch, so it is a sentinel row with no command.
-            entries.add(new Entry("herobrine.screen.musicvolume", "herobrine.screen.desc.volume",
-                    icon(Items.NOTE_BLOCK), null, null));
+            // Neither of these is a switch: one is a slider, the other a button that plays the track.
+            entries.add(new Entry(Kind.VOLUME, "herobrine.screen.musicvolume",
+                    "herobrine.screen.desc.volume", icon(Items.NOTE_BLOCK), null, null));
+            entries.add(new Entry(Kind.MUSIC_TEST, "herobrine.screen.musictest",
+                    "herobrine.screen.desc.musictest", icon(Items.MUSIC_DISC_11), null, null));
         }
 
         if (this.page == Page.PRESENCE) {
-            entries.add(new Entry("herobrine.screen.purist", "herobrine.screen.desc.purist",
+            entries.add(new Entry(Kind.SWITCH, "herobrine.screen.purist", "herobrine.screen.desc.purist",
                     icon(Items.ENDER_EYE), "herobrine mode toggle",
                     HerobrineSettings::isPurist));
-            entries.add(new Entry("herobrine.screen.banished", "herobrine.screen.desc.banished",
-                    icon(Items.BARRIER), "herobrine banish", HerobrineSettings::isBanished));
+            entries.add(new Entry(Kind.SWITCH, "herobrine.screen.banished",
+                    "herobrine.screen.desc.banished", icon(Items.BARRIER), "herobrine banish",
+                    HerobrineSettings::isBanished));
         }
 
         // How many rows fit decides the scroll: nothing is squeezed, and no empty card is left over.
@@ -221,11 +229,14 @@ public class HerobrineConfigScreen extends Screen {
     private void addEntry(int index, Entry entry) {
         int y = this.rowTop + index * ROW_HEIGHT;
 
-        if (entry.command() == null) {
-            this.addVolume(y, entry);
-            return;
+        switch (entry.kind()) {
+            case VOLUME -> this.addVolume(y, entry);
+            case MUSIC_TEST -> this.addMusicTest(y, entry);
+            case SWITCH -> this.addSwitch(y, entry);
         }
+    }
 
+    private void addSwitch(int y, Entry entry) {
         int width = this.controlWidth();
         Button button = Button.builder(toggleLabel(currentSettings(), entry.getter()), pressed -> {
                     this.runCommand(entry.command());
@@ -236,6 +247,25 @@ public class HerobrineConfigScreen extends Screen {
         this.addRenderableWidget(button);
         this.rows.add(new Row(y, entry.titleKey(), entry.descriptionKey(), entry.icon(), button,
                 entry.getter()));
+    }
+
+    /**
+     * The button that starts the track there and then, skipping the proximity and cooldown gates.
+     *
+     * <p>The screen deliberately stays open: the track runs for ten minutes and the volume slider
+     * sits one row above, so the level can be set by ear while it plays instead of guessed at and
+     * then waited on. The row carries no getter, which is what keeps it out of the refresh below -
+     * it would otherwise be relabelled as a switch that is on or off.
+     */
+    private void addMusicTest(int y, Entry entry) {
+        int width = this.controlWidth();
+        Button button = Button.builder(Component.translatable("herobrine.screen.play"),
+                        pressed -> this.runCommand("herobrine config musictest"))
+                .pos(this.panelRight - width - 8, y + (ROW_HEIGHT - CONTROL_HEIGHT) / 2)
+                .size(width, CONTROL_HEIGHT).build();
+        button.active = this.inWorld();
+        this.addRenderableWidget(button);
+        this.rows.add(new Row(y, entry.titleKey(), entry.descriptionKey(), entry.icon(), button, null));
     }
 
     private void addVolume(int y, Entry entry) {
@@ -368,7 +398,9 @@ public class HerobrineConfigScreen extends Screen {
             this.refreshIn = REFRESH_TICKS;
             HerobrineSettings settings = currentSettings();
             for (Row row : this.rows) {
-                if (row.button() != null) {
+                // The getter is what marks a row as a switch; the play button has none and must
+                // keep its own label instead of being rewritten as an on/off state.
+                if (row.button() != null && row.getter() != null) {
                     row.button().setMessage(toggleLabel(settings, row.getter()));
                 }
             }
