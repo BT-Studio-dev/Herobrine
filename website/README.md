@@ -1,6 +1,6 @@
-# Herobrine: Haunting — Source & Safety Guide
+# Herobrine: Haunting — Source & Build Guides
 
-A portable, plain-language source guide for the From The Fog content bundled with Herobrine: Haunting. This folder includes the standalone page, its CSS and JavaScript, a route manifest, and local WebP copies of the hero art and project logo.
+This is a small, static documentation site with two pages: the source and safety guide at `index.html`, and the separate [How it’s built page](docs/how-herobrine-is-built/). Shared styles, the guide’s commit-copy interaction, the route manifest, and local WebP artwork live alongside them.
 
 To preview from the repository root, run:
 
@@ -8,4 +8,4 @@ To preview from the repository root, run:
 python3 -m http.server 8000 --directory website
 ```
 
-Then open `http://localhost:8000`. The page is static; it does not run the optional `WAKE_UP.vbs` script or install the mod.
+Then open `http://localhost:8000/`. The pages are static documentation; they do not run the optional `WAKE_UP.vbs` script or install the mod.
