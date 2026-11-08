@@ -730,18 +730,20 @@ public final class HerobrineCommand {
         // Play is to hear the track, so the two things that silence it are put right first and
         // then reported - otherwise **All off** turns this into an error, which is what it looked
         // like when it was really the switch doing its job.
-        boolean revived = false;
+        boolean musicWasOff = !settings.isMusic();
+        boolean volumeWasSilent = settings.musicVolume() <= 0;
 
-        if (!settings.isMusic()) {
+        if (musicWasOff) {
             settings.setMusic(true);
-            revived = true;
         }
 
-        if (settings.musicVolume() <= 0) {
+        if (volumeWasSilent) {
             settings.setMusicVolume(HerobrineSettings.DEFAULT_MUSIC_VOLUME);
-            revived = true;
         }
 
+        // Read once: the message below is built in a lambda, and a local it captures has to be
+        // effectively final.
+        boolean revived = musicWasOff || volumeWasSilent;
         float volume = HauntingEvents.musicTestVolume(level);
 
         if (volume <= 0.0F) {
