@@ -94,6 +94,7 @@
   "herobrine.screen.off": "Off",
   "herobrine.screen.multiplayer": "Server: OP required; state unknown. Check chat.",
   "herobrine.screen.no_world": "Join a world to change settings.",
+  "herobrine.screen.no_permission": "You need operator permission, or cheats on, to change these.",
   "herobrine.screen.section.sound": "What you hear",
   "herobrine.screen.toggle": "Toggle",
   "herobrine.screen.reset": "Reset defaults",

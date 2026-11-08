@@ -20,6 +20,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
@@ -145,7 +146,7 @@ public class HerobrineConfigScreen extends Screen {
                     this.refreshIn = 8;
                 })
                 .pos(8, bottomY).size(sidebarWidth, CONTROL_HEIGHT).build();
-        reset.active = this.inWorld();
+        reset.active = this.canConfigure();
         this.addRenderableWidget(reset);
 
         int x = this.panelRight;
@@ -154,13 +155,17 @@ public class HerobrineConfigScreen extends Screen {
                         b -> this.onClose())
                 .pos(x - BUTTON_WIDTH, bottomY).size(BUTTON_WIDTH, CONTROL_HEIGHT).build());
         x -= BUTTON_WIDTH + 8;
-        this.addRenderableWidget(Button.builder(Component.translatable("herobrine.screen.all_off"),
+        Button allOff = Button.builder(Component.translatable("herobrine.screen.all_off"),
                         b -> this.setAll(false))
-                .pos(x - BUTTON_WIDTH, bottomY).size(BUTTON_WIDTH, CONTROL_HEIGHT).build());
+                .pos(x - BUTTON_WIDTH, bottomY).size(BUTTON_WIDTH, CONTROL_HEIGHT).build();
+        allOff.active = this.canConfigure();
+        this.addRenderableWidget(allOff);
         x -= BUTTON_WIDTH + 8;
-        this.addRenderableWidget(Button.builder(Component.translatable("herobrine.screen.all_on"),
+        Button allOn = Button.builder(Component.translatable("herobrine.screen.all_on"),
                         b -> this.setAll(true))
-                .pos(x - BUTTON_WIDTH, bottomY).size(BUTTON_WIDTH, CONTROL_HEIGHT).build());
+                .pos(x - BUTTON_WIDTH, bottomY).size(BUTTON_WIDTH, CONTROL_HEIGHT).build();
+        allOn.active = this.canConfigure();
+        this.addRenderableWidget(allOn);
     }
 
     /**
@@ -243,7 +248,7 @@ public class HerobrineConfigScreen extends Screen {
                     this.refreshIn = 8;
                 }).pos(this.panelRight - width - 8, y + (ROW_HEIGHT - CONTROL_HEIGHT) / 2)
                 .size(width, CONTROL_HEIGHT).build();
-        button.active = this.inWorld();
+        button.active = this.canConfigure();
         this.addRenderableWidget(button);
         this.rows.add(new Row(y, entry.titleKey(), entry.descriptionKey(), entry.icon(), button,
                 entry.getter()));
@@ -263,7 +268,7 @@ public class HerobrineConfigScreen extends Screen {
                         pressed -> this.runCommand("herobrine config musictest"))
                 .pos(this.panelRight - width - 8, y + (ROW_HEIGHT - CONTROL_HEIGHT) / 2)
                 .size(width, CONTROL_HEIGHT).build();
-        button.active = this.inWorld();
+        button.active = this.canConfigure();
         this.addRenderableWidget(button);
         this.rows.add(new Row(y, entry.titleKey(), entry.descriptionKey(), entry.icon(), button, null));
     }
@@ -274,7 +279,7 @@ public class HerobrineConfigScreen extends Screen {
         int initial = this.pendingVolume >= 0 ? this.pendingVolume : settings != null ? settings.musicVolume() : 70;
         this.volumeSlider = new VolumeSlider(this.panelRight - width - 8,
                 y + (ROW_HEIGHT - CONTROL_HEIGHT) / 2, width, initial, settings != null);
-        this.volumeSlider.active = this.inWorld();
+        this.volumeSlider.active = this.canConfigure();
         this.addRenderableWidget(this.volumeSlider);
         this.rows.add(new Row(y, entry.titleKey(), entry.descriptionKey(), entry.icon(), null, null));
     }
@@ -290,7 +295,7 @@ public class HerobrineConfigScreen extends Screen {
         this.nameBox.setMaxLength(HerobrineName.MAX_LENGTH);
         this.nameBox.setHint(Component.translatable("herobrine.name.default"));
         this.nameBox.setValue(HerobrineName.DEFAULT);
-        this.nameBox.active = this.inWorld();
+        this.nameBox.active = this.canConfigure();
         this.nameBox.setCanLoseFocus(true);
         this.addRenderableWidget(this.nameBox);
 
@@ -299,7 +304,7 @@ public class HerobrineConfigScreen extends Screen {
                     this.applyName();
                 }).pos(left, y + CONTROL_HEIGHT + 8)
                 .size(Math.min(140, width), CONTROL_HEIGHT).build();
-        reset.active = this.inWorld();
+        reset.active = this.canConfigure();
         this.addRenderableWidget(reset);
 
         // The stored name is only known in singleplayer, so the box starts from the default and is
@@ -357,7 +362,7 @@ public class HerobrineConfigScreen extends Screen {
      * single line under it explaining why, rather than silently changed into something else.
      */
     private void applyName() {
-        if (this.nameBox == null || !this.inWorld()) {
+        if (this.nameBox == null || !this.canConfigure()) {
             return;
         }
 
@@ -436,6 +441,7 @@ public class HerobrineConfigScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
         graphics.centeredText(this.font, this.title, this.width / 2, 9, 0xFFFFFFFF);
         String subtitle = !this.inWorld() ? "herobrine.screen.no_world"
+                : !this.canConfigure() ? "herobrine.screen.no_permission"
                 : currentSettings() == null ? "herobrine.screen.multiplayer" : "herobrine.screen.subtitle";
         graphics.centeredText(this.font, Component.translatable(subtitle), this.width / 2, 24, 0xFFAAAAAA);
         graphics.text(this.font, Component.translatable(this.page.sectionKey()),
@@ -501,14 +507,34 @@ public class HerobrineConfigScreen extends Screen {
         }
     }
 
+    /**
+     * The single way anything on this screen reaches the server.
+     *
+     * <p>Every command under {@code /herobrine config} is an operator command, so sending one
+     * without permission is not a failure the screen can explain: the server rejects it and the
+     * player is left looking at a control that did nothing. Checking here means nothing is sent
+     * that cannot go through.
+     */
     private void runCommand(String command) {
-        if (this.inWorld() && this.minecraft.player.connection != null) {
+        if (this.canConfigure() && this.minecraft.player.connection != null) {
             this.minecraft.player.connection.sendCommand(command);
         }
     }
 
     private boolean inWorld() {
         return this.minecraft != null && this.minecraft.player != null && this.minecraft.level != null;
+    }
+
+    /**
+     * Whether the controls will actually do anything: in a world, and allowed to run the commands.
+     *
+     * <p>On a server without operator rights every switch here would be a dead button, so they are
+     * greyed out and the screen says why instead. A singleplayer world opened without cheats is the
+     * same case, which is easy to hit and confusing to diagnose from a button that does nothing.
+     */
+    private boolean canConfigure() {
+        return this.inWorld()
+                && this.minecraft.player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
     }
 
     /** The settings of the singleplayer world we are in, or null on a server. */
