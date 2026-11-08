@@ -725,6 +725,23 @@ public final class HerobrineCommand {
         CommandSourceStack source = context.getSource();
         ServerLevel level = source.getLevel();
         HerobrineSettings settings = HerobrineSettings.of(level);
+
+        // A test that answers "you switched it off" is not much of a test. The point of pressing
+        // Play is to hear the track, so the two things that silence it are put right first and
+        // then reported - otherwise **All off** turns this into an error, which is what it looked
+        // like when it was really the switch doing its job.
+        boolean revived = false;
+
+        if (!settings.isMusic()) {
+            settings.setMusic(true);
+            revived = true;
+        }
+
+        if (settings.musicVolume() <= 0) {
+            settings.setMusicVolume(HerobrineSettings.DEFAULT_MUSIC_VOLUME);
+            revived = true;
+        }
+
         float volume = HauntingEvents.musicTestVolume(level);
 
         if (volume <= 0.0F) {
@@ -736,7 +753,9 @@ public final class HerobrineCommand {
 
         Vec3 at = source.getPosition();
         level.playSound(null, at.x(), at.y(), at.z(), ModSounds.MUSIC_HAUNT, SoundSource.MUSIC, volume, 1.0F);
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.musictest.playing",
+        source.sendSuccess(() -> Component.translatable(revived
+                        ? "herobrine.command.config.musictest.revived"
+                        : "herobrine.command.config.musictest.playing",
                 Component.literal(Math.round(volume * 100) + "%")), false);
         return 1;
     }

@@ -38,6 +38,9 @@ import net.minecraft.world.level.saveddata.SavedDataType;
  * records the switches that were moved off their default.
  */
 public class HerobrineSettings extends SavedData {
+    /** The volume a fresh world starts on, and the one a silenced track is put back to. */
+    public static final int DEFAULT_MUSIC_VOLUME = 70;
+
     private static final Codec<Map<String, Boolean>> FEATURES_CODEC =
             Codec.unboundedMap(Codec.STRING, Codec.BOOL);
 
@@ -46,7 +49,7 @@ public class HerobrineSettings extends SavedData {
                     Codec.BOOL.optionalFieldOf("purist", false).forGetter(HerobrineSettings::isPurist),
                     Codec.BOOL.optionalFieldOf("banished", false).forGetter(HerobrineSettings::isBanished),
                     Codec.LONG.optionalFieldOf("chase_until", 0L).forGetter(HerobrineSettings::chaseUntil),
-                    Codec.INT.optionalFieldOf("music_volume", 70).forGetter(HerobrineSettings::musicVolume),
+                    Codec.INT.optionalFieldOf("music_volume", DEFAULT_MUSIC_VOLUME).forGetter(HerobrineSettings::musicVolume),
                     // The six switches that predate the feature map keep their original keys.
                     Codec.BOOL.optionalFieldOf("schizo", true).forGetter(s -> s.enabled(Feature.SOUNDS)),
                     Codec.BOOL.optionalFieldOf("herd", true).forGetter(s -> s.enabled(Feature.HERD)),
@@ -75,7 +78,8 @@ public class HerobrineSettings extends SavedData {
     private String name;
 
     public HerobrineSettings() {
-        this(false, false, 0L, 70, true, true, true, true, true, false, Map.of(), HerobrineName.DEFAULT);
+        this(false, false, 0L, DEFAULT_MUSIC_VOLUME, true, true, true, true, true, false,
+                Map.of(), HerobrineName.DEFAULT);
     }
 
     private HerobrineSettings(boolean purist, boolean banished, long chaseUntil, int musicVolume,
