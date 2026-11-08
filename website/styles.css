@@ -112,41 +112,13 @@ code { font-family: var(--mono); }
 }
 .brand-kicker { color: var(--quiet); font-size: 0.58rem; }
 .brand-title { font-size: 0.82rem; font-weight: 600; letter-spacing: 0.01em; }
-.main-nav { display: flex; align-items: center; justify-content: center; gap: clamp(1rem, 2.3vw, 2.2rem); margin-left: auto; }
-.main-nav a, .header-link, .text-link, .footer-links a {
+.text-link, .footer-links a {
   color: var(--muted);
   text-decoration: none;
   font-size: 0.78rem;
   transition: color 160ms ease;
 }
-.main-nav a { position: relative; padding: 0.55rem 0.1rem; }
-.main-nav a::after {
-  position: absolute;
-  right: 100%;
-  bottom: 0.18rem;
-  left: 0;
-  height: 1px;
-  content: "";
-  background: var(--signal);
-  transition: right 160ms ease;
-}
-.main-nav a:hover::after, .main-nav a:focus-visible::after { right: 0; }
-.main-nav a:hover, .text-link:hover, .footer-links a:hover { color: var(--ice-bright); }
-.header-link {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.62rem 0.9rem;
-  border: 1px solid rgba(255, 214, 123, 0.85);
-  border-radius: 0.25rem;
-  background: var(--signal);
-  color: #24152a;
-  white-space: nowrap;
-  font-weight: 700;
-  box-shadow: 0 0 1.4rem rgba(237, 192, 100, 0.13);
-  transition: background 160ms ease, transform 160ms ease;
-}
-.header-link:hover { background: var(--signal-strong); color: #24152a; transform: translateY(-1px); }
-.header-link span { padding-left: 0.25rem; }
+.text-link:hover, .footer-links a:hover { color: var(--ice-bright); }
 
 .hero {
   display: grid;
@@ -285,10 +257,7 @@ h2 span { color: var(--ice); }
 
 @media (max-width: 980px) {
   .page-shell { width: min(100% - 40px, 820px); }
-  .site-header { flex-wrap: wrap; gap: 0.75rem 1.5rem; padding: 1rem 0; }
-  .brand { min-width: 0; }
-  .main-nav { order: 3; width: 100%; justify-content: flex-start; margin: 0; padding: 0.6rem 0 0.1rem; }
-  .header-link { margin-left: auto; }
+  .site-header { padding: 0.5rem 0; }
   .hero { grid-template-columns: 1fr; gap: 2.5rem; padding-top: 5rem; }
   .hero-copy { max-width: 760px; }
   .hero-art { width: min(100%, 760px); justify-self: end; }
@@ -297,13 +266,9 @@ h2 span { color: var(--ice); }
 }
 @media (max-width: 650px) {
   .page-shell { width: calc(100% - 32px); }
-  .site-header { align-items: flex-start; }
   .brand-logo { width: 76px; }
   .brand-caption { padding-left: 0.55rem; }
   .brand-title { font-size: 0.72rem; }
-  .header-link { padding-top: 0.45rem; font-size: 0.67rem; }
-  .main-nav { gap: 1.15rem; overflow-x: auto; padding-bottom: 0.3rem; }
-  .main-nav a { flex: 0 0 auto; font-size: 0.7rem; }
   .hero { padding: 3.6rem 0 2.8rem; }
   h1 { font-size: clamp(3rem, 14vw, 4.7rem); }
   .hero-intro { font-size: 0.92rem; }
