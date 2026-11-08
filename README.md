@@ -5,6 +5,8 @@
 Herobrine for Fabric on Minecraft 26.3: staged hauntings, seven apparitions, the fog closing in, 13 original sounds,
 gold shrines, churches, holy water and the cross. Non-destructive by design.
 
+**[Source & safety guide](website/)** — From The Fog provenance, integration, licensing, and the optional `WAKE_UP.vbs` safety note.
+
 ## Summary
 
 Herobrine: Haunting brings staged, escalating hauntings to Fabric on Minecraft 26.3 — seven apparitions, 13 original
