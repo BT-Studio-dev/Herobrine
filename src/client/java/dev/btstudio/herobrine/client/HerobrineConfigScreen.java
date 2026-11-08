@@ -22,6 +22,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ItemLike;
 
 /**
  * In-world settings, opened with Mod Menu, H or /herobrine_settings.
@@ -157,6 +158,30 @@ public class HerobrineConfigScreen extends Screen {
                 .pos(x - BUTTON_WIDTH, bottomY).size(BUTTON_WIDTH, CONTROL_HEIGHT).build());
     }
 
+    /**
+     * The icon for a row, or an empty stack where one cannot be built.
+     *
+     * <p>An {@link ItemStack} is not just a reference to an item: building one reads the item's
+     * data components, and those are only bound once a world has been loaded. Mod Menu happily
+     * opens this screen from the main menu, where there is no world and the lookup throws
+     * "Components not bound yet" - the crash reported from the Mods screen. The rows are inert
+     * outside a world anyway, so an empty icon costs nothing.
+     */
+    private static ItemStack icon(ItemLike item) {
+        Minecraft minecraft = Minecraft.getInstance();
+
+        if (item == null || minecraft == null || minecraft.level == null) {
+            return ItemStack.EMPTY;
+        }
+
+        try {
+            return new ItemStack(item);
+        } catch (RuntimeException e) {
+            // A reload in flight: the level is there but the registries are being rebuilt.
+            return ItemStack.EMPTY;
+        }
+    }
+
     /** The switch rows for the open tab, with the volume slider filed under sound. */
     private void initRows() {
         List<Entry> entries = new ArrayList<>();
@@ -164,7 +189,7 @@ public class HerobrineConfigScreen extends Screen {
         if (this.page.group != null) {
             for (Feature feature : Feature.inGroup(this.page.group)) {
                 entries.add(new Entry(feature.titleKey(), feature.descriptionKey(),
-                        new ItemStack(feature.icon()), "herobrine config " + feature.key(),
+                        icon(feature.icon()), "herobrine config " + feature.key(),
                         settings -> settings.enabled(feature)));
             }
         }
@@ -172,15 +197,15 @@ public class HerobrineConfigScreen extends Screen {
         if (this.page == Page.SOUND) {
             // The music volume is not a switch, so it is a sentinel row with no command.
             entries.add(new Entry("herobrine.screen.musicvolume", "herobrine.screen.desc.volume",
-                    new ItemStack(Items.NOTE_BLOCK), null, null));
+                    icon(Items.NOTE_BLOCK), null, null));
         }
 
         if (this.page == Page.PRESENCE) {
             entries.add(new Entry("herobrine.screen.purist", "herobrine.screen.desc.purist",
-                    new ItemStack(Items.ENDER_EYE), "herobrine mode toggle",
+                    icon(Items.ENDER_EYE), "herobrine mode toggle",
                     HerobrineSettings::isPurist));
             entries.add(new Entry("herobrine.screen.banished", "herobrine.screen.desc.banished",
-                    new ItemStack(Items.BARRIER), "herobrine banish", HerobrineSettings::isBanished));
+                    icon(Items.BARRIER), "herobrine banish", HerobrineSettings::isBanished));
         }
 
         // How many rows fit decides the scroll: nothing is squeezed, and no empty card is left over.
