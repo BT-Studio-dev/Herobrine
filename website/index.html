@@ -1,274 +1,227 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#32143e" />
-    <meta
-      name="description"
-      content="A source and safety guide to Herobrine: Haunting and its bundled From The Fog content."
-    />
-    <title>Source &amp; Safety Guide — Herobrine: Haunting</title>
-    <link rel="stylesheet" href="./styles.css" />
-    <link rel="stylesheet" href="./how-its-built.css" />
-    <script src="./app.js" defer></script>
-  </head>
-  <body>
-    <a class="skip-link" href="#main">Skip to the guide</a>
-    <div class="page-shell">
-      <header class="site-header">
-        <div class="brand">
-          <img
-            class="brand-logo"
-            src="./assets/herobrine-haunting-logo.webp"
-            alt="Herobrine: Haunting"
-          />
-          <span class="brand-caption">
-            <span class="brand-kicker">Field record 001</span>
-            <span class="brand-title">Source guide</span>
-          </span>
+<html lang="en" data-theme="dark" data-glass="on" data-bg="shader" data-text="m">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Herobrine: Haunting — a Fabric mod for Minecraft: Java Edition</title>
+<meta name="description" content="Herobrine: Haunting brings staged hauntings, seven apparitions, the fog closing in and a ten minute original score to Minecraft: Java Edition 26.3. Non-destructive by design.">
+<link rel="stylesheet" href="./showcase.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%230b0d12'/><rect x='3' y='6' width='3' height='2' fill='%23e8eaf2'/><rect x='10' y='6' width='3' height='2' fill='%23e8eaf2'/></svg>">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="./">
+      <img src="./assets/herobrine-haunting-logo.webp" alt="Herobrine: Haunting" width="2064" height="512">
+    </a>
+    <nav class="site-nav" aria-label="Sections">
+      <a href="#minecraft">Minecraft</a>
+      <a href="#mod">The mod</a>
+      <a href="#music">Music</a>
+      <a href="#seed">World seed</a>
+      <a href="./docs/source-and-safety/">Docs</a>
+    </nav>
+  </div>
+</header>
+
+<button class="settings-toggle" data-toggle-settings aria-expanded="false" aria-controls="settings">Display</button>
+
+<aside class="settings" id="settings" hidden aria-label="Display settings">
+  <h2>Display</h2>
+
+  <div class="row">
+    <span>Theme</span>
+    <span class="seg">
+      <button type="button" data-set="theme" data-value="light" aria-pressed="false">White</button>
+      <button type="button" data-set="theme" data-value="dark" aria-pressed="true">Dark</button>
+    </span>
+  </div>
+
+  <div class="row">
+    <span>Glass <span class="hint">Frosted panels</span></span>
+    <span class="seg">
+      <button type="button" data-set="glass" data-value="off" aria-pressed="false">Off</button>
+      <button type="button" data-set="glass" data-value="on" aria-pressed="true">On</button>
+    </span>
+  </div>
+
+  <div class="row">
+    <label for="bg">Background</label>
+    <select id="bg" data-bg-select>
+      <option value="shader">Shader lit</option>
+      <option value="snow">Snow, one moon</option>
+      <option value="none">Plain</option>
+    </select>
+  </div>
+
+  <div class="row">
+    <span>Text size</span>
+    <span class="seg">
+      <button type="button" data-set="text" data-value="s" aria-pressed="false">S</button>
+      <button type="button" data-set="text" data-value="m" aria-pressed="true">M</button>
+      <button type="button" data-set="text" data-value="l" aria-pressed="false">L</button>
+    </span>
+  </div>
+
+  <div class="row">
+    <span>Sounds <span class="hint">Interface clicks</span></span>
+    <span class="seg">
+      <button type="button" data-set="sounds" data-value="off" aria-pressed="true">Off</button>
+      <button type="button" data-set="sounds" data-value="on" aria-pressed="false">On</button>
+    </span>
+  </div>
+
+  <div class="row">
+    <span>Music <span class="hint">Ten minute track</span></span>
+    <span class="seg">
+      <button type="button" data-set="music" data-value="off" aria-pressed="true">Off</button>
+      <button type="button" data-set="music" data-value="on" aria-pressed="false">On</button>
+    </span>
+  </div>
+
+  <div class="row">
+    <label for="volume">Music volume</label>
+    <input id="volume" type="range" min="0" max="1" step="0.05" value="0.5" data-volume>
+  </div>
+
+  <div class="row">
+    <button type="button" data-reset>Reset to defaults</button>
+  </div>
+</aside>
+
+<main id="main">
+  <div class="wrap">
+
+    <section class="hero">
+      <div class="panel">
+        <div class="badges">
+          <span class="badge">v3.0.3</span>
+          <span class="badge">Minecraft 26.3</span>
+          <span class="badge">Fabric</span>
+          <span class="badge">CC BY-NC-SA 4.0</span>
         </div>
-      </header>
-
-      <main id="main">
-        <section class="hero" id="top" aria-labelledby="hero-title">
-          <div class="hero-copy">
-            <p class="eyebrow"><span class="status-dot"></span> Herobrine: Haunting / Minecraft 26.3</p>
-            <h1 id="hero-title">A haunting,<br /><em>with its source in view.</em></h1>
-            <p class="hero-intro">
-              A plain-language field guide to the From The Fog content bundled with Herobrine: Haunting—where it comes
-              from, how it is kept opt-in, and what to know before opening the source files.
-            </p>
-            <div class="hero-actions">
-              <a class="button button-primary" href="#record">Read the source record <span aria-hidden="true">↓</span></a>
-              <a class="text-link" href="#safety">See the safety note <span aria-hidden="true">↗</span></a>
-            </div>
-            <div class="hero-stamp" aria-label="Upstream revision information">
-              <span class="stamp-label">Upstream snapshot</span>
-              <span class="stamp-value">v1.11.3 · 26.3</span>
-              <span class="stamp-divider" aria-hidden="true"></span>
-              <span class="stamp-label">Commit</span>
-              <code>cd14b43</code>
-            </div>
-          </div>
-          <figure class="hero-art">
-            <div class="art-topline"><span>Field image / 01</span><span>Overworld · night</span></div>
-            <div class="art-image-wrap">
-              <img
-                src="./assets/herobrine-snow-one-moon.webp"
-                alt="Herobrine standing on a snowy ridge beneath a luminous square moon at night"
-              />
-              <span class="image-coordinate coordinate-top" aria-hidden="true">N 26° 03′</span>
-              <span class="image-coordinate coordinate-bottom" aria-hidden="true">OBSERVATION / 01</span>
-            </div>
-            <figcaption>
-              <span>Quiet by design.</span>
-              <span>The source stays visible.</span>
-            </figcaption>
-          </figure>
-        </section>
-
-        <div class="facts-strip" aria-label="Project facts">
-          <div class="fact"><span class="fact-number">01</span><span><small>Project</small><strong>Herobrine: Haunting</strong></span></div>
-          <div class="fact"><span class="fact-number">02</span><span><small>Bundled source</small><strong>From The Fog</strong></span></div>
-          <div class="fact"><span class="fact-number">03</span><span><small>License family</small><strong>CC BY-NC-SA 4.0</strong></span></div>
-          <div class="fact fact-safety"><span class="fact-number">!</span><span><small>Optional file</small><strong>Do not run casually</strong></span></div>
+        <h1>He was never in the game. Now he is.</h1>
+        <p class="lede">
+          Staged hauntings, seven apparitions, the fog closing in and ten minutes of original
+          score — and nothing of yours is ever destroyed to do it.
+        </p>
+        <div class="cta">
+          <a class="btn-primary" href="https://github.com/BT-Studio-dev/Herobrine/releases/latest">Download</a>
+          <a class="btn-primary" href="https://github.com/BT-Studio-dev/Herobrine">Source on GitHub</a>
         </div>
+      </div>
+    </section>
 
-        <section class="guide-section source-section" id="record" aria-labelledby="record-title">
-          <div class="section-rail">
-            <span class="section-index">01 / Record</span>
-            <span class="rail-line" aria-hidden="true"></span>
-            <span class="rail-note">What is in the bundle</span>
-          </div>
-          <div class="section-body">
-            <div class="section-heading">
-              <p class="eyebrow">Origin &amp; scope</p>
-              <h2 id="record-title">Two copies.<br /><span>One clear boundary.</span></h2>
-              <p class="section-lede">
-                Herobrine: Haunting keeps a full upstream source mirror for reference, then packages selected From The Fog
-                namespaces with the mod. The mirror and the playable bundle are related, but they are not the same folder.
-              </p>
-            </div>
-            <div class="source-cards">
-              <article class="source-card source-card-main">
-                <div class="card-top"><span class="card-index">A</span><span class="card-type">Upstream mirror</span></div>
-                <h3>Full source copy</h3>
-                <code class="path">third_party/from-the-fog/</code>
-                <p>
-                  An unmodified copy of Lunar Eclipse Studios’ From The Fog repository. It is kept as provenance material
-                  and is not included as a standalone datapack in the Fabric build.
-                </p>
-                <a
-                  class="card-link"
-                  href="https://github.com/BT-Studio-dev/Herobrine/blob/arena%2F90bfae78-herobrine/third_party/from-the-fog/SOURCE.md"
-                  target="_blank"
-                  rel="noreferrer"
-                >Read SOURCE.md <span aria-hidden="true">↗</span></a>
-              </article>
-              <article class="source-card source-card-bundle">
-                <div class="card-top"><span class="card-index">B</span><span class="card-type">Bundled resources</span></div>
-                <h3>Selected namespaces</h3>
-                <code class="path">src/main/resources/</code>
-                <p>
-                  The mod ships the selected content under its own namespaces, so it can be enabled from Herobrine’s
-                  settings instead of starting as an independent pack.
-                </p>
-                <div class="namespace-list" aria-label="Bundled namespaces">
-                  <span>lunareclipse.watching</span>
-                  <span>lunareclipse.utils</span>
-                  <span>from_the_fog</span>
-                  <span>watching</span>
-                </div>
-              </article>
-            </div>
-          </div>
-        </section>
+    <section id="minecraft">
+      <h2 class="section-title">Minecraft: Java Edition</h2>
+      <p class="section-lede">
+        Built for Java Edition on Fabric. The versions below are read straight from the mod's own
+        metadata, so what the site claims is what the jar asks for.
+      </p>
+      <div class="panel">
+        <dl class="facts">
+          <div><dt>Game version</dt><dd>26.3</dd></div>
+          <div><dt>Java</dt><dd>25 or newer</dd></div>
+          <div><dt>Fabric Loader</dt><dd>0.19.0 or newer</dd></div>
+          <div><dt>Fabric API</dt><dd>0.165.0 or newer</dd></div>
+          <div><dt>Mod version</dt><dd>3.0.3</dd></div>
+          <div><dt>Side</dt><dd>Client and server</dd></div>
+        </dl>
+      </div>
+    </section>
 
-        <section class="guide-section integration-section" id="integration" aria-labelledby="integration-title">
-          <div class="section-rail">
-            <span class="section-index">02 / Integration</span>
-            <span class="rail-line" aria-hidden="true"></span>
-            <span class="rail-note">How it behaves in-game</span>
-          </div>
-          <div class="section-body integration-layout">
-            <div class="section-heading">
-              <p class="eyebrow">Opt-in, not automatic</p>
-              <h2 id="integration-title">The fog waits<br /><span>until invited.</span></h2>
-            </div>
-            <div class="integration-copy">
-              <p>
-                The bundled From The Fog tick and load functions are deliberately not registered with Minecraft’s
-                <code>tick</code> and <code>load</code> function tags. They do not start automatically when a world loads.
-              </p>
-              <p>
-                To run that content, turn on <strong>From The Fog</strong> in the Herobrine settings screen or use
-                <code>/herobrine config fog</code>. The feature is off by default, so players choose whether to enable it.
-              </p>
-              <a
-                class="inline-source"
-                href="https://github.com/BT-Studio-dev/Herobrine/blob/arena%2F90bfae78-herobrine/README.md"
-                target="_blank"
-                rel="noreferrer"
-              >Project README: bundled third-party content <span aria-hidden="true">↗</span></a>
-            </div>
-          </div>
-          <div class="exclusion-note">
-            <span class="exclusion-mark" aria-hidden="true">×</span>
-            <p><strong>No upstream vanilla overrides in the bundle.</strong> The upstream <code>assets/minecraft</code>
-              and <code>data/minecraft</code> content is not copied into the mod’s From The Fog bundle.</p>
-          </div>
-        </section>
-
-        <section class="revision-panel" aria-labelledby="revision-title">
-          <div class="revision-heading">
-            <p class="eyebrow">Source pin</p>
-            <h2 id="revision-title">A revision you can verify.</h2>
-            <p>The source note records the exact upstream commit. The matching Minecraft 26.3 release tag points to the same revision.</p>
-          </div>
-          <div class="revision-details">
-            <div class="revision-row"><span>Repository</span><a href="https://github.com/LunarEclipseStudios/From-The-Fog" target="_blank" rel="noreferrer">LunarEclipseStudios / From-The-Fog ↗</a></div>
-            <div class="revision-row"><span>Branch</span><strong>main</strong></div>
-            <div class="revision-row"><span>Release tag</span><a href="https://github.com/LunarEclipseStudios/From-The-Fog/releases/tag/v1.11.3-26.3" target="_blank" rel="noreferrer">v1.11.3-26.3 ↗</a></div>
-            <div class="commit-box">
-              <span class="commit-label">Full commit</span>
-              <code id="commit-hash">cd14b43c623d73b1c3efe8a9b7a1f734f4e1f408</code>
-              <button class="copy-button" type="button" data-copy-commit aria-label="Copy the upstream commit hash">Copy</button>
-            </div>
-            <span class="visually-hidden" aria-live="polite" data-copy-status></span>
-          </div>
-        </section>
-
-        <section class="safety-section" id="safety" aria-labelledby="safety-title">
-          <div class="safety-symbol" aria-hidden="true"><span>!</span></div>
-          <div class="safety-content">
-            <p class="eyebrow safety-eyebrow">Safety note / Windows script</p>
-            <h2 id="safety-title">Do not run this<br /><em>just to play the mod.</em></h2>
-            <p class="safety-lede">
-              <code>WAKE_UP.vbs</code> is an optional upstream script. Its recorded behavior is to show a series of message
-              boxes and open a website.
-            </p>
-            <div class="safety-bottom">
-              <p>
-                It is <strong>not required</strong> for Herobrine: Haunting or the From The Fog datapack. Leave it alone
-                unless you specifically intend to run that behavior. This guide does not execute the script.
-              </p>
-              <a
-                class="safety-source"
-                href="https://github.com/BT-Studio-dev/Herobrine/blob/arena%2F90bfae78-herobrine/third_party/from-the-fog/SOURCE.md"
-                target="_blank"
-                rel="noreferrer"
-              >See the source safety note <span aria-hidden="true">↗</span></a>
-            </div>
-          </div>
-        </section>
-
-        <section class="guide-section license-section" id="license" aria-labelledby="license-title">
-          <div class="section-rail">
-            <span class="section-index">03 / License</span>
-            <span class="rail-line" aria-hidden="true"></span>
-            <span class="rail-note">Attribution &amp; terms</span>
-          </div>
-          <div class="section-body">
-            <div class="section-heading license-heading">
-              <p class="eyebrow">Shared non-commercial terms</p>
-              <h2 id="license-title">Credit the source.<br /><span>Keep the terms attached.</span></h2>
-              <p class="section-lede">
-                Both projects use CC BY-NC-SA 4.0. The bundled From The Fog content keeps its attribution and share-alike
-                terms; neither project is licensed for commercial use under this license.
-              </p>
-            </div>
-            <div class="license-list">
-              <article class="license-entry">
-                <span class="license-number">01</span>
-                <div>
-                  <h3>Herobrine: Haunting</h3>
-                  <p>Created by BT-Studio. Licensed CC BY-NC-SA 4.0.</p>
-                  <a href="https://github.com/BT-Studio-dev/Herobrine/blob/arena%2F90bfae78-herobrine/LICENSE" target="_blank" rel="noreferrer">Project license ↗</a>
-                </div>
-              </article>
-              <article class="license-entry">
-                <span class="license-number">02</span>
-                <div>
-                  <h3>From The Fog</h3>
-                  <p>Created by Lunar Eclipse Studios. Bundled from its upstream repository under CC BY-NC-SA 4.0.</p>
-                  <a href="https://github.com/LunarEclipseStudios/From-The-Fog/blob/main/LICENSE.md" target="_blank" rel="noreferrer">Upstream license ↗</a>
-                </div>
-              </article>
-            </div>
-            <a class="license-standard" href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">
-              Read the Creative Commons BY-NC-SA 4.0 terms <span aria-hidden="true">↗</span>
-            </a>
-          </div>
-        </section>
-
-        <section class="build-card-wrap" aria-label="More project documentation">
-          <a class="build-card" href="./docs/how-herobrine-is-built/">
-            <span class="build-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1zm-11-1 2 2 4-4" />
-              </svg>
-            </span>
-            <span class="build-card-copy">
-              <span class="build-card-kicker">Project notes / 002</span>
-              <strong class="build-card-title">How it’s built</strong>
-              <span class="build-card-description">Who maintains the mod, what the build checks, and what its safety notes can—and can’t—promise.</span>
-            </span>
-            <span class="build-card-arrow" aria-hidden="true">↗</span>
-          </a>
-        </section>
-      </main>
-
-      <footer class="site-footer">
-        <div class="footer-mark" aria-hidden="true"><span></span><span></span><span></span></div>
-        <p>Source first. Safety in plain sight.</p>
-        <div class="footer-links">
-          <a href="https://github.com/BT-Studio-dev/Herobrine/blob/arena%2F90bfae78-herobrine/third_party/from-the-fog/SOURCE.md" target="_blank" rel="noreferrer">SOURCE.md</a>
-          <a href="https://github.com/BT-Studio-dev/Herobrine/blob/arena%2F90bfae78-herobrine/README.md" target="_blank" rel="noreferrer">Herobrine README</a>
-          <a href="https://github.com/LunarEclipseStudios/From-The-Fog" target="_blank" rel="noreferrer">Upstream ↗</a>
+    <section id="mod">
+      <h2 class="section-title">The mod</h2>
+      <p class="section-lede">
+        Thirty-four switches, each one per dimension, so the haunting can be tuned to a single
+        effect or switched off entirely. Every default is the behaviour the mod already had, so an
+        existing world carries on exactly as you left it.
+      </p>
+      <div class="grid">
+        <div class="card">
+          <h3>Seven apparitions</h3>
+          <p>The watcher on the ridge, the runner across the water, the thing at your window: each
+             with its own behaviour, and none of them guaranteed to stay where you saw it.</p>
         </div>
-        <small>Project documentation · Minecraft 26.3</small>
-      </footer>
-    </div>
-  </body>
+        <div class="card">
+          <h3>Non-destructive</h3>
+          <p>Tunnels are dug, groves are stripped and pyramids appear, but your builds are never
+             touched. Every change is one he makes, not one he does to you.</p>
+        </div>
+        <div class="card">
+          <h3>Iron is a ward</h3>
+          <p>Everything hammered out of iron keeps him back — armour per piece, a sword or stick in
+             either hand, and iron lying on the ground. A full set is a strong ward, not a wall.</p>
+        </div>
+        <div class="card">
+          <h3>Twelve sounds, all original</h3>
+          <p>Whispers, footsteps, a pickaxe where no one is mining and a bell for the cross. Every
+             sound is generated for this mod; nothing is taken from anywhere else.</p>
+        </div>
+        <div class="card">
+          <h3>The fog closes in</h3>
+          <p>As he gets closer the fog thickens. With a shader pack loaded it falls back to a
+             vignette no pack can throw away, so the effect survives whatever you render with.</p>
+        </div>
+        <div class="card">
+          <h3>His eyes cast light</h3>
+          <p>Install LambDynamicLights and he lights the ground around him. The mod ships the
+             definition; nothing else is needed.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="music">
+      <h2 class="section-title">Music</h2>
+      <p class="section-lede">
+        Ten minutes of drone, wind, distant bells and something moving under the floor, with a real
+        arc and silent ends so it loops. Turn it on below — the track is fetched only when you ask
+        for it.
+      </p>
+      <div class="panel">
+        <div class="audio-row">
+          <button type="button" data-set="music" data-value="on" aria-pressed="false">Play</button>
+          <button type="button" data-set="music" data-value="off" aria-pressed="true">Stop</button>
+          <label for="volume-2">Volume</label>
+          <input id="volume-2" type="range" min="0" max="1" step="0.05" value="0.5" data-volume aria-label="Music volume">
+        </div>
+        <p class="status" data-status role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section id="seed">
+      <h2 class="section-title">World seed</h2>
+      <p class="section-lede">
+        A seed to start on. Every structure the mod builds is placed by hand rather than by
+        worldgen, so it behaves the same on any seed you choose — but this one is a good place to
+        meet him.
+      </p>
+      <div class="panel">
+        <!-- Replace the number below with the seed you want the site to show. -->
+        <div class="seed-box">
+          <span class="seed-value" data-seed-value>784203195</span>
+          <button type="button" data-copy-seed>Copy seed</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Herobrine: Haunting by BT-Studio — CC BY-NC-SA 4.0</span>
+    <span>
+      <a href="https://github.com/BT-Studio-dev/Herobrine">GitHub</a> ·
+      <a href="./docs/source-and-safety/">Source &amp; safety</a> ·
+      <a href="./docs/how-herobrine-is-built/">How it&rsquo;s built</a>
+    </span>
+  </div>
+</footer>
+
+<audio id="track" src="./assets/music_haunt.ogg" loop preload="none"></audio>
+<script src="./showcase.js"></script>
+</body>
 </html>
