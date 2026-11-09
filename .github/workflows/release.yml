@@ -9,7 +9,7 @@ on:
       tag:
         description: 'Tag to publish (must match mod_version in gradle.properties)'
         required: true
-        default: 'v3.0.3'
+        default: 'v3.0.2'
 
 permissions:
   contents: write
@@ -98,7 +98,7 @@ jobs:
 
           ASSETS=("$JAR")
           # The shader is a separate, experimental MIT-licensed pack, not part of the mod JAR.
-          if [ "$TAG" = "v2.9.5" ] || [ "$TAG" = "v3.0.0" ] || [ "$TAG" = "v3.0.1" ] || [ "$TAG" = "v3.0.2" ] || [ "$TAG" = "v3.0.3" ]; then
+          if [ "$TAG" = "v2.9.5" ] || [ "$TAG" = "v3.0.0" ] || [ "$TAG" = "v3.0.1" ] || [ "$TAG" = "v3.0.2" ]; then
             ASSETS+=("shaders/optimism-26.3-test.zip")
           fi
           NOTES_FILE="release-notes/$TAG.md"
