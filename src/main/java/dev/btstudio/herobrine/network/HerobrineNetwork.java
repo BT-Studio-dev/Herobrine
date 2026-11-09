@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import dev.btstudio.herobrine.event.HauntingEvents;
 import dev.btstudio.herobrine.world.Feature;
 import dev.btstudio.herobrine.world.HerobrineSettings;
 
@@ -45,8 +46,10 @@ public final class HerobrineNetwork {
             ServerPlayNetworking.send(listener.player, payload);
         });
 
-        ServerPlayConnectionEvents.DISCONNECT.register((listener, server) ->
-                LAST_SENT.remove(listener.player.getUUID()));
+        ServerPlayConnectionEvents.DISCONNECT.register((listener, server) -> {
+            LAST_SENT.remove(listener.player.getUUID());
+            HauntingEvents.forgetMusic(listener.player.getUUID());
+        });
 
         ServerTickEvents.END_SERVER_TICK.register(HerobrineNetwork::syncAll);
     }

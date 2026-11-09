@@ -84,6 +84,12 @@ public enum Feature {
     SOUNDS(Group.SOUND, Items.SOUL_LANTERN, "schizo"),
     /** The ten minute haunting track, played when he is genuinely close. */
     MUSIC(Group.SOUND, Items.MUSIC_DISC_13, "music"),
+    /**
+     * Keep that track going for as long as he is close, starting it again the moment it runs out
+     * rather than waiting out the cooldown, and cutting it when he is no longer near. Off, the
+     * track is the rare thing it always was: one playthrough, then at least ten minutes of quiet.
+     */
+    MUSIC_LOOP(Group.SOUND, Items.REPEATER),
 
     // ---- Presence: the bigger pieces of the mod. ----
     /** "From the fog": the fog closing in as he gets closer. */

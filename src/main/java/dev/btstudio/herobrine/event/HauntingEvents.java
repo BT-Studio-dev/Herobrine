@@ -25,6 +25,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
@@ -119,6 +120,13 @@ public final class HauntingEvents {
 
     /** When each player last heard the track, in game ticks. */
     private static final Map<UUID, Long> LAST_MUSIC = new HashMap<>();
+    /**
+     * When each player's looping track started, and therefore which players have one running.
+     * The track is exactly six hundred seconds, so this is also what tells us it has run out.
+     */
+    private static final Map<UUID, Long> MUSIC_LOOP_START = new HashMap<>();
+    /** The length of the track in ticks: 600 seconds at twenty a second. */
+    private static final int MUSIC_TRACK_TICKS = 12_000;
 
     /** How many blocks the dug tunnel runs into the hillside. */
     private static final int TUNNEL_LENGTH = 24;
@@ -197,32 +205,99 @@ public final class HauntingEvents {
      */
     private static void maybePlayMusic(ServerLevel level, ServerPlayer player, HerobrineSettings settings) {
         long gameTime = level.getLevelData().getGameTime();
+        UUID id = player.getUUID();
+        Long looping = MUSIC_LOOP_START.get(id);
+
+        // Switched off or turned down: whatever is playing goes, and nothing new starts.
+        if (!settings.isMusic() || settings.musicVolume() <= 0) {
+            if (looping != null) {
+                stopMusic(player);
+                MUSIC_LOOP_START.remove(id);
+            }
+
+            return;
+        }
+
+        boolean loop = settings.enabled(Feature.MUSIC_LOOP);
+
+        if (loop && looping != null) {
+            // Only two things can happen to a loop that is already running: he leaves, or the
+            // track runs out. Asking whether it has run out is two comparisons, so it is worth
+            // doing every tick - a ten second gate would leave up to ten seconds of silence
+            // between one playthrough and the next. The proximity scan is the expensive part and
+            // stays behind the gate.
+            if (gameTime % MUSIC_CHECK_TICKS == 0 && !nearHerobrine(level, player)) {
+                stopMusic(player);
+                MUSIC_LOOP_START.remove(id);
+                return;
+            }
+
+            if (gameTime - looping >= MUSIC_TRACK_TICKS) {
+                startMusic(level, player, settings);
+                MUSIC_LOOP_START.put(id, gameTime);
+            }
+
+            return;
+        }
 
         // Checked before anything else is looked at: most calls fall out here, once a second.
         if (gameTime % MUSIC_CHECK_TICKS != 0) {
             return;
         }
 
-        if (!settings.isMusic() || settings.musicVolume() <= 0) {
+        if (loop) {
+            // Nothing running yet, so the only question is whether he is close enough to start it.
+            if (nearHerobrine(level, player)) {
+                startMusic(level, player, settings);
+                MUSIC_LOOP_START.put(id, gameTime);
+            }
+
             return;
         }
 
-        Long last = LAST_MUSIC.get(player.getUUID());
+        Long last = LAST_MUSIC.get(id);
 
         if (last != null && gameTime - last < MUSIC_COOLDOWN_TICKS) {
             return;
         }
 
-        boolean nearby = !level.getEntitiesOfClass(HerobrineEntity.class,
-                player.getBoundingBox().inflate(MUSIC_RANGE), HerobrineEntity::isAlive).isEmpty();
-
-        if (!nearby) {
+        if (!nearHerobrine(level, player)) {
             return;
         }
 
-        LAST_MUSIC.put(player.getUUID(), gameTime);
+        LAST_MUSIC.put(id, gameTime);
+        startMusic(level, player, settings);
+    }
+
+    /** Whether he is alive and within earshot, which is what the track is gated on. */
+    private static boolean nearHerobrine(ServerLevel level, ServerPlayer player) {
+        return !level.getEntitiesOfClass(HerobrineEntity.class,
+                player.getBoundingBox().inflate(MUSIC_RANGE), HerobrineEntity::isAlive).isEmpty();
+    }
+
+    private static void startMusic(ServerLevel level, ServerPlayer player, HerobrineSettings settings) {
         level.playSound(null, player.getX(), player.getY(), player.getZ(), ModSounds.MUSIC_HAUNT,
                 SoundSource.MUSIC, MUSIC_BASE_VOLUME * settings.musicVolume() / 100.0F, 1.0F);
+    }
+
+    /**
+     * Cuts the track short. The server has no handle on a sound once it has been played, so this
+     * sends the same packet vanilla's own {@code /stopsound} sends, naming this one sound in this
+     * one category so nothing else that happens to be playing is touched.
+     */
+    private static void stopMusic(ServerPlayer player) {
+        player.connection.send(new ClientboundStopSoundPacket(ModSounds.MUSIC_HAUNT.location(),
+                SoundSource.MUSIC));
+    }
+
+    /**
+     * Forgets everything held about a player's music, called when they leave. A track cut short by
+     * logging out is otherwise still counted as running, and coming back to find it silent for the
+     * rest of what would have been its ten minutes is not a bug worth having.
+     */
+    public static void forgetMusic(UUID id) {
+        LAST_MUSIC.remove(id);
+        MUSIC_LOOP_START.remove(id);
     }
 
     /**
