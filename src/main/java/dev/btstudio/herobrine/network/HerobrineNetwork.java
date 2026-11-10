@@ -4,7 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import dev.btstudio.herobrine.event.Dread;
 import dev.btstudio.herobrine.event.HauntingEvents;
+import dev.btstudio.herobrine.event.IronWard;
 import dev.btstudio.herobrine.world.Feature;
 import dev.btstudio.herobrine.world.HerobrineSettings;
 
@@ -46,9 +48,15 @@ public final class HerobrineNetwork {
             ServerPlayNetworking.send(listener.player, payload);
         });
 
+        // Everything held per player is let go here. Each map on its own is a few hundred bytes,
+        // but every one of them outlives the player by default, and a server that runs for months
+        // should not be paying for everyone who ever joined it.
         ServerPlayConnectionEvents.DISCONNECT.register((listener, server) -> {
-            LAST_SENT.remove(listener.player.getUUID());
-            HauntingEvents.forgetMusic(listener.player.getUUID());
+            UUID id = listener.player.getUUID();
+            LAST_SENT.remove(id);
+            HauntingEvents.forgetMusic(id);
+            IronWard.forget(id);
+            Dread.forget(id);
         });
 
         ServerTickEvents.END_SERVER_TICK.register(HerobrineNetwork::syncAll);

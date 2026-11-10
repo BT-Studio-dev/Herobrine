@@ -400,10 +400,15 @@ public final class HauntingEvents {
      * Forgets everything held about a player's music, called when they leave. A track cut short by
      * logging out is otherwise still counted as running, and coming back to find it silent for the
      * rest of what would have been its ten minutes is not a bug worth having.
+     *
+     * <p>This is also where the per-player maps give their memory back. They are small - a few
+     * hundred bytes each - but nothing else ever removes them, so on a server that runs for months
+     * they grow by one entry for every player who joins.
      */
     public static void forgetMusic(UUID id) {
         LAST_MUSIC.remove(id);
         MUSIC_LOOP_START.remove(id);
+        ALEX_MUSIC_START.remove(id);
     }
 
     /**

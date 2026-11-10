@@ -198,4 +198,9 @@ public final class IronWard {
         LAST_WARD_MESSAGE.put(player.getUUID(), gameTime);
         player.sendSystemMessage(Component.translatable("herobrine.iron.ward").withStyle(ChatFormatting.GRAY), true);
     }
+
+    /** Drops what we were holding about a player who has left. */
+    public static void forget(UUID id) {
+        LAST_WARD_MESSAGE.remove(id);
+    }
 }

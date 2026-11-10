@@ -76,8 +76,8 @@ public final class Dread {
 
     /**
      * One second of a player's life, called from the haunting's own tick. The two clocks are kept
-     * in seconds rather than game time so that leaving and coming back does not hand out a point
-     * for the time you were away.
+     * in seconds rather than game time, and are dropped when the player leaves, so that coming back
+     * does not hand out a point for time spent down there before logging out.
      */
     public static void tick(ServerLevel level, ServerPlayer player, HerobrineSettings settings) {
         if (!settings.enabled(Feature.ESCALATION) || settings.isBanished()) {
@@ -103,5 +103,15 @@ public final class Dread {
         } else {
             WARD_CLOCK.remove(id);
         }
+    }
+
+    /**
+     * Drops what we were holding about a player who has left. Both clocks are abandoned rather
+     * than banked: coming back into the same cave starts the ninety seconds again rather than
+     * handing out a point for time spent down there before you logged out.
+     */
+    public static void forget(UUID id) {
+        UNDERGROUND_CLOCK.remove(id);
+        WARD_CLOCK.remove(id);
     }
 }
