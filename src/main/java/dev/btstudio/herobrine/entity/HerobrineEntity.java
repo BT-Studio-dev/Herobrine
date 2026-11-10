@@ -69,6 +69,14 @@ public class HerobrineEntity extends Monster {
     private static final int MAX_STARE_TICKS = 30;
     private static final double VANISH_DISTANCE = 7.0;
     private static final double SEARCH_RANGE = 64.0;
+    /**
+     * A hostile Herobrine has no timer of his own - he hunts until he is killed, driven off with
+     * iron or banished - so he needs one rule of his own to stop him lasting forever. This is how
+     * far he can sense a player, and how long he keeps looking with nobody in range before he
+     * gives up: three minutes.
+     */
+    private static final double HOSTILE_SEARCH_RANGE = 48.0;
+    private static final int HOSTILE_ABANDON_TICKS = 3_600;
 
     // Attributes of the elite version.
     private static final double ELITE_MAX_HEALTH = 120.0;
@@ -120,6 +128,8 @@ public class HerobrineEntity extends Monster {
     private static final float STRIKE_DAMAGE = 3.0F;
 
     private int lifeTicks;
+    /** Ticks spent hunting with nobody in range. See {@link #HOSTILE_ABANDON_TICKS}. */
+    private int abandonedTicks;
     private int stareTicks;
     private Apparition apparition = Apparition.WATCH;
 
@@ -162,7 +172,11 @@ public class HerobrineEntity extends Monster {
         return this.entityData.get(HOSTILE);
     }
 
-    /** Hostile Herobrine hunts players; stalker Herobrine only watches, then vanishes. */
+    /**
+     * Hostile Herobrine hunts players; stalker Herobrine only watches, then vanishes. A hostile
+     * one has no timer, but gives up and vanishes if nobody comes within sight for three minutes
+     * - see {@link #tickHostile(ServerLevel)}.
+     */
     public void setHostile(boolean hostile) {
         this.entityData.set(HOSTILE, hostile);
         // Stalkers stand perfectly still.
@@ -272,7 +286,12 @@ public class HerobrineEntity extends Monster {
     public void tick() {
         super.tick();
 
-        if (!(this.level() instanceof ServerLevel serverLevel) || this.isHostile()) {
+        if (!(this.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        if (this.isHostile()) {
+            this.tickHostile(serverLevel);
             return;
         }
 
@@ -324,6 +343,27 @@ public class HerobrineEntity extends Monster {
     }
 
     /** The classic sighting: stand still, stare, and be gone once you get close. */
+    /**
+     * Hostile Herobrine hunts, and unlike the apparitions he has no timer that ends him. He used
+     * to be permanent for that reason: a fight you ran away from left him standing in the world
+     * for the rest of its life, still persistent, still ticking, and not even counted against the
+     * cap on new sightings.
+     *
+     * <p>So he gets one rule instead: nobody within {@link #HOSTILE_SEARCH_RANGE} for three
+     * minutes and he gives up. He leaves the way everything else does - smoke, and the fog sound.
+     * Being hurt still turns him hostile, and he still hunts for as long as you are there.
+     */
+    private void tickHostile(ServerLevel level) {
+        if (level.getNearestPlayer(this, HOSTILE_SEARCH_RANGE) != null) {
+            this.abandonedTicks = 0;
+            return;
+        }
+
+        if (++this.abandonedTicks >= HOSTILE_ABANDON_TICKS) {
+            this.vanish(level);
+        }
+    }
+
     private void tickWatch(ServerLevel serverLevel, Player player) {
         boolean watcher = this.isWatcher();
         boolean lurking = this.apparition == Apparition.LURKING;
