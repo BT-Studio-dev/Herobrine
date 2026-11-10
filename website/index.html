@@ -137,6 +137,13 @@
           <div><dt>Mod version</dt><dd>3.0.3</dd></div>
           <div><dt>Side</dt><dd>Client and server</dd></div>
         </dl>
+        <p class="panel-note">
+          <b>26.3 is not 1.21.11.</b> Mojang dropped the old 1.x numbers at the end of 2025 —
+          1.21.11 was the last release to use them — and moved to a year-and-drop scheme, so 26.3
+          is the third drop of 2026. The two are different versions and this mod runs on the new
+          one: it asks for <code>~26.3</code> and will refuse to load on 1.21.11. To check which
+          you are on, look at the bottom-left corner of the title screen.
+        </p>
       </div>
     </section>
 
@@ -259,7 +266,7 @@
         <p class="status" data-status role="status" aria-live="polite"></p>
         <p class="audio-foot">
           <a href="./assets/music_alex.ogg" download>Download the track</a>
-          <span class="hint">Ogg Vorbis, 2:30, 563 KB. Nothing is fetched until you press play.</span>
+          <span class="hint">Ogg Vorbis, 2:30, 0.5 MB. Nothing is fetched until you press play.</span>
         </p>
 
         <audio id="alex-track" src="./assets/music_alex.ogg" loop preload="none"
@@ -271,16 +278,21 @@
     <section id="seed">
       <h2 class="section-title">World seed</h2>
       <p class="section-lede">
-        A seed to start on. Every structure the mod builds is placed by hand rather than by
-        worldgen, so it behaves the same on any seed you choose — but this one is a good place to
-        meet him.
+        Type a word instead of a number and Minecraft turns it into one: the number below is what
+        the game makes of his name. Every structure the mod builds is placed by hand rather than
+        by worldgen, so it behaves the same on any seed you choose — this is just the one with his
+        name on it.
       </p>
       <div class="panel">
-        <!-- Replace the number below with the seed you want the site to show. -->
         <div class="seed-box">
-          <span class="seed-value" data-seed-value>784203195</span>
+          <span class="seed-value" data-seed-value>10528182</span>
           <button type="button" data-copy-seed>Copy seed</button>
         </div>
+        <p class="panel-note">
+          Type <code>Herobrine</code> into the seed box and the game arrives at the same world:
+          Java Edition hashes the text into a signed 32-bit number, and that hash is 10528182.
+          Copy the number if you would rather paste than spell.
+        </p>
       </div>
     </section>
 
