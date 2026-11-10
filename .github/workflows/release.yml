@@ -9,7 +9,7 @@ on:
       tag:
         description: 'Tag to publish (must match mod_version in gradle.properties)'
         required: true
-        default: 'v3.0.3'
+        default: 'v3.0.4'
 
 permissions:
   contents: write
