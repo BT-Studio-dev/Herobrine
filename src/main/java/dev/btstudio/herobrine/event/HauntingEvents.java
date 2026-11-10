@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import dev.btstudio.herobrine.entity.Apparition;
+import dev.btstudio.herobrine.entity.AlexFriendEntity;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
 import dev.btstudio.herobrine.sound.ModSounds;
@@ -121,6 +122,17 @@ public final class HauntingEvents {
     /** Played at this fraction of the configured volume: music, not a siren. */
     private static final float MUSIC_BASE_VOLUME = 0.6F;
 
+    /**
+     * Alex's theme: two and a half minutes of bell over a warm bed, played while she is walking
+     * with you and he is nowhere near. It is a loop, so it needs a start time rather than a
+     * cooldown - two and a half minutes is far too short to put a ten minute gap behind.
+     */
+    private static final double ALEX_MUSIC_RANGE = 24.0;
+    private static final int ALEX_TRACK_TICKS = 3_000;
+    /** Checked once a second: the proximity scan walks the entity list twice. */
+    private static final int ALEX_MUSIC_CHECK_TICKS = 20;
+    private static final Map<UUID, Long> ALEX_MUSIC_START = new HashMap<>();
+
     /** When each player last heard the track, in game ticks. */
     private static final Map<UUID, Long> LAST_MUSIC = new HashMap<>();
     /**
@@ -203,6 +215,29 @@ public final class HauntingEvents {
                 maybePlayMusic(level, player, settings);
             }
         });
+
+        // Her theme runs on its own pass rather than inside that loop, because the loop skips
+        // Creative players: someone setting up a shot with Alex in it should still hear her.
+        ServerTickEvents.END_SERVER_TICK.register(HauntingEvents::tickAlexMusic);
+    }
+
+    private static void tickAlexMusic(MinecraftServer server) {
+        if (server.getTickCount() % 20 != 0) {
+            return;
+        }
+
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (player.isSpectator() || !player.isAlive()) {
+                continue;
+            }
+
+            ServerLevel level = player.level();
+            HerobrineSettings settings = HerobrineSettings.of(level);
+
+            if (!settings.isBanished()) {
+                maybePlayAlexMusic(level, player, settings);
+            }
+        }
     }
 
     /**
@@ -294,6 +329,70 @@ public final class HauntingEvents {
      */
     private static void stopMusic(ServerPlayer player) {
         player.connection.send(new ClientboundStopSoundPacket(ModSounds.MUSIC_HAUNT.location(),
+                SoundSource.MUSIC));
+    }
+
+    /**
+     * Alex's theme. The rule is the whole of it: hers plays when she is with you and he is not.
+     * Two tracks at once is noise, and a warm one underneath a haunting is worse than silence -
+     * she is meant to be the moment you notice you are not being watched.
+     */
+    private static void maybePlayAlexMusic(ServerLevel level, ServerPlayer player,
+                                          HerobrineSettings settings) {
+        long gameTime = level.getLevelData().getGameTime();
+        UUID id = player.getUUID();
+        Long started = ALEX_MUSIC_START.get(id);
+
+        if (!settings.enabled(Feature.ALEX) || !settings.isMusic() || settings.musicVolume() <= 0) {
+            if (started != null) {
+                stopAlexMusic(player);
+                ALEX_MUSIC_START.remove(id);
+            }
+
+            return;
+        }
+
+        if (gameTime % ALEX_MUSIC_CHECK_TICKS != 0) {
+            return;
+        }
+
+        boolean hers = nearAlex(level, player) && !nearHerobrine(level, player);
+
+        if (started == null) {
+            if (hers) {
+                startAlexMusic(level, player, settings);
+                ALEX_MUSIC_START.put(id, gameTime);
+            }
+
+            return;
+        }
+
+        boolean finished = gameTime - started >= ALEX_TRACK_TICKS;
+
+        if (!hers) {
+            stopAlexMusic(player);
+            ALEX_MUSIC_START.remove(id);
+        } else if (finished) {
+            startAlexMusic(level, player, settings);
+            ALEX_MUSIC_START.put(id, gameTime);
+        }
+    }
+
+    /** Whether your own Alex is alive and within earshot. */
+    private static boolean nearAlex(ServerLevel level, ServerPlayer player) {
+        return !level.getEntitiesOfClass(AlexFriendEntity.class,
+                player.getBoundingBox().inflate(ALEX_MUSIC_RANGE),
+                alex -> alex.isAlive() && alex.isOwnedBy(player)).isEmpty();
+    }
+
+    private static void startAlexMusic(ServerLevel level, ServerPlayer player,
+                                       HerobrineSettings settings) {
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), ModSounds.MUSIC_ALEX,
+                SoundSource.MUSIC, MUSIC_BASE_VOLUME * settings.musicVolume() / 100.0F, 1.0F);
+    }
+
+    private static void stopAlexMusic(ServerPlayer player) {
+        player.connection.send(new ClientboundStopSoundPacket(ModSounds.MUSIC_ALEX.location(),
                 SoundSource.MUSIC));
     }
 

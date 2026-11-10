@@ -39,11 +39,27 @@ public final class ModEntities {
             .clientTrackingRange(10)
             .build(STEVE_KEY);
 
+    private static final ResourceKey<EntityType<?>> ALEX_KEY =
+            ResourceKey.create(Registries.ENTITY_TYPE, HerobrineMod.id("alex_friend"));
+
+    /**
+     * The friendly one's counterpart. Same category, same size and same attributes as Steve: she
+     * differs in her skin, her name and her theme, and in nothing else.
+     */
+    public static final EntityType<AlexFriendEntity> ALEX_FRIEND = FabricEntityType.Builder
+            .createMob(AlexFriendEntity::new, MobCategory.MISC,
+                    builder -> builder.defaultAttributes(SteveFriendEntity::createAttributes))
+            .sized(0.6F, 1.8F)
+            .eyeHeight(1.62F)
+            .clientTrackingRange(10)
+            .build(ALEX_KEY);
+
     private ModEntities() {
     }
 
     public static void register() {
         Registry.register(BuiltInRegistries.ENTITY_TYPE, HEROBRINE_KEY, HEROBRINE);
         Registry.register(BuiltInRegistries.ENTITY_TYPE, STEVE_KEY, STEVE_FRIEND);
+        Registry.register(BuiltInRegistries.ENTITY_TYPE, ALEX_KEY, ALEX_FRIEND);
     }
 }

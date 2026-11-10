@@ -55,9 +55,15 @@ jobs:
 
           echo "== entity skins and eye textures present"
           for texture in herobrine herobrine_eyes herobrine_hostile herobrine_hostile_eyes \
-                         herobrine_elite herobrine_elite_eyes steve_friend; do
+                         herobrine_elite herobrine_elite_eyes steve_friend alex_friend; do
             unzip -p "$JAR" "assets/herobrine/textures/entity/$texture.png" > /dev/null \
               || { echo "::error::Missing entity texture $texture.png"; exit 1; }
+          done
+
+          echo "== both music tracks present"
+          for sound in music_haunt music_alex; do
+            unzip -p "$JAR" "assets/herobrine/sounds/$sound.ogg" > /dev/null \
+              || { echo "::error::Missing sound $sound.ogg"; exit 1; }
           done
 
           echo "jar verified"

@@ -12,6 +12,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 
+import dev.btstudio.herobrine.entity.AlexFriendEntity;
 import dev.btstudio.herobrine.entity.Apparition;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
@@ -45,6 +46,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -72,6 +74,7 @@ import net.minecraft.world.phys.Vec3;
  * /herobrine gravel | marker | herd | miner | window
  * /herobrine config [&lt;setting&gt; | all on|off | name &lt;text&gt;|reset | reset | musicvolume]
  * /herobrine steve [spawn|dismiss|stay|follow]
+ * /herobrine alex [spawn|dismiss|stay|follow]
  * /herobrine church
  * /herobrine give &lt;iron_stick|iron_sword|iron_helmet|iron_chestplate|iron_leggings|iron_boots|holy_water|the_cross&gt;
  * </pre>
@@ -177,11 +180,26 @@ public final class HerobrineCommand {
             root.then(op("window").executes(context -> trace(context, "window")));
 
             root.then(op("steve")
-                    .executes(HerobrineCommand::steveStatus)
-                    .then(Commands.literal("spawn").executes(HerobrineCommand::steveSpawn))
-                    .then(Commands.literal("dismiss").executes(HerobrineCommand::steveDismiss))
-                    .then(Commands.literal("stay").executes(context -> steveStay(context, true)))
-                    .then(Commands.literal("follow").executes(context -> steveStay(context, false))));
+                    .executes(context -> companionStatus(context, STEVE_COMPANION))
+                    .then(Commands.literal("spawn")
+                            .executes(context -> companionSpawn(context, STEVE_COMPANION)))
+                    .then(Commands.literal("dismiss")
+                            .executes(context -> companionDismiss(context, STEVE_COMPANION)))
+                    .then(Commands.literal("stay")
+                            .executes(context -> companionStay(context, STEVE_COMPANION, true)))
+                    .then(Commands.literal("follow")
+                            .executes(context -> companionStay(context, STEVE_COMPANION, false))));
+
+            root.then(op("alex")
+                    .executes(context -> companionStatus(context, ALEX_COMPANION))
+                    .then(Commands.literal("spawn")
+                            .executes(context -> companionSpawn(context, ALEX_COMPANION)))
+                    .then(Commands.literal("dismiss")
+                            .executes(context -> companionDismiss(context, ALEX_COMPANION)))
+                    .then(Commands.literal("stay")
+                            .executes(context -> companionStay(context, ALEX_COMPANION, true)))
+                    .then(Commands.literal("follow")
+                            .executes(context -> companionStay(context, ALEX_COMPANION, false))));
 
             root.then(configBranch());
             root.then(op("torches").executes(context -> trace(context, "torches")));
@@ -779,91 +797,115 @@ public final class HerobrineCommand {
         return 1;
     }
 
-    /** Every Steve belonging to this player, in this dimension. */
-    private static List<SteveFriendEntity> mySteves(ServerLevel level, ServerPlayer player) {
-        return level.getEntitiesOfClass(SteveFriendEntity.class,
-                player.getBoundingBox().inflate(64.0),
-                steve -> steve.isOwnedBy(player));
+    /**
+     * The two companions. They follow, defend and wait identically - that is the point of them -
+     * so the four commands are written once against this and registered for each in turn.
+     */
+    private record Companion<T extends SteveFriendEntity>(Class<T> type, EntityType<T> entityType,
+                                                         Feature feature, String key) {
+        private List<T> mine(ServerLevel level, ServerPlayer player) {
+            return level.getEntitiesOfClass(this.type, player.getBoundingBox().inflate(64.0),
+                    companion -> companion.isOwnedBy(player));
+        }
+
+        private MutableComponent message(String suffix, Object... args) {
+            return Component.translatable("herobrine.command." + this.key + "." + suffix, args);
+        }
     }
 
-    /** Summons the friendly Steve three blocks in front of you. One per player, not a crowd. */
-    private static int steveSpawn(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+    private static final Companion<SteveFriendEntity> STEVE_COMPANION =
+            new Companion<>(SteveFriendEntity.class, ModEntities.STEVE_FRIEND, Feature.STEVE, "steve");
+
+    private static final Companion<AlexFriendEntity> ALEX_COMPANION =
+            new Companion<>(AlexFriendEntity.class, ModEntities.ALEX_FRIEND, Feature.ALEX, "alex");
+
+    /** Summons the companion three blocks in front of you. One of each per player, not a crowd. */
+    private static <T extends SteveFriendEntity> int companionSpawn(
+            CommandContext<CommandSourceStack> context, Companion<T> companion)
+            throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
 
-        if (switchedOff(source, Feature.STEVE)) {
+        if (switchedOff(source, companion.feature())) {
             return 0;
         }
 
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel level = source.getLevel();
 
-        for (SteveFriendEntity existing : mySteves(level, player)) {
+        for (T existing : companion.mine(level, player)) {
             if (existing.isAlive()) {
-                source.sendFailure(Component.translatable("herobrine.command.steve.already"));
+                source.sendFailure(companion.message("already"));
                 return 0;
             }
         }
 
         Vec3 ahead = player.position().add(player.getLookAngle().multiply(3.0, 0.0, 3.0));
-        SteveFriendEntity steve = new SteveFriendEntity(ModEntities.STEVE_FRIEND, level);
-        steve.setPos(ahead.x, player.getY(), ahead.z);
-        steve.setYRot(player.getYRot());
-        steve.setOwner(player);
-        steve.setHealth(steve.getMaxHealth());
-        level.addFreshEntity(steve);
+        T friend = companion.entityType().create(level, EntitySpawnReason.COMMAND);
 
-        source.sendSuccess(() -> Component.translatable("herobrine.command.steve.spawned"), true);
-        return 1;
-    }
-
-    private static int steveDismiss(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        CommandSourceStack source = context.getSource();
-        ServerPlayer player = source.getPlayerOrException();
-        List<SteveFriendEntity> steves = mySteves(source.getLevel(), player);
-
-        if (steves.isEmpty()) {
-            source.sendFailure(Component.translatable("herobrine.command.steve.none"));
+        if (friend == null) {
+            source.sendFailure(companion.message("help"));
             return 0;
         }
 
-        steves.forEach(Entity::discard);
-        source.sendSuccess(() -> Component.translatable("herobrine.command.steve.dismissed"), true);
+        friend.setPos(ahead.x, player.getY(), ahead.z);
+        friend.setYRot(player.getYRot());
+        friend.setOwner(player);
+        friend.setHealth(friend.getMaxHealth());
+        level.addFreshEntity(friend);
+
+        source.sendSuccess(() -> companion.message("spawned"), true);
         return 1;
     }
 
-    private static int steveStay(CommandContext<CommandSourceStack> context, boolean stay)
+    private static <T extends SteveFriendEntity> int companionDismiss(
+            CommandContext<CommandSourceStack> context, Companion<T> companion)
             throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
         ServerPlayer player = source.getPlayerOrException();
-        List<SteveFriendEntity> steves = mySteves(source.getLevel(), player);
+        List<T> friends = companion.mine(source.getLevel(), player);
 
-        if (steves.isEmpty()) {
-            source.sendFailure(Component.translatable("herobrine.command.steve.none"));
+        if (friends.isEmpty()) {
+            source.sendFailure(companion.message("none"));
             return 0;
         }
 
-        steves.forEach(steve -> steve.setStaying(stay));
-        source.sendSuccess(() -> Component.translatable(stay
-                ? "herobrine.command.steve.stay"
-                : "herobrine.command.steve.follow"), true);
+        friends.forEach(Entity::discard);
+        source.sendSuccess(() -> companion.message("dismissed"), true);
         return 1;
     }
 
-    private static int steveStatus(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+    private static <T extends SteveFriendEntity> int companionStay(
+            CommandContext<CommandSourceStack> context, Companion<T> companion, boolean stay)
+            throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
         ServerPlayer player = source.getPlayerOrException();
-        List<SteveFriendEntity> steves = mySteves(source.getLevel(), player);
+        List<T> friends = companion.mine(source.getLevel(), player);
 
-        if (steves.isEmpty()) {
-            source.sendSuccess(() -> Component.translatable("herobrine.command.steve.help"), false);
+        if (friends.isEmpty()) {
+            source.sendFailure(companion.message("none"));
+            return 0;
+        }
+
+        friends.forEach(friend -> friend.setStaying(stay));
+        source.sendSuccess(() -> companion.message(stay ? "stay" : "follow"), true);
+        return 1;
+    }
+
+    private static <T extends SteveFriendEntity> int companionStatus(
+            CommandContext<CommandSourceStack> context, Companion<T> companion)
+            throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
+        ServerPlayer player = source.getPlayerOrException();
+        List<T> friends = companion.mine(source.getLevel(), player);
+
+        if (friends.isEmpty()) {
+            source.sendSuccess(() -> companion.message("help"), false);
             return 1;
         }
 
-        boolean staying = steves.stream().allMatch(SteveFriendEntity::isStaying);
-        source.sendSuccess(() -> Component.translatable("herobrine.command.steve.status",
-                Component.translatable(staying
-                        ? "herobrine.command.steve.state.stay"
-                        : "herobrine.command.steve.state.follow")), false);
+        boolean staying = friends.stream().allMatch(SteveFriendEntity::isStaying);
+        source.sendSuccess(() -> companion.message("status",
+                companion.message(staying ? "state.stay" : "state.follow")), false);
         return 1;
     }
 

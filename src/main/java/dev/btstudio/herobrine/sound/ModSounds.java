@@ -35,6 +35,11 @@ public final class ModSounds {
     public static final SoundEvent VOID = sound("void");
     /** Ten minutes of drone, wind, distant bells and something moving under the floor. */
     public static final SoundEvent MUSIC_HAUNT = sound("music_haunt");
+    /**
+     * Two and a half minutes for Alex: a struck bell over a warm bed, in the same key and the same
+     * reverb as his, but slow and in the major. Same world, somewhere safe in it. Loops seamlessly.
+     */
+    public static final SoundEvent MUSIC_ALEX = sound("music_alex");
     /** Two tense notes under a "caution" caption. */
     public static final SoundEvent CAUTION = sound("caution");
 

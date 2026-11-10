@@ -98,6 +98,11 @@ public enum Feature {
     CHURCHES(Group.PRESENCE, Items.BELL),
     /** Steve, the friendly one: a companion you can summon to travel with. */
     STEVE(Group.PRESENCE, Items.PLAYER_HEAD),
+    /**
+     * Alex, Steve's counterpart: the same companion, her own face, and the two and a half minutes
+     * that play while she is walking with you.
+     */
+    ALEX(Group.PRESENCE, Items.PLAYER_HEAD, null, false),
     /** The Notch Apple ritual: burn one on a netherrack fire and he is gone. */
     NOTCH_APPLE(Group.PRESENCE, Items.ENCHANTED_GOLDEN_APPLE),
     /** The gold shrine: eight gold blocks, four redstone torches, and lightning. */

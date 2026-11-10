@@ -35,6 +35,7 @@ public class HerobrineClient implements ClientModInitializer {
         // EntityRenderers#register is widened for mods by Fabric API's transitive access wideners.
         EntityRenderers.register(ModEntities.HEROBRINE, HerobrineRenderer::new);
         EntityRenderers.register(ModEntities.STEVE_FRIEND, SteveRenderer::new);
+        EntityRenderers.register(ModEntities.ALEX_FRIEND, AlexRenderer::new);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (OPEN_SETTINGS.consumeClick()) {
