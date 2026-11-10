@@ -106,6 +106,9 @@ public final class HauntingEvents {
     private static final int CHASE_TICKS = 3600;
     /** Chance (one in N) that an apparition kicks off a chase. */
     private static final int CHASE_ONE_IN = 12;
+    /** Each escalation tier brings that down, so a provoked world is chased more often. */
+    private static final int CHASE_TIER_STEP = 2;
+    private static final int CHASE_MIN_ONE_IN = 4;
 
     /** The haunting track plays when he is this close... */
     private static final double MUSIC_RANGE = 28.0;
@@ -189,7 +192,11 @@ public final class HauntingEvents {
 
                 RandomSource random = player.getRandom();
 
-                if (random.nextInt(intervalFor(settings, level, stageOf(player))) == 0) {
+                // Escalation: the grudge moves before the roll is made, so a kill or a minute in
+                // the dark is felt by the very next roll rather than the one after it.
+                Dread.tick(level, player, settings);
+
+                if (random.nextInt(intervalFor(settings, level, stageOf(settings, level))) == 0) {
                     runRandomEvent(server, player, random, settings);
                 }
 
@@ -317,7 +324,22 @@ public final class HauntingEvents {
 
     /** 0-3, one step every two in-game days, so a long-lived world gets noticeably worse. */
     public static int stageOf(ServerPlayer player) {
-        long days = player.level().getLevelData().getGameTime() / TICKS_PER_STAGE;
+        return stageOf(HerobrineSettings.of(player.level()), player.level());
+    }
+
+    /**
+     * As {@link #stageOf(ServerPlayer)}, for a caller that already has the settings.
+     *
+     * <p>With escalation on, the stage is not the clock at all: it is the tier his grudge has
+     * reached, so a careful world stays at nothing however long it is played, and a careless one
+     * climbs. With it off this is the two-in-game-days step it always was.
+     */
+    public static int stageOf(HerobrineSettings settings, ServerLevel level) {
+        if (settings.enabled(Feature.ESCALATION)) {
+            return Dread.tierOf(settings.dread());
+        }
+
+        long days = level.getLevelData().getGameTime() / TICKS_PER_STAGE;
         return (int) Math.min(MAX_STAGE, Math.max(0L, days));
     }
 
@@ -498,7 +520,7 @@ public final class HauntingEvents {
                 windowSighting(level, player, random);
             }
         } else {
-            spawnApparition(level, player, random, stageOf(player));
+            spawnApparition(level, player, random, stageOf(settings, level));
         }
     }
 
@@ -535,7 +557,7 @@ public final class HauntingEvents {
         HerobrineEntity herobrine = Apparitions.spawn(level, player, apparition, random);
 
         if (herobrine != null) {
-            maybeStartChase(level, random);
+            maybeStartChase(level, random, stage);
         }
 
         return herobrine;
@@ -578,8 +600,12 @@ public final class HauntingEvents {
     }
 
     /** Chase mode: a few minutes where he cannot leave you alone. */
-    private static void maybeStartChase(ServerLevel level, RandomSource random) {
-        if (HerobrineSettings.of(level).isChasing(level) || random.nextInt(CHASE_ONE_IN) != 0) {
+    private static void maybeStartChase(ServerLevel level, RandomSource random, int stage) {
+        // The worse his grudge, the likelier a sighting turns into a chase: one in twelve when he
+        // has nothing against you, one in four once he has everything.
+        int oneIn = Math.max(CHASE_MIN_ONE_IN, CHASE_ONE_IN - stage * CHASE_TIER_STEP);
+
+        if (HerobrineSettings.of(level).isChasing(level) || random.nextInt(oneIn) != 0) {
             return;
         }
 

@@ -103,9 +103,17 @@ public enum Feature {
     /** The gold shrine: eight gold blocks, four redstone torches, and lightning. */
     SHRINE(Group.PRESENCE, Items.GOLD_BLOCK),
     /**
-     * The bundled <i>From The Fog</i> content. Opt-in, so it is the only switch that starts off.
+     * The bundled <i>From The Fog</i> content. Opt-in, like {@link #ESCALATION}, so it starts off.
      */
     FROM_THE_FOG(Group.PRESENCE, Items.SCULK_CATALYST, "from_the_fog", false),
+
+    /**
+     * Escalation: he keeps a grudge. Provoking him - killing animals, lingering in the dark below
+     * ground - pushes a dread score up through four tiers, and each one brings him closer and more
+     * often. Warding him off pushes it back down. Off, the haunting escalates on time alone, the
+     * way it always has.
+     */
+    ESCALATION(Group.PRESENCE, Items.SCULK_SHRIEKER, null, false),
 
     ;
 

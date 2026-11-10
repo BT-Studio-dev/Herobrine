@@ -19,6 +19,7 @@ import dev.btstudio.herobrine.entity.SteveFriendEntity;
 import dev.btstudio.herobrine.event.Apparitions;
 import dev.btstudio.herobrine.event.Churches;
 import dev.btstudio.herobrine.event.HauntingEvents;
+import dev.btstudio.herobrine.event.Dread;
 import dev.btstudio.herobrine.event.NotchAppleRitual;
 import dev.btstudio.herobrine.event.Sabotage;
 import dev.btstudio.herobrine.item.ModItems;
@@ -502,6 +503,12 @@ public final class HerobrineCommand {
 
         source.sendSuccess(() -> chaseLine(chase), false);
         source.sendSuccess(() -> Component.translatable("herobrine.command.state.interval", interval, stage), false);
+
+        if (settings.enabled(Feature.ESCALATION)) {
+            source.sendSuccess(() -> Component.translatable("herobrine.command.state.dread",
+                    settings.dread(), HerobrineSettings.MAX_DREAD, Dread.tierOf(settings.dread())), false);
+        }
+
         return 1;
     }
 

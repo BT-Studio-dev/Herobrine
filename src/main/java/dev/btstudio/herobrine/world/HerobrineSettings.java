@@ -26,6 +26,9 @@ import net.minecraft.world.level.saveddata.SavedDataType;
  *       again to call him back.</li>
  *   <li><b>chaseUntil</b> - game time at which the current <i>chase mode</i> frenzy runs out. While
  *       it is running, apparitions come three times as often.</li>
+ *   <li><b>dread</b> - how provoked he is, 0 to {@value #MAX_DREAD}, while the escalation switch is
+ *       on. Provoking him raises it and warding him off lowers it, and the tier it sits in is what
+ *       the haunting reads as its escalation stage. See {@link #dread()}.</li>
  *   <li><b>musicVolume</b> - how loud the haunting track plays, 0-100.</li>
  *   <li><b>name</b> - the name he goes by when he pretends to be a player. See
  *       {@link HerobrineName}.</li>
@@ -41,6 +44,13 @@ public class HerobrineSettings extends SavedData {
     /** The volume a fresh world starts on, and the one a silenced track is put back to. */
     public static final int DEFAULT_MUSIC_VOLUME = 70;
 
+    /**
+     * The top of the dread scale: how provoked he can get before the haunting is as bad as it ever
+     * becomes. Kept here rather than with the rules that move it, because this is the side that
+     * saves it.
+     */
+    public static final int MAX_DREAD = 100;
+
     private static final Codec<Map<String, Boolean>> FEATURES_CODEC =
             Codec.unboundedMap(Codec.STRING, Codec.BOOL);
 
@@ -49,6 +59,7 @@ public class HerobrineSettings extends SavedData {
                     Codec.BOOL.optionalFieldOf("purist", false).forGetter(HerobrineSettings::isPurist),
                     Codec.BOOL.optionalFieldOf("banished", false).forGetter(HerobrineSettings::isBanished),
                     Codec.LONG.optionalFieldOf("chase_until", 0L).forGetter(HerobrineSettings::chaseUntil),
+                    Codec.INT.optionalFieldOf("dread", 0).forGetter(HerobrineSettings::dread),
                     Codec.INT.optionalFieldOf("music_volume", DEFAULT_MUSIC_VOLUME).forGetter(HerobrineSettings::musicVolume),
                     // The six switches that predate the feature map keep their original keys.
                     Codec.BOOL.optionalFieldOf("schizo", true).forGetter(s -> s.enabled(Feature.SOUNDS)),
@@ -74,15 +85,16 @@ public class HerobrineSettings extends SavedData {
     private boolean purist;
     private boolean banished;
     private long chaseUntil;
+    private int dread;
     private int musicVolume;
     private String name;
 
     public HerobrineSettings() {
-        this(false, false, 0L, DEFAULT_MUSIC_VOLUME, true, true, true, true, true, false,
+        this(false, false, 0L, 0, DEFAULT_MUSIC_VOLUME, true, true, true, true, true, false,
                 Map.of(), HerobrineName.DEFAULT);
     }
 
-    private HerobrineSettings(boolean purist, boolean banished, long chaseUntil, int musicVolume,
+    private HerobrineSettings(boolean purist, boolean banished, long chaseUntil, int dread, int musicVolume,
                               boolean schizo, boolean herd, boolean miner, boolean arson, boolean music,
                               boolean fog, Map<String, Boolean> stored, String name) {
         for (Feature feature : Feature.values()) {
@@ -110,6 +122,7 @@ public class HerobrineSettings extends SavedData {
         this.purist = purist;
         this.banished = banished;
         this.chaseUntil = chaseUntil;
+        this.dread = Math.max(0, Math.min(MAX_DREAD, dread));
         this.musicVolume = Math.max(0, Math.min(100, musicVolume));
         this.name = HerobrineName.sanitize(name);
     }
@@ -274,6 +287,28 @@ public class HerobrineSettings extends SavedData {
 
     public long chaseUntil() {
         return this.chaseUntil;
+    }
+
+    /**
+     * How provoked he is, 0 to {@value #MAX_DREAD}. Rises when you provoke him, falls when you
+     * ward him off, and is only ever read while the escalation switch is on.
+     */
+    public int dread() {
+        return this.dread;
+    }
+
+    /** Moves the score by any amount, positive or negative, pinned to 0 and {@value #MAX_DREAD}. */
+    public void addDread(int amount) {
+        this.setDread(this.dread + amount);
+    }
+
+    public void setDread(int dread) {
+        int clamped = Math.max(0, Math.min(MAX_DREAD, dread));
+
+        if (this.dread != clamped) {
+            this.dread = clamped;
+            this.setDirty();
+        }
     }
 
     public void setChaseUntil(long chaseUntil) {

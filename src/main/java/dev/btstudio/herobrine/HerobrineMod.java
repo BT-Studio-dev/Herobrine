@@ -4,6 +4,7 @@ import dev.btstudio.herobrine.command.HerobrineCommand;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
 import dev.btstudio.herobrine.event.BedWatcher;
+import dev.btstudio.herobrine.event.Dread;
 import dev.btstudio.herobrine.event.FromTheFog;
 import dev.btstudio.herobrine.event.HauntingEvents;
 import dev.btstudio.herobrine.event.HolyWater;
@@ -43,6 +44,8 @@ public class HerobrineMod implements ModInitializer {
 
         HerobrineCommand.register();
         HauntingEvents.register();
+        // Escalation: the grudge he keeps, and the four tiers hanging off it.
+        Dread.register();
         ShrineHandler.register();
         // Burning a Notch Apple on a netherrack fire banishes him - or calls him back.
         NotchAppleRitual.register();
