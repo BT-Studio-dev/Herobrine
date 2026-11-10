@@ -1,13 +1,20 @@
 /*
  * Showcase site controls.
  *
- * Every setting is stored on <html> as a data attribute and mirrored into localStorage, so the
- * stylesheet does the work and the choice survives a reload.
+ * Three things live in here that have nothing to do with each other, so they are kept apart:
  *
- * Two things are deliberately lazy. The music is a ten minute, five megabyte track, so it is never
- * fetched until it is switched on - the audio element is marked preload="none" for exactly that
- * reason. The interface sounds are synthesised with WebAudio rather than shipped as files, because
- * a click does not need a download behind it.
+ *   1. Preferences. Every setting is stored on <html> as a data attribute and mirrored into
+ *      localStorage, so the stylesheet does the work and the choice survives a reload.
+ *   2. The transports. Two tracks, one transport each, built by the same factory. Both are
+ *      marked preload="none" and neither is fetched until its own play button is pressed -
+ *      his is five megabytes, and a visitor who came for one of them has no reason to be sent
+ *      the other.
+ *   3. The atmosphere. A fog that thickens as you scroll down the page, and a light that
+ *      follows the cursor across the glass panels. Both switch themselves off when the visitor
+ *      has asked for reduced motion.
+ *
+ * The interface sounds are synthesised with WebAudio rather than shipped as files, because a
+ * click does not need a download behind it.
  */
 (() => {
   const root = document.documentElement;
@@ -22,10 +29,13 @@
   const prefersLight = typeof window.matchMedia === "function"
     && window.matchMedia("(prefers-color-scheme: light)").matches;
 
+  const still = typeof window.matchMedia === "function"
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   const defaults = {
     theme: prefersLight ? "light" : "dark",
     glass: "on",
-    bg: "shader",
+    bg: "none",
     sounds: "off",
     music: "off",
     alex: "off",
@@ -49,15 +59,7 @@
     }
   };
 
-  /* Written to every status line, one per track, so a message about the page as a whole is not
-     left sitting under a transport you are not looking at. */
-  const say = (message) => {
-    document.querySelectorAll("[data-status]").forEach((line) => {
-      line.textContent = message || "";
-    });
-  };
-
-  /* ---- Interface sounds -------------------------------------------------- */
+  /* ---- Interface sounds ------------------------------------------------ */
 
   let audioContext;
 
@@ -88,12 +90,7 @@
     }
   }
 
-  /* ---- Music -------------------------------------------------------------
-   *
-   * Two tracks, two transports, one factory. Both are marked preload="none" and neither is
-   * fetched until its own play button is pressed: his is five megabytes, and a visitor who came
-   * for one of them has no reason to be sent the other.
-   */
+  /* ---- Music ----------------------------------------------------------- */
 
   const clock = (seconds) => {
     if (!Number.isFinite(seconds) || seconds < 0) return "--:--";
@@ -160,8 +157,8 @@
       }
     }
 
-    /* Dragging the bar must not fight the element: while the thumb is held the clock follows the
-       thumb, and the jump is made once on release. */
+    /* Dragging the bar must not fight the element: while the thumb is held the clock follows
+       the thumb, and the jump is made once on release. */
     if (track && seekSlider) {
       seekSlider.addEventListener("input", () => {
         scrubbing = true;
@@ -258,7 +255,7 @@
     players.forEach((player) => player.applyVolume());
   }
 
-  /* ---- Applying and reflecting state ------------------------------------- */
+  /* ---- Applying and reflecting state ----------------------------------- */
 
   function apply() {
     root.dataset.theme = prefs.theme;
@@ -277,8 +274,8 @@
     const select = document.querySelector("[data-bg-select]");
     if (select) select.value = prefs.bg;
 
-    // There are two volume sliders - one in the panel, one beside the transport controls - and
-    // both have to follow whatever the current value is.
+    // There is a volume slider beside each transport and one in the settings panel, and all of
+    // them have to follow whatever the current value is.
     document.querySelectorAll("[data-volume]").forEach((slider) => {
       slider.value = String(prefs.volume);
     });
@@ -312,7 +309,7 @@
     slider.addEventListener("input", () => set("volume", Number(slider.value)));
   });
 
-  /* ---- Settings panel ---------------------------------------------------- */
+  /* ---- Settings panel -------------------------------------------------- */
 
   const panel = document.getElementById("settings");
   const panelToggle = document.querySelector("[data-toggle-settings]");
@@ -333,10 +330,11 @@
     });
   }
 
-  /* ---- Seed copy --------------------------------------------------------- */
+  /* ---- Seed copy ------------------------------------------------------- */
 
   const seedButton = document.querySelector("[data-copy-seed]");
   const seedValue = document.querySelector("[data-seed-value]");
+  const seedNote = document.querySelector("[data-seed-status]");
 
   if (seedButton && seedValue) {
     seedButton.addEventListener("click", async () => {
@@ -345,7 +343,7 @@
       try {
         await navigator.clipboard.writeText(text);
         seedButton.textContent = "Copied";
-        say("Seed copied to clipboard.");
+        if (seedNote) seedNote.textContent = "Seed copied.";
       } catch {
         const range = document.createRange();
         range.selectNodeContents(seedValue);
@@ -353,7 +351,7 @@
         selection.removeAllRanges();
         selection.addRange(range);
         seedButton.textContent = "Selected";
-        say("Select and copy the highlighted seed.");
+        if (seedNote) seedNote.textContent = "Select and copy the highlighted seed.";
       }
 
       blip();
@@ -363,7 +361,7 @@
     });
   }
 
-  /* ---- Reset ------------------------------------------------------------- */
+  /* ---- Reset ----------------------------------------------------------- */
 
   const reset = document.querySelector("[data-reset]");
   if (reset) {
@@ -374,14 +372,67 @@
       reflect();
       applyVolume();
       players.forEach((player) => player.sync());
-      say("Settings back to defaults.");
       blip();
     });
   }
 
-  /* Neither track is restored automatically: a browser refuses to play without a gesture, and no
-     visitor wants five megabytes the moment the page opens. The stored intent is dropped on load
-     for the same reason, so the buttons can never claim to be playing a track nobody started. */
+  /* ---- Atmosphere ------------------------------------------------------ */
+
+  // The fog: it closes in as you read down the page, which is the one effect on this site that
+  // is about the mod rather than about the mod's website.
+  const fog = document.getElementById("fog");
+
+  if (fog) {
+    const updateFog = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = max > 0 ? Math.min(1, window.scrollY / max) : 0;
+      fog.style.opacity = (still ? 0.3 : progress * 0.85).toFixed(3);
+    };
+
+    window.addEventListener("scroll", updateFog, { passive: true });
+    window.addEventListener("resize", updateFog);
+    updateFog();
+  }
+
+  // The light: one listener, one rAF, and the panels are told where the cursor is in their own
+  // coordinates so the highlight sits under it rather than under the page.
+  if (!still) {
+    const light = document.getElementById("light");
+    const glass = document.querySelectorAll("nav,.feat>div,.seed code,.player");
+    let queued = false;
+    let lx = 0;
+    let ly = 0;
+
+    const track = () => {
+      queued = false;
+      if (light) {
+        light.style.setProperty("--mx", lx + "px");
+        light.style.setProperty("--my", ly + "px");
+      }
+
+      for (let i = 0; i < glass.length; i++) {
+        const box = glass[i].getBoundingClientRect();
+        glass[i].style.setProperty("--cx", (lx - box.left) + "px");
+        glass[i].style.setProperty("--cy", (ly - box.top) + "px");
+      }
+    };
+
+    window.addEventListener("pointermove", (event) => {
+      lx = event.clientX;
+      ly = event.clientY;
+      if (!queued) {
+        queued = true;
+        requestAnimationFrame(track);
+      }
+    }, { passive: true });
+  }
+
+  /* ---- On load --------------------------------------------------------- */
+
+  /* Neither track is restored automatically: a browser refuses to play without a gesture, and
+     no visitor wants five megabytes the moment the page opens. The stored intent is dropped on
+     load for the same reason, so the buttons can never claim to be playing a track nobody
+     started. */
   players.forEach((player) => {
     prefs[player.prefKey] = "off";
   });
