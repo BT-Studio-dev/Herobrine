@@ -243,6 +243,37 @@ h2.section-title { font-size: clamp(1.3rem, 3vw, 1.8rem); margin: 0 0 0.35rem; }
 .audio-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-top: 1rem; }
 .audio-row input[type="range"] { accent-color: var(--accent); width: 10rem; }
 
+/* The transport: a clock at each end and a bar between them that shows how far in we are and how
+   much of the file has arrived. The range input sits on top of the drawn bar, so the bar can be
+   styled while the thumb stays the browser's own and stays draggable by keyboard. */
+.seek-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.9rem; }
+.seek-row .time { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; min-width: 3.1rem; }
+.seek-row .time:last-child { text-align: right; }
+
+.seek { position: relative; flex: 1 1 auto; min-width: 7rem; height: 1.5rem; display: flex; align-items: center; }
+.seek-track { position: absolute; left: 0; right: 0; height: 0.32rem; border-radius: 999px; background: var(--border); overflow: hidden; }
+.seek-buffer { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--muted); opacity: 0.35; }
+.seek-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); }
+
+.seek input[type="range"] {
+  position: relative; width: 100%; height: 1.5rem; margin: 0;
+  background: transparent; -webkit-appearance: none; appearance: none;
+}
+.seek input[type="range"]::-webkit-slider-runnable-track { height: 1.5rem; background: transparent; border: none; }
+.seek input[type="range"]::-moz-range-track { height: 1.5rem; background: transparent; border: none; }
+.seek input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 0.8rem; height: 0.8rem; border-radius: 50%;
+  background: #fff; border: 1px solid var(--border); box-shadow: 0 1px 3px rgb(0 0 0 / 45%);
+}
+.seek input[type="range"]::-moz-range-thumb {
+  width: 0.8rem; height: 0.8rem; border-radius: 50%;
+  background: #fff; border: 1px solid var(--border); box-shadow: 0 1px 3px rgb(0 0 0 / 45%);
+}
+.seek input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+.audio-foot { margin: 0.7rem 0 0; display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; align-items: baseline; }
+.audio-foot .hint { display: inline; }
+
 footer {
   border-top: 1px solid var(--border); margin-top: clamp(3rem, 8vw, 6rem);
   padding-block: 2rem; color: var(--muted); font-size: 0.88rem;

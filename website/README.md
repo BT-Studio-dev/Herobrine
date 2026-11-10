@@ -51,7 +51,14 @@ Choices are kept in `localStorage` under `herobrine-site-prefs`.
 Two things are loaded lazily on purpose. The music is a ten minute, five megabyte track marked
 `preload="none"`, so it is not fetched until it is switched on — and it is never resumed
 automatically, because browsers refuse playback without a gesture and nobody wants five megabytes
-on page load. The interface sounds are synthesised with WebAudio, so a click has no file behind it.
+on page load. The stored intent to play is dropped on every load for the same reason, so the
+buttons can never claim to be playing a track nobody started. The interface sounds are synthesised
+with WebAudio, so a click has no file behind it.
+
+Because the track arrives slowly, the transport shows every state the audio element reports: the
+position and length, how much of the file has buffered, "fetching" while the first bytes come down,
+and a distinct message for each way playback can fail. If it fails the button falls back to stopped
+rather than sitting there pressed.
 
 ## Publishing
 
