@@ -42,9 +42,19 @@ public class HerobrineConfigScreen extends Screen {
     private static final int CONTROL_HEIGHT = 20;
     private static final int REFRESH_TICKS = 20;
     private static final int VOLUME_DEBOUNCE = 8;
-    /** Height of a setting row; tall enough for the icon, the title and its description. */
-    private static final int ROW_HEIGHT = 38;
+    /**
+     * Height of a setting row: the icon, the title and two lines of description. Two lines is what
+     * the longest descriptions need once a narrow window squeezes the panel down; on an ordinary
+     * one they fit on a single line and the second is simply never drawn.
+     */
+    private static final int ROW_HEIGHT = 40;
     private static final int BUTTON_WIDTH = 76;
+    /** Where a description starts below its title, and how far apart its lines sit. */
+    private static final int DESCRIPTION_TOP = 19;
+    private static final int LINE_HEIGHT = 9;
+    /** The most description a row will draw. The rest is marked as left over, not silently lost. */
+    private static final int DESCRIPTION_LINES = 2;
+    private static final String ELLIPSIS = "\u2026";
 
     /**
      * A tabs-worth of switches. The last tab is not a group of switches at all: it holds the name
@@ -453,9 +463,14 @@ public class HerobrineConfigScreen extends Screen {
             String title = Component.translatable(row.titleKey()).getString();
             graphics.text(this.font, this.font.plainSubstrByWidth(title, Math.max(0, maxTextWidth)),
                     this.panelLeft + 30, row.y() + 7, 0xFFFFFFFF);
-            String description = Component.translatable(row.descriptionKey()).getString();
-            graphics.text(this.font, this.font.plainSubstrByWidth(description, Math.max(0, maxTextWidth)),
-                    this.panelLeft + 30, row.y() + 19, 0xFFAAAAAA);
+
+            List<String> description = this.wrap(Component.translatable(row.descriptionKey()).getString(),
+                    maxTextWidth, DESCRIPTION_LINES);
+
+            for (int line = 0; line < description.size(); line++) {
+                graphics.text(this.font, description.get(line), this.panelLeft + 30,
+                        row.y() + DESCRIPTION_TOP + line * LINE_HEIGHT, 0xFFAAAAAA);
+            }
         }
 
         if (this.page == Page.NAME) {
@@ -465,17 +480,78 @@ public class HerobrineConfigScreen extends Screen {
         }
     }
 
+    /**
+     * A description broken into lines that fit, with an ellipsis on the last one when the rest did
+     * not.
+     *
+     * <p>{@link Font#plainSubstrByWidth} on its own simply stops when the text runs out of room, so
+     * every description on a narrow window was cut dead in the middle of a word with nothing to say
+     * that there had ever been more of it: "a single torch standing in the dist" and no way to read
+     * the sentence it belonged to.
+     */
+    private List<String> wrap(String text, int maxWidth, int maxLines) {
+        List<String> lines = new ArrayList<>();
+
+        if (maxWidth <= 0 || maxLines <= 0) {
+            return lines;
+        }
+
+        StringBuilder line = new StringBuilder();
+        boolean overflowed = false;
+
+        for (String word : text.split(" ")) {
+            String candidate = line.length() == 0 ? word : line + " " + word;
+
+            if (line.length() > 0 && this.font.width(candidate) > maxWidth) {
+                if (lines.size() + 1 >= maxLines) {
+                    overflowed = true;
+                    break;
+                }
+
+                lines.add(line.toString());
+                candidate = word;
+            }
+
+            // A single word wider than the whole row is cut, or it would run under the control.
+            line = new StringBuilder(this.font.plainSubstrByWidth(candidate, maxWidth));
+        }
+
+        if (!overflowed) {
+            lines.add(line.toString());
+        }
+
+        if (overflowed && !lines.isEmpty()) {
+            int last = lines.size() - 1;
+            String kept = lines.get(last);
+            String marked = kept + ELLIPSIS;
+
+            // Trim to make room for the ellipsis rather than letting the cut swallow it.
+            if (this.font.width(marked) > maxWidth) {
+                marked = this.font.plainSubstrByWidth(kept, maxWidth - this.font.width(ELLIPSIS)) + ELLIPSIS;
+            }
+
+            lines.set(last, marked);
+        }
+
+        return lines;
+    }
+
     /** The rules under the name box, and the one line of complaint when a name will not do. */
     private void renderNamePage(GuiGraphicsExtractor graphics, int maxTextWidth) {
-        int left = this.panelLeft + 30;
-        int y = this.rowTop + CONTROL_HEIGHT + 34;
+        // Below the text box and the button under it, not on top of them.
+        int top = this.rowTop + 12 + CONTROL_HEIGHT + 8 + CONTROL_HEIGHT + 12;
         String intro = Component.translatable("herobrine.screen.desc.name").getString();
-        graphics.text(this.font, this.font.plainSubstrByWidth(intro, Math.max(0, maxTextWidth)),
-                this.panelLeft + 10, y, 0xFFAAAAAA);
+        int room = Math.max(1, (this.panelBottom - top) / LINE_HEIGHT);
+        List<String> lines = this.wrap(intro, Math.max(0, maxTextWidth), room);
+
+        for (int line = 0; line < lines.size(); line++) {
+            graphics.text(this.font, lines.get(line), this.panelLeft + 10,
+                    top + line * LINE_HEIGHT, 0xFFAAAAAA);
+        }
 
         if (this.nameError != null) {
             graphics.text(this.font, Component.translatable(this.nameError, HerobrineName.MAX_LENGTH),
-                    this.panelLeft + 10, y + 14, 0xFFFF5555);
+                    this.panelLeft + 10, top + lines.size() * LINE_HEIGHT + 4, 0xFFFF5555);
         }
     }
 
