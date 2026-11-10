@@ -240,6 +240,10 @@ h2.section-title { font-size: clamp(1.3rem, 3vw, 1.8rem); margin: 0 0 0.35rem; }
 
 .status { color: var(--muted); font-size: 0.85rem; margin-top: 0.6rem; min-height: 1.2em; }
 
+/* Two tracks share the music section, so each panel says which one it is above its transport. */
+.panel-title { font-size: 1rem; margin: 0 0 0.15rem; font-weight: 600; }
+.panel + .panel { margin-top: 1rem; }
+
 .audio-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-top: 1rem; }
 .audio-row input[type="range"] { accent-color: var(--accent); width: 10rem; }
 

@@ -28,6 +28,7 @@
     bg: "shader",
     sounds: "off",
     music: "off",
+    alex: "off",
     text: "m",
     volume: 0.5
   };
@@ -48,9 +49,12 @@
     }
   };
 
-  const status = document.querySelector("[data-status]");
+  /* Written to every status line, one per track, so a message about the page as a whole is not
+     left sitting under a transport you are not looking at. */
   const say = (message) => {
-    if (status) status.textContent = message || "";
+    document.querySelectorAll("[data-status]").forEach((line) => {
+      line.textContent = message || "";
+    });
   };
 
   /* ---- Interface sounds -------------------------------------------------- */
@@ -84,16 +88,12 @@
     }
   }
 
-  /* ---- Music ------------------------------------------------------------- */
-
-  const track = document.getElementById("track");
-  const seekSlider = document.querySelector("[data-seek]");
-  const seekFill = document.querySelector("[data-seek-fill]");
-  const seekBuffer = document.querySelector("[data-seek-buffer]");
-  const positionLabel = document.querySelector("[data-position]");
-  const durationLabel = document.querySelector("[data-duration]");
-
-  const PLAYING = "Playing the ten minute haunting track.";
+  /* ---- Music -------------------------------------------------------------
+   *
+   * Two tracks, two transports, one factory. Both are marked preload="none" and neither is
+   * fetched until its own play button is pressed: his is five megabytes, and a visitor who came
+   * for one of them has no reason to be sent the other.
+   */
 
   const clock = (seconds) => {
     if (!Number.isFinite(seconds) || seconds < 0) return "--:--";
@@ -102,83 +102,105 @@
     return Math.floor(whole / 60) + ":" + String(whole % 60).padStart(2, "0");
   };
 
-  function applyVolume() {
-    if (track) track.volume = Number(prefs.volume);
-  }
+  function createPlayer(panel) {
+    const track = panel.querySelector("audio");
+    const seekSlider = panel.querySelector("[data-seek]");
+    const seekFill = panel.querySelector("[data-seek-fill]");
+    const seekBuffer = panel.querySelector("[data-seek-buffer]");
+    const positionLabel = panel.querySelector("[data-position]");
+    const durationLabel = panel.querySelector("[data-duration]");
+    const line = panel.querySelector("[data-status]");
 
-  /* The transport is the only place the difference between "play was pressed" and "sound is
-     coming out" is visible, because the track is five megabytes behind preload="none". So every
-     state the element reports is drawn: how far in we are, how much has arrived, and what went
-     wrong when it does not play. */
-  function paint() {
-    if (!track) return;
+    const prefKey = panel.dataset.player;
+    const PLAYING = track ? (track.dataset.playing || "Playing.") : "Playing.";
+    const FETCHING = track ? (track.dataset.fetching || "Fetching the track\u2026") : "";
 
-    const duration = Number.isFinite(track.duration) ? track.duration : 0;
-    const here = track.currentTime || 0;
-    const percent = duration ? (here / duration) * 100 : 0;
+    let scrubbing = false;
 
-    if (seekFill) seekFill.style.width = percent + "%";
-    if (positionLabel) positionLabel.textContent = clock(here);
-    if (durationLabel) durationLabel.textContent = duration ? clock(duration) : "--:--";
+    const tell = (message) => {
+      if (line) line.textContent = message || "";
+    };
 
-    if (seekSlider && !scrubbing) {
-      seekSlider.value = String(Math.round(percent * 10));
+    function applyVolume() {
+      if (track) track.volume = Number(prefs.volume);
     }
 
-    if (seekBuffer && duration && track.buffered.length) {
-      // Of the buffered ranges, the one we are standing in: a ten minute track arrives in
-      // pieces, and the piece behind you says nothing about whether the next one is here.
-      let end = 0;
+    /* The transport is the only place the difference between "play was pressed" and "sound is
+       coming out" is visible, because the track is fetched lazily. So every state the element
+       reports is drawn: how far in we are, how much has arrived, and what went wrong when it
+       does not play. */
+    function paint() {
+      if (!track) return;
 
-      for (let i = 0; i < track.buffered.length; i++) {
-        if (track.buffered.start(i) <= here + 0.25 && track.buffered.end(i) >= here) {
-          end = track.buffered.end(i);
-          break;
-        }
+      const duration = Number.isFinite(track.duration) ? track.duration : 0;
+      const here = track.currentTime || 0;
+      const percent = duration ? (here / duration) * 100 : 0;
+
+      if (seekFill) seekFill.style.width = percent + "%";
+      if (positionLabel) positionLabel.textContent = clock(here);
+      if (durationLabel) durationLabel.textContent = duration ? clock(duration) : "--:--";
+
+      if (seekSlider && !scrubbing) {
+        seekSlider.value = String(Math.round(percent * 10));
       }
 
-      seekBuffer.style.width = Math.min(100, (end / duration) * 100) + "%";
+      if (seekBuffer && duration && track.buffered.length) {
+        // Of the buffered ranges, the one we are standing in: a long track arrives in pieces,
+        // and the piece behind you says nothing about whether the next one is here.
+        let end = 0;
+
+        for (let i = 0; i < track.buffered.length; i++) {
+          if (track.buffered.start(i) <= here + 0.25 && track.buffered.end(i) >= here) {
+            end = track.buffered.end(i);
+            break;
+          }
+        }
+
+        seekBuffer.style.width = Math.min(100, (end / duration) * 100) + "%";
+      }
     }
-  }
 
-  /* Dragging the bar must not fight the element: while the thumb is held the clock follows the
-     thumb, and the jump is made once on release. */
-  let scrubbing = false;
+    /* Dragging the bar must not fight the element: while the thumb is held the clock follows the
+       thumb, and the jump is made once on release. */
+    if (track && seekSlider) {
+      seekSlider.addEventListener("input", () => {
+        scrubbing = true;
 
-  if (track && seekSlider) {
-    seekSlider.addEventListener("input", () => {
-      scrubbing = true;
+        const duration = Number.isFinite(track.duration) ? track.duration : 0;
+        const at = duration ? (Number(seekSlider.value) / 1000) * duration : 0;
 
-      const duration = Number.isFinite(track.duration) ? track.duration : 0;
-      const at = duration ? (Number(seekSlider.value) / 1000) * duration : 0;
+        if (positionLabel) positionLabel.textContent = clock(at);
+        if (seekFill) seekFill.style.width = Number(seekSlider.value) / 10 + "%";
+      });
 
-      if (positionLabel) positionLabel.textContent = clock(at);
-      if (seekFill) seekFill.style.width = Number(seekSlider.value) / 10 + "%";
-    });
+      seekSlider.addEventListener("change", () => {
+        if (!scrubbing) return;
+        scrubbing = false;
 
-    seekSlider.addEventListener("change", () => {
-      if (!scrubbing) return;
-      scrubbing = false;
+        const duration = Number.isFinite(track.duration) ? track.duration : 0;
+        if (duration) track.currentTime = (Number(seekSlider.value) / 1000) * duration;
+      });
+    }
 
-      const duration = Number.isFinite(track.duration) ? track.duration : 0;
-      if (duration) track.currentTime = (Number(seekSlider.value) / 1000) * duration;
-    });
-  }
+    function stop(message) {
+      prefs[prefKey] = "off";
+      save();
+      reflect();
+      if (track) track.pause();
+      tell(message || "");
+    }
 
-  function stopMusic(message) {
-    prefs.music = "off";
-    save();
-    reflect();
-    if (track) track.pause();
-    say(message || "");
-  }
+    function sync() {
+      if (!track) return;
 
-  function syncMusic() {
-    if (!track) return;
+      if (prefs[prefKey] !== "on") {
+        track.pause();
+        tell("");
+        return;
+      }
 
-    if (prefs.music === "on") {
       applyVolume();
-      if (track.readyState < track.HAVE_FUTURE_DATA) say("Fetching the ten minute track…");
+      if (track.readyState < track.HAVE_FUTURE_DATA) tell(FETCHING);
 
       let started = null;
 
@@ -192,39 +214,48 @@
       // cannot tell us how it went.
       if (!started || typeof started.then !== "function") return;
 
-      started.then(() => say(PLAYING), (error) => {
+      started.then(() => tell(PLAYING), (error) => {
         const name = error && error.name;
 
         // A pause that lands before play() settles rejects with AbortError. That is the browser
         // behaving, and not worth reporting as a refusal.
         if (name === "AbortError") return;
         if (name === "NotAllowedError") {
-          stopMusic("Your browser blocked playback. Press play again to allow it.");
+          stop("Your browser blocked playback. Press play again to allow it.");
         } else if (name === "NotSupportedError") {
-          stopMusic("This browser cannot play the Ogg track. Use the download link below.");
+          stop("This browser cannot play the Ogg track. Use the download link below.");
         } else {
-          stopMusic("The track could not be played. Check the connection and try again.");
+          stop("The track could not be played. Check the connection and try again.");
         }
       });
-    } else {
-      track.pause();
-      say("");
     }
+
+    if (track) {
+      track.addEventListener("loadedmetadata", paint);
+      track.addEventListener("durationchange", paint);
+      track.addEventListener("timeupdate", paint);
+      track.addEventListener("progress", paint);
+      track.addEventListener("seeked", paint);
+      track.addEventListener("playing", () => tell(PLAYING));
+      track.addEventListener("waiting", () => {
+        if (prefs[prefKey] === "on") tell("Buffering\u2026");
+      });
+      track.addEventListener("error", () => {
+        if (track.error) stop("The track could not be loaded. Try the download link below.");
+      });
+    }
+
+    return { prefKey: prefKey, applyVolume: applyVolume, paint: paint, sync: sync };
   }
 
-  if (track) {
-    track.addEventListener("loadedmetadata", paint);
-    track.addEventListener("durationchange", paint);
-    track.addEventListener("timeupdate", paint);
-    track.addEventListener("progress", paint);
-    track.addEventListener("seeked", paint);
-    track.addEventListener("playing", () => say(PLAYING));
-    track.addEventListener("waiting", () => {
-      if (prefs.music === "on") say("Buffering…");
-    });
-    track.addEventListener("error", () => {
-      if (track.error) stopMusic("The track could not be loaded. Try the download link below.");
-    });
+  const players = [];
+
+  document.querySelectorAll("[data-player]").forEach((panel) => {
+    players.push(createPlayer(panel));
+  });
+
+  function applyVolume() {
+    players.forEach((player) => player.applyVolume());
   }
 
   /* ---- Applying and reflecting state ------------------------------------- */
@@ -261,8 +292,11 @@
     blip();
 
     if (key === "volume") applyVolume();
-    if (key === "music") syncMusic();
     if (key === "sounds" && value === "on") blip();
+
+    players.forEach((player) => {
+      if (player.prefKey === key) player.sync();
+    });
   }
 
   document.querySelectorAll("[data-set]").forEach((button) => {
@@ -339,20 +373,23 @@
       apply();
       reflect();
       applyVolume();
-      syncMusic();
+      players.forEach((player) => player.sync());
       say("Settings back to defaults.");
       blip();
     });
   }
 
-  /* Music is never restored automatically: a browser refuses to play without a gesture, and no
+  /* Neither track is restored automatically: a browser refuses to play without a gesture, and no
      visitor wants five megabytes the moment the page opens. The stored intent is dropped on load
      for the same reason, so the buttons can never claim to be playing a track nobody started. */
-  prefs.music = "off";
+  players.forEach((player) => {
+    prefs[player.prefKey] = "off";
+  });
+
   save();
 
   apply();
   reflect();
   applyVolume();
-  paint();
+  players.forEach((player) => player.paint());
 })();
