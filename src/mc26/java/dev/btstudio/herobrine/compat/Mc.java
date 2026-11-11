@@ -40,9 +40,13 @@ public final class Mc {
         player.sendSystemMessage(message);
     }
 
-    /** As above, with the message on the action bar instead of in chat when overlay is true. */
+    /**
+     * As above, with the message on the action bar instead of in chat when overlay is true. Both
+     * versions spell this displayClientMessage, which is the only form Player itself carries in
+     * both; sendSystemMessage's second argument lives on ServerPlayer and is not on Player here.
+     */
     public static void sendMessage(Player player, MutableComponent message, boolean overlay) {
-        player.sendSystemMessage(message, overlay);
+        player.displayClientMessage(message, overlay);
     }
 
     /** The data fixer our saved data is filed under. */
