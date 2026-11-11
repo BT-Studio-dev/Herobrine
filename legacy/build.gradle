@@ -1,21 +1,17 @@
-// A second build for Minecraft 1.21.11, using the same sources as the 26.3 build in build.gradle.
+// A second build of the same mod for Minecraft 1.21.11, from the sources in ../src.
 //
-// It has to be a separate script rather than a flag in build.gradle because the two versions need
-// different Loom plugins: 26.x ships unobfuscated and uses the non-remapping Loom with plain
-// `implementation` dependencies, while 1.21.11 is obfuscated and needs the remapping Loom with
-// `modImplementation` and a mappings set. The plugin id is fixed in the plugins block, so it
-// cannot be switched from the command line.
+// It has to be a project of its own rather than a flag in build.gradle, for two reasons: Gradle 9
+// removed -b/--build-file, and the two versions need different Loom plugins anyway. 26.x ships
+// unobfuscated and uses the non-remapping Loom with plain `implementation` dependencies, while
+// 1.21.11 is obfuscated and needs the remapping Loom with `modImplementation` and a mappings set.
+// The plugin id is fixed in the plugins block, so it cannot be switched at the command line.
 //
-// The sources are written against Mojang's names (that is what unobfuscated 26.x exposes), so this
-// build asks for Mojang's official mappings too. Yarn would need net.minecraft.sound where Mojang
-// has net.minecraft.sounds, and the imports would not resolve.
+// Build it from the repository root with:
 //
-// Build it with:
+//     cd legacy && ../gradlew build
 //
-//     ./gradlew -b build-12111.gradle build
-//
-// The jar lands in build/libs/ as herobrine-<version>+1.21.11.jar, which cannot collide with the
-// 26.3 jar. Run it in its own workspace: it shares build/ with the other build.
+// The jar lands in legacy/build/libs/ as herobrine-<version>+1.21.11.jar, which cannot collide
+// with the 26.3 jar in build/libs/.
 
 plugins {
     id 'fabric-loom' version "${legacy_loom_version}"
@@ -26,6 +22,18 @@ group = project.maven_group
 
 base {
     archivesName = project.archives_base_name
+}
+
+// This project has no sources of its own; everything lives one directory up.
+sourceSets {
+    main {
+        java.srcDirs = ['../src/main/java']
+        resources.srcDirs = ['../src/main/resources']
+    }
+    client {
+        java.srcDirs = ['../src/client/java']
+        resources.srcDirs = [] // src/client/resources does not exist in this project
+    }
 }
 
 repositories {
@@ -49,7 +57,10 @@ loom {
 dependencies {
     minecraft "com.mojang:minecraft:${legacy_minecraft_version}"
 
-    // Mojang's official mappings, so the sources read the same here as they do on unobfuscated 26.x.
+    // Mojang's official mappings, so the sources read the same here as they do on unobfuscated
+    // 26.x. This is the fix for the failure on the earlier attempt: that one pulled in Yarn, which
+    // calls the package net.minecraft.sound where Mojang calls it net.minecraft.sounds, and
+    // ModSounds.java stopped compiling.
     mappings loom.officialMojangMappings()
 
     modImplementation "net.fabricmc:fabric-loader:${legacy_loader_version}"
@@ -86,7 +97,7 @@ processResources {
         if (text == original) {
             throw new GradleException(
                 "No dependency replacements applied to fabric.mod.json. The file has changed; " +
-                "update the replacements in build-12111.gradle.")
+                "update the replacements in legacy/build.gradle.")
         }
 
         replacements.each { from, to ->

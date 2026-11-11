@@ -1,0 +1,13 @@
+// The 1.21.11 build is a project in its own right, because Gradle 9 removed the -b/--build-file
+// option and there is no other way to point a single project at two different build scripts.
+// It has no sources of its own: legacy/build.gradle reaches back up to ../src.
+
+pluginManagement {
+    repositories {
+        maven { url = 'https://maven.fabricmc.net/' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'herobrine-legacy'
