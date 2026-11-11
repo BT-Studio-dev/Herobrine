@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Herobrine: Haunting — a Fabric mod for Minecraft: Java Edition</title>
-<meta name="description" content="Staged hauntings, seven apparitions, closing fog and an original score for him and for her, for Minecraft: Java Edition 26.3. Nothing of yours is ever destroyed.">
+<meta name="description" content="Staged hauntings, seven apparitions, closing fog and an original score for him and for her, for Minecraft: Java Edition 26.3 and 1.21.11. Nothing of yours is ever destroyed.">
 <link rel="icon" type="image/png" href="./assets/icon.png">
 <link rel="apple-touch-icon" href="./assets/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,18 +51,26 @@
       <h2>What you need</h2>
       <p>Works on a client or a server. These versions come from the mod’s own metadata.</p>
       <dl class="req">
-        <div><dt>Minecraft</dt><dd>Java 26.3</dd></div>
-        <div><dt>Java</dt><dd>25 or newer</dd></div>
-        <div><dt>Fabric Loader</dt><dd>0.19.0+</dd></div>
-        <div><dt>Fabric API</dt><dd>0.165.0+</dd></div>
+        <div><dt>Minecraft</dt><dd>Java 26.3, or 1.21.11</dd></div>
+        <div><dt>Java</dt><dd>25+ on 26.3 &middot; 21+ on 1.21.11</dd></div>
+        <div><dt>Fabric Loader</dt><dd>0.19.0+ on 26.3 &middot; 0.16.0+ on 1.21.11</dd></div>
+        <div><dt>Fabric API</dt><dd>0.165.0+ on 26.3</dd></div>
         <div><dt>Mod version</dt><dd>3.0.5</dd></div>
       </dl>
       <p class="panel-note">
         <b>26.3 is not 1.21.11.</b> Mojang dropped the old 1.x numbers at the end of 2025 —
         1.21.11 was the last release to use them — and moved to a year-and-drop scheme, so 26.3
-        is the third drop of 2026. The two are different versions and this mod runs on the new
-        one: it asks for <code>~26.3</code> and will refuse to load on 1.21.11. To check which
-        you are on, look at the bottom-left corner of the title screen.
+        is the third drop of 2026. They are different versions and the jars are not
+        interchangeable, so there is one of each: <code>herobrine-3.0.5.jar</code> for 26.3 and
+        <code>herobrine-3.0.5+1.21.11.jar</code> for 1.21.11. Take the one that matches your
+        game. To check which you are on, look at the bottom-left corner of the title screen.
+      </p>
+      <p class="panel-note">
+        <b>The 1.21.11 jar is server-side only.</b> The hauntings, the sounds, the saved settings
+        and the <code>/herobrine</code> command all work, but the HUD fog overlay, his glowing
+        eyes, the in-game config screen and the Mod Menu entry are not in it: they are written
+        against 26.3's rendering code, which does not exist in 1.21.11. Everything is in the 26.3
+        jar.
       </p>
     </section>
 
@@ -99,7 +107,69 @@
 
     <section id="music">
       <h2>Music</h2>
-      <p>A cave track generated for the mod and used by the in-game Herobrine music disc. It loops without a seam and is not fetched until you ask for it.</p>
+      <p>Three tracks, all generated for this mod. Each loops without a seam, and none is
+        fetched until you ask for it. The third is the one the in-game Herobrine music disc
+        plays.</p>
+
+      <div class="player" data-player="haunt">
+        <h3>Haunting — his theme</h3>
+        <p class="hint">Ten minutes of drone, wind, distant bells and something moving under the floor. It loops without a seam.</p>
+        <div class="transport">
+          <button class="btn" type="button" data-set="haunt" data-value="on" aria-pressed="false">Play</button>
+          <button class="btn" type="button" data-set="haunt" data-value="off" aria-pressed="true">Stop</button>
+          <label for="volume-haunt">Volume</label>
+          <input id="volume-haunt" type="range" min="0" max="1" step="0.05" value="0.5" data-volume aria-label="Music volume">
+        </div>
+        <div class="seek-row">
+          <span class="time" data-position>0:00</span>
+          <span class="seek">
+            <span class="seek-track">
+              <span class="seek-buffer" data-seek-buffer></span>
+              <span class="seek-fill" data-seek-fill></span>
+            </span>
+            <input type="range" min="0" max="1000" step="1" value="0" data-seek aria-label="Position in the track">
+          </span>
+          <span class="time" data-duration>--:--</span>
+        </div>
+        <p class="status" data-status role="status" aria-live="polite"></p>
+        <p class="foot">
+          <a class="btn" href="./assets/music_haunt.ogg" download>Download the track</a>
+          <span class="hint">Ogg Vorbis, 10:00, 5.1 MB.</span>
+        </p>
+        <audio id="haunt-track" src="./assets/music_haunt.ogg" loop preload="none"
+               data-playing="Playing his theme."
+               data-fetching="Fetching the track&hellip;"></audio>
+      </div>
+
+      <div class="player" data-player="alex">
+        <h3>Alex — her theme</h3>
+        <p class="hint">A struck bell over a warm bed: his key and his reverb, but slow and in the major. Two and a half minutes, looping.</p>
+        <div class="transport">
+          <button class="btn" type="button" data-set="alex" data-value="on" aria-pressed="false">Play</button>
+          <button class="btn" type="button" data-set="alex" data-value="off" aria-pressed="true">Stop</button>
+          <label for="volume-alex">Volume</label>
+          <input id="volume-alex" type="range" min="0" max="1" step="0.05" value="0.5" data-volume aria-label="Music volume">
+        </div>
+        <div class="seek-row">
+          <span class="time" data-position>0:00</span>
+          <span class="seek">
+            <span class="seek-track">
+              <span class="seek-buffer" data-seek-buffer></span>
+              <span class="seek-fill" data-seek-fill></span>
+            </span>
+            <input type="range" min="0" max="1000" step="1" value="0" data-seek aria-label="Position in the track">
+          </span>
+          <span class="time" data-duration>--:--</span>
+        </div>
+        <p class="status" data-status role="status" aria-live="polite"></p>
+        <p class="foot">
+          <a class="btn" href="./assets/music_alex.ogg" download>Download the track</a>
+          <span class="hint">Ogg Vorbis, 2:30, 550 KB.</span>
+        </p>
+        <audio id="alex-track" src="./assets/music_alex.ogg" loop preload="none"
+               data-playing="Playing her theme."
+               data-fetching="Fetching the track&hellip;"></audio>
+      </div>
 
       <div class="player" data-player="disc">
         <h3>Cave — Herobrine music disc</h3>
@@ -124,7 +194,7 @@
         <p class="status" data-status role="status" aria-live="polite"></p>
         <p class="foot">
           <a class="btn" href="./assets/music_disc_herobrine.ogg" download>Download the track</a>
-          <span class="hint">Ogg Vorbis, 2:37, 6.1 MB.</span>
+          <span class="hint">Ogg Vorbis, 2:44, 6.1 MB.</span>
         </p>
         <audio id="disc-track" src="./assets/music_disc_herobrine.ogg" loop preload="none"
                data-playing="Playing the cave music disc."
@@ -144,7 +214,9 @@
       <p id="copied" data-seed-status role="status"></p>
       <p class="panel-note">Type <code>Herobrine</code> into the seed box and the game arrives at
         the same world: Java Edition hashes the text into a signed 32-bit number, and that hash
-        is <code>10528182</code>. Copy the number if you would rather paste than spell.</p>
+        is <code>10528182</code>. Copy the number if you would rather paste than spell. The
+        hashing is a rule of Java itself rather than of any one Minecraft version, so the number
+        is the same on 26.3 and on 1.21.11.</p>
     </section>
   </main>
 

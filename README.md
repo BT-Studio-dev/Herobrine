@@ -2,15 +2,16 @@
 
 # Herobrine: Haunting
 
-Herobrine for Fabric on Minecraft 26.3: staged hauntings, seven apparitions, the fog closing in, 13 original sounds,
-gold shrines, churches, holy water and the cross. Non-destructive by design.
+Herobrine for Fabric on Minecraft 26.3 and 1.21.11: staged hauntings, seven apparitions, the fog closing in, 13
+original sounds, gold shrines, churches, holy water and the cross. Non-destructive by design.
 
 **[Source & safety guide](website/)** — From The Fog provenance, integration, licensing, and the optional `WAKE_UP.vbs` safety note.
 
 ## Summary
 
 Herobrine: Haunting brings staged, escalating hauntings to Fabric on Minecraft 26.3 — seven apparitions, 13 original
-sounds, gold shrines, churches, holy water and the cross. Non-destructive by design.
+sounds, gold shrines, churches, holy water and the cross. Non-destructive by design. A second jar supports 1.21.11,
+server-side only; see Compatibility.
 
 ## Purpose
 
@@ -89,11 +90,21 @@ The world continues running while the settings screen is open.
 ## Compatibility
 
 - Herobrine: Haunting 3.0.5
-- Minecraft 26.3
-- Fabric Loader >= 0.19.0
-- Fabric API >= 0.165.0
-- Java >= 25
-- Suggests Mod Menu >= 21.0.0 for in-game settings integration
+- Two jars, one per Minecraft version. They are not interchangeable: take the one that matches your game.
+
+| | `herobrine-3.0.5.jar` | `herobrine-3.0.5+1.21.11.jar` |
+| --- | --- | --- |
+| Minecraft | 26.3 | 1.21.11 |
+| Java | >= 25 | >= 21 |
+| Fabric Loader | >= 0.19.0 | >= 0.16.0 |
+| Fabric API | >= 0.165.0 | any |
+| Mod Menu | >= 21.0.0 (in-game settings) | not supported |
+| Environment | client and server | **server only** |
+
+- The 1.21.11 jar is server-side only. The hauntings, sounds, saved settings and the `/herobrine`
+  command work, but the HUD fog overlay, the glowing eyes, the config screen and the keybind are
+  not in it: they are written against 26.3's rendering code, which 1.21.11 does not have.
+- Suggests Mod Menu >= 21.0.0 for in-game settings integration, on 26.3
 - Runs on both client and server; settings are saved with the world and apply per dimension
 - Suggests LambDynamicLights for eye lighting; the mod ships the definition, nothing is required
 - Works with shader packs (Iris and others). The fog and the glowing eyes are drawn so that a shader pack
