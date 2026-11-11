@@ -1,6 +1,10 @@
 package dev.btstudio.herobrine.compat;
 
 import dev.btstudio.herobrine.network.HerobrineStatePayload;
+import java.util.function.Supplier;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.level.saveddata.SavedData;
+import com.mojang.serialization.Codec;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -61,8 +65,14 @@ public final class Mc {
      * this mod's data is not a vanilla type whichever constant is used, so any of the SAVED_DATA_*
      * entries would do. SCOREBOARD is the closest in spirit: plain world state.
      */
-    public static DataFixTypes savedDataFixType() {
-        return DataFixTypes.SAVED_DATA_SCOREBOARD;
+    /**
+     * Build the SavedDataType this mod registers its saved data under. Both the form of the name
+     * and the set of DataFixTypes constants differ between the two versions, so the whole thing is
+     * built here rather than at the three call sites.
+     */
+    public static <T extends SavedData> SavedDataType<T> savedDataType(
+            String path, Supplier<T> factory, Codec<T> codec) {
+        return new SavedDataType<>(path, factory, codec, DataFixTypes.SAVED_DATA_SCOREBOARD);
     }
 
     /** Register every payload this mod sends from the server to the client. */

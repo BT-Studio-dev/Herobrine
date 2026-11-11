@@ -29,11 +29,8 @@ public class HolySites extends SavedData {
             .group(POSITIONS.fieldOf("sites").forGetter(HolySites::positions))
             .apply(instance, HolySites::new));
 
-    public static final SavedDataType<HolySites> TYPE = new SavedDataType<>(
-            HerobrineMod.id("holy_sites"),
-            HolySites::new,
-            CODEC,
-            Mc.savedDataFixType());
+    public static final SavedDataType<HolySites> TYPE =
+            Mc.savedDataType("holy_sites", HolySites::new, CODEC);
 
     private final List<BlockPos> positions = new ArrayList<>();
 

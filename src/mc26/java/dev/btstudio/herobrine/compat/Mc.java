@@ -1,6 +1,11 @@
 package dev.btstudio.herobrine.compat;
 
+import dev.btstudio.herobrine.HerobrineMod;
 import dev.btstudio.herobrine.network.HerobrineStatePayload;
+import java.util.function.Supplier;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.level.saveddata.SavedData;
+import com.mojang.serialization.Codec;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -51,8 +56,14 @@ public final class Mc {
     }
 
     /** The data fixer our saved data is filed under. */
-    public static DataFixTypes savedDataFixType() {
-        return DataFixTypes.SAVED_DATA_WANDERING_TRADER;
+    /**
+     * Build the SavedDataType this mod registers its saved data under. Both the form of the name
+     * and the set of DataFixTypes constants differ between the two versions, so the whole thing is
+     * built here rather than at the three call sites.
+     */
+    public static <T extends SavedData> SavedDataType<T> savedDataType(
+            String path, Supplier<T> factory, Codec<T> codec) {
+        return new SavedDataType<>(HerobrineMod.id(path), factory, codec, DataFixTypes.SAVED_DATA_WANDERING_TRADER);
     }
 
     /** Register every payload this mod sends from the server to the client. */

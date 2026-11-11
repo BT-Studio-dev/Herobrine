@@ -76,11 +76,8 @@ public class HerobrineSettings extends SavedData {
                             .forGetter(HerobrineSettings::name))
             .apply(instance, HerobrineSettings::new));
 
-    public static final SavedDataType<HerobrineSettings> TYPE = new SavedDataType<>(
-            HerobrineMod.id("settings"),
-            HerobrineSettings::new,
-            CODEC,
-            Mc.savedDataFixType());
+    public static final SavedDataType<HerobrineSettings> TYPE =
+            Mc.savedDataType("settings", HerobrineSettings::new, CODEC);
 
     private final Map<Feature, Boolean> features = new EnumMap<>(Feature.class);
     private boolean purist;

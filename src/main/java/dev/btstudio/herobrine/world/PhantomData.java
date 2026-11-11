@@ -35,11 +35,8 @@ public class PhantomData extends SavedData {
      * the wandering-trader type, so it only carries the data version across a load - which is all
      * a mod-owned file needs.
      */
-    public static final SavedDataType<PhantomData> TYPE = new SavedDataType<>(
-            HerobrineMod.id("phantoms"),
-            PhantomData::new,
-            CODEC,
-            Mc.savedDataFixType());
+    public static final SavedDataType<PhantomData> TYPE =
+            Mc.savedDataType("phantoms", PhantomData::new, CODEC);
 
     private final List<BlockPos> positions = new ArrayList<>();
 
