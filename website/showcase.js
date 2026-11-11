@@ -395,6 +395,36 @@
     updateFog();
   }
 
+  // Hero eyes follow the mouse pointer.
+  if (!still) {
+    const hero = document.querySelector(".hero-herobrine");
+    const eyes = hero ? hero.querySelectorAll(".eye") : [];
+    if (hero && eyes.length) {
+      let q = false, mx = window.innerWidth / 2, my = window.innerHeight / 2;
+      const moveEyes = () => {
+        q = false;
+        const hr = hero.getBoundingClientRect();
+        eyes.forEach((eye) => {
+          const r = eye.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const dx = mx - cx;
+          const dy = my - cy;
+          const d = Math.hypot(dx, dy) || 1;
+          const max = 5;
+          const tx = (dx / d) * Math.min(max, d / 18);
+          const ty = (dy / d) * Math.min(max, d / 18);
+          eye.style.transform = `translate(${tx}px, ${ty}px)`;
+        });
+      };
+      window.addEventListener("pointermove", (e) => {
+        mx = e.clientX; my = e.clientY;
+        if (!q) { q = true; requestAnimationFrame(moveEyes); }
+      }, { passive: true });
+      moveEyes();
+    }
+  }
+
   /* ---- On load --------------------------------------------------------- */
 
   /* Neither track is restored automatically: a browser refuses to play without a gesture, and
