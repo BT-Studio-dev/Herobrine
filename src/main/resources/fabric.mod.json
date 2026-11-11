@@ -3,7 +3,7 @@
   "id": "herobrine",
   "version": "${version}",
   "name": "Herobrine: Haunting",
-  "description": "Herobrine for Fabric on Minecraft 1.21.11: staged hauntings, seven apparitions, the fog closing in, 13 original sounds, gold shrines, churches, holy water and the cross. Non-destructive by design.",
+  "description": "Herobrine for Fabric on Minecraft 26.3: staged hauntings, seven apparitions, the fog closing in, 13 original sounds, gold shrines, churches, holy water and the cross. Non-destructive by design.",
   "authors": [
     "BT-Studio"
   ],
@@ -31,12 +31,12 @@
     "herobrine.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.16.0",
-    "minecraft": "~1.21.11",
-    "java": ">=21",
-    "fabric-api": "*"
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": ">=0.165.0"
   },
   "suggests": {
-    "modmenu": ">=16.0.0"
+    "modmenu": ">=21.0.0"
   }
 }

@@ -1,5 +1,6 @@
 plugins {
-    id 'fabric-loom' version "${loom_version}"
+    // 26.x is unobfuscated: non-remapping Loom, no mappings, no mod* dependency configurations.
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
 version = project.mod_version
@@ -10,6 +11,8 @@ base {
 }
 
 repositories {
+    // Loom already provides Fabric, Mojang and Maven Central. Add repositories here only for
+    // extra mod dependencies.
     maven {
         name = "TerraformersMC"
         url = "https://maven.terraformersmc.com/releases/"
@@ -17,6 +20,7 @@ repositories {
 }
 
 loom {
+    // Rendering/screen/keybinding code lives in src/client and cannot leak into the server jar.
     splitEnvironmentSourceSets()
 
     mods {
@@ -29,12 +33,12 @@ loom {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-    modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+    // Mod Menu is client-only and optional: the entrypoint is only looked up when it is installed.
+    clientCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 
 processResources {
@@ -46,6 +50,8 @@ processResources {
     }
 }
 
+// Catch missing or malformed entity skins before publishing a jar. Bodies use the 64x64 player
+// layout; eye masks use the same UV layout at 256x256 to give both eyes a softer halo.
 tasks.register('verifyEntityTextures') {
     def textures = ['herobrine', 'herobrine_eyes', 'herobrine_hostile', 'herobrine_hostile_eyes',
                     'herobrine_elite', 'herobrine_elite_eyes', 'steve_friend', 'alex_friend']
@@ -63,6 +69,9 @@ tasks.register('verifyEntityTextures') {
                 throw new GradleException("Invalid entity texture (expected ${size}x${size} PNG): ${file}")
             }
             if (name.endsWith('_eyes')) {
+                // Both eyes glow. The head's front face is skin 8,8 to 16,16, so on the 4x mask it
+                // occupies x 32-63, y 32-63. Nothing may glow outside it, or the glow would show up
+                // on the back, the sides or the top of the head, or down on the body.
                 for (int y = 0; y < size; y++) {
                     for (int x = 0; x < size; x++) {
                         if (((image.getRGB(x, y) >>> 24) & 0xff) != 0 &&
@@ -72,6 +81,8 @@ tasks.register('verifyEntityTextures') {
                     }
                 }
 
+                // The bridge of the nose sits between x=47 and x=48, so the second eye is the first
+                // one mirrored about x + x' = 95. The two halves have to be identical.
                 for (int y = 0; y < size; y++) {
                     for (int x = 32; x <= 63; x++) {
                         if (((image.getRGB(x, y) >>> 24) & 0xff) !=
@@ -81,6 +92,8 @@ tasks.register('verifyEntityTextures') {
                     }
                 }
 
+                // Each eye needs an opaque core on skin pixels 9-10 and 13-14 (mask x 38 and its
+                // mirror x 57), with a softer halo around it (mask x 35 and its mirror x 60).
                 if (((image.getRGB(38, 50) >>> 24) & 0xff) != 255 ||
                     ((image.getRGB(57, 50) >>> 24) & 0xff) != 255) {
                     throw new GradleException("Missing an opaque eye core: ${file}")
@@ -91,6 +104,8 @@ tasks.register('verifyEntityTextures') {
                     throw new GradleException("Missing an eye halo: ${file}")
                 }
 
+                // The halo has to stay in the eye band: off the hair (skin y 8-9, so mask y 32-39)
+                // and off the jaw and everything below it (mask y 60 and down).
                 for (int y = 32; y < size; y++) {
                     if (y >= 40 && y <= 59) {
                         continue
@@ -109,14 +124,14 @@ tasks.register('verifyEntityTextures') {
 tasks.named('check') { dependsOn tasks.named('verifyEntityTextures') }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.release = 25
 }
 
 java {
     withSourcesJar()
 
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 tasks.withType(AbstractArchiveTask).configureEach {
