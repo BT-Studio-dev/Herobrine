@@ -395,39 +395,6 @@
     updateFog();
   }
 
-  // The light: one listener, one rAF, and the panels are told where the cursor is in their own
-  // coordinates so the highlight sits under it rather than under the page.
-  if (!still) {
-    const light = document.getElementById("light");
-    const glass = document.querySelectorAll("nav,.feat>div,.seed code,.player");
-    let queued = false;
-    let lx = 0;
-    let ly = 0;
-
-    const track = () => {
-      queued = false;
-      if (light) {
-        light.style.setProperty("--mx", lx + "px");
-        light.style.setProperty("--my", ly + "px");
-      }
-
-      for (let i = 0; i < glass.length; i++) {
-        const box = glass[i].getBoundingClientRect();
-        glass[i].style.setProperty("--cx", (lx - box.left) + "px");
-        glass[i].style.setProperty("--cy", (ly - box.top) + "px");
-      }
-    };
-
-    window.addEventListener("pointermove", (event) => {
-      lx = event.clientX;
-      ly = event.clientY;
-      if (!queued) {
-        queued = true;
-        requestAnimationFrame(track);
-      }
-    }, { passive: true });
-  }
-
   /* ---- On load --------------------------------------------------------- */
 
   /* Neither track is restored automatically: a browser refuses to play without a gesture, and

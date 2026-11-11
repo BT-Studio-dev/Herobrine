@@ -28,7 +28,6 @@ body{margin:0;background:radial-gradient(circle at 15% 10%,var(--b1),transparent
 a{color:var(--accent);text-underline-offset:.2em}
 a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .wrap{max-width:62rem;margin:0 auto;padding:0 1.25rem;position:relative;z-index:1}
-#light{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(26rem circle at var(--mx,50%) var(--my,30%),rgba(var(--glow),.2),transparent 65%)}
 .skip{position:absolute;left:-9999px}
 .skip:focus{left:1rem;top:1rem;background:var(--ink);color:var(--bg);padding:.5rem 1rem;z-index:50}
 
@@ -39,8 +38,8 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-off
 header.top{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem 0;flex-wrap:wrap}
 .mark{font:700 1.15rem var(--display);color:var(--ink);text-decoration:none}
 nav,.feat>div,.seed code{background:var(--glass);border:1px solid var(--glass-line);-webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);position:relative;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.08)}
-nav::after,.feat>div::after,.seed code::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s;background:radial-gradient(14rem circle at var(--cx,50%) var(--cy,50%),rgba(var(--glow),.3),transparent 65%)}
-nav:hover::after,.feat>div:hover::after,.seed code:hover::after{opacity:1}
+nav::after,.feat>div::after,.seed code::after{display:none}
+nav:hover::after,.feat>div:hover::after,.seed code:hover::after{display:none}
 nav{display:flex;gap:.2rem;padding:.3rem;border-radius:999px}
 nav a{position:relative;z-index:1;padding:.4rem 1.05rem;border-radius:999px;color:var(--muted);text-decoration:none;font-size:1rem}
 nav a:hover{color:var(--ink);background:rgba(var(--glow),.16)}
@@ -108,9 +107,8 @@ html[data-glass="off"] .feat>div,
 html[data-glass="off"] .seed code,
 html[data-glass="off"] .player,
 html[data-glass="off"] .settings{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}
-.player::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;
-  transition:opacity .25s;background:radial-gradient(16rem circle at var(--cx,50%) var(--cy,50%),rgba(var(--glow),.22),transparent 65%)}
-.player:hover::after{opacity:1}
+.player::after{display:none}
+.player:hover::after{display:none}
 
 html[data-glass="off"] nav::after,
 html[data-glass="off"] .feat>div::after,
@@ -189,7 +187,53 @@ html[data-glass="off"] .player::after{display:none}
   padding:.05em .3em;border-radius:4px;background:color-mix(in srgb,var(--accent) 15%,transparent)}
 #copied{color:var(--accent);min-height:1.5em;margin:.6rem 0 0}
 
-@media (max-width:34rem){
-  .settings{right:.5rem;left:.5rem;width:auto;bottom:4rem}
-  .settings-toggle{right:.5rem;bottom:.5rem}
+/* All cards: solid black */
+.feat>div,
+.player,
+.settings,
+nav,
+.seed code,
+dl.req div {
+  background: #000000 !important;
+  border: 1px solid #333333 !important;
+  border-left-color: #333333 !important;
+  color: #e5e7eb;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
+dl.req div { border-left: 3px solid #444444 !important; }
+nav a { color: #d1d5db; }
+nav a:hover { color: #ffffff; background: rgba(255,255,255,0.08); }
+.feat h3,
+.player h3,
+.settings h2,
+.seed code,
+dl.req dd {
+  color: #ffffff;
+}
+.feat p,
+.player .hint,
+.player .time,
+.settings .hint,
+.settings .row>span,
+.settings .row>label,
+.settings select,
+dl.req dt,
+.status,
+.panel-note {
+  color: #cbd5e1;
+  opacity: 1;
+}
+.btn { border-color: #e5e7eb; color: #e5e7eb; }
+.btn.primary { background: #ffffff; color: #000000; border-color: #ffffff; }
+.btn:hover { background: #2f5d50; border-color: #2f5d50; color: #ffffff; }
+.seg { background: #111111; border-color: #333333; }
+.seg button { color: #cbd5e1; }
+.seg button[aria-pressed="true"] { background: #e5e7eb; color: #000000; }
+.settings select, .settings input[type="range"], .transport input[type="range"] { color-scheme: dark; }
+.seek-track { background: #333333; }
+.seek-buffer { background: #666666; }
+.seek-fill { background: #8fc5b2; }
+a { color: #8fc5b2; }
+
