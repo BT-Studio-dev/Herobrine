@@ -28,18 +28,6 @@ base {
     archivesName = shared['archives_base_name']
 }
 
-// This project has no sources of its own; everything lives one directory up.
-sourceSets {
-    main {
-        java.srcDirs = ['../src/main/java']
-        resources.srcDirs = ['../src/main/resources']
-    }
-    client {
-        java.srcDirs = ['../src/client/java']
-        resources.srcDirs = [] // src/client/resources does not exist in this project
-    }
-}
-
 repositories {
     maven {
         name = "TerraformersMC"
@@ -47,6 +35,9 @@ repositories {
     }
 }
 
+// This has to come before the source sets are pointed at ../src: it is what creates the client
+// source set, and doing it the other way round fails with "Cannot add a SourceSet with name
+// 'client' as a SourceSet with that name already exists".
 loom {
     splitEnvironmentSourceSets()
 
@@ -55,6 +46,18 @@ loom {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
         }
+    }
+}
+
+// This project has no sources of its own; everything lives one directory up.
+sourceSets {
+    main {
+        java.srcDirs = ['../src/main/java']
+        resources.srcDirs = ['../src/main/resources']
+    }
+    client {
+        java.srcDirs = ['../src/client/java']
+        resources.srcDirs = [] // this project has no src/client/resources
     }
 }
 
