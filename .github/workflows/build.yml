@@ -51,28 +51,14 @@ jobs:
       # Gradle 9 removed -b/--build-file, so the 1.21.11 build is a project of its own in
       # legacy/ and is entered rather than selected by a flag.
       - name: Build
-        id: build
         run: |
           chmod +x ./gradlew
-          set -o pipefail
           if [ "${{ matrix.dir }}" = "." ]; then
-            ./gradlew build --stacktrace 2>&1 | tee build.log
+            ./gradlew build --stacktrace
           else
             cd "${{ matrix.dir }}"
-            ../gradlew build --stacktrace 2>&1 | tee ../build.log
+            ../gradlew build --stacktrace
           fi
-
-      # The runner's log host is unreachable from the agent, so surface the tail of the Gradle
-      # output somewhere readable. Temporary debugging aid.
-      - name: Report build failure
-        if: failure() && steps.build.outcome == 'failure'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAIL=$(tail -c 40000 build.log)
-          BODY=$(printf 'Build failure (%s)\n\n```\n%s\n```' '${{ matrix.label }}' "$TAIL")
-          jq -n --arg body "$BODY" '{body: $body}' > comment.json
-          gh api repos/${{ github.repository }}/commits/${{ github.sha }}/comments --input comment.json
 
       - name: Verify jar
         run: |
