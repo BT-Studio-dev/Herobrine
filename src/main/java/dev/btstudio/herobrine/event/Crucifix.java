@@ -1,5 +1,6 @@
 package dev.btstudio.herobrine.event;
 
+import dev.btstudio.herobrine.compat.Mc;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.sound.ModSounds;
 
@@ -47,14 +48,14 @@ public final class Crucifix {
             herobrine.discard();
             NotchAppleRitual.purgeApparitions(level);
 
-            player.sendSystemMessage(Component.translatable("herobrine.cross.success").withStyle(ChatFormatting.GRAY));
+            Mc.sendMessage(player, Component.translatable("herobrine.cross.success").withStyle(ChatFormatting.GRAY));
         } else {
             level.playSound(null, pos, ModSounds.GLITCH, SoundSource.HOSTILE, 1.2F, 1.2F);
 
             herobrine.setHostile(true);
             herobrine.setHealth(herobrine.getMaxHealth());
 
-            player.sendSystemMessage(Component.translatable("herobrine.cross.failed").withStyle(ChatFormatting.DARK_RED));
+            Mc.sendMessage(player, Component.translatable("herobrine.cross.failed").withStyle(ChatFormatting.DARK_RED));
         }
 
         return InteractionResult.SUCCESS;

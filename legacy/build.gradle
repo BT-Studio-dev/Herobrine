@@ -52,7 +52,7 @@ loom {
 // This project has no sources of its own; everything lives one directory up.
 sourceSets {
     main {
-        java.srcDirs = ['../src/main/java']
+        java.srcDirs = ['../src/main/java', '../src/mc121/java']
         resources.srcDirs = ['../src/main/resources']
     }
     client {

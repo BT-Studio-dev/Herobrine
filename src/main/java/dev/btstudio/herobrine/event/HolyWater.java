@@ -1,5 +1,6 @@
 package dev.btstudio.herobrine.event;
 
+import dev.btstudio.herobrine.compat.Mc;
 import dev.btstudio.herobrine.item.ModItems;
 import dev.btstudio.herobrine.world.HolySites;
 
@@ -53,7 +54,7 @@ public final class HolyWater {
                         player.getZ(), holy));
             }
 
-            player.sendSystemMessage(Component.translatable("herobrine.holy_water.filled"));
+            Mc.sendMessage(player, Component.translatable("herobrine.holy_water.filled"));
             return InteractionResult.SUCCESS;
         });
     }

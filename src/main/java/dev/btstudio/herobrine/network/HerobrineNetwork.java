@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import dev.btstudio.herobrine.compat.Mc;
 import dev.btstudio.herobrine.event.Dread;
 import dev.btstudio.herobrine.event.HauntingEvents;
 import dev.btstudio.herobrine.event.IronWard;
@@ -39,8 +40,7 @@ public final class HerobrineNetwork {
     public static void register() {
         // The codec has to be registered on both sides before anything is sent or received, and
         // this class is loaded from the common initialiser, which runs on both.
-        PayloadTypeRegistry.clientboundPlay()
-                .register(HerobrineStatePayload.TYPE, HerobrineStatePayload.CODEC);
+        Mc.registerClientboundPayloads();
 
         ServerPlayConnectionEvents.JOIN.register((listener, sender, server) -> {
             HerobrineStatePayload payload = stateFor(listener.player);

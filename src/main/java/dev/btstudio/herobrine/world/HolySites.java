@@ -6,6 +6,7 @@ import java.util.List;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import dev.btstudio.herobrine.compat.Mc;
 import dev.btstudio.herobrine.HerobrineMod;
 
 import net.minecraft.core.BlockPos;
@@ -32,7 +33,7 @@ public class HolySites extends SavedData {
             HerobrineMod.id("holy_sites"),
             HolySites::new,
             CODEC,
-            DataFixTypes.SAVED_DATA_WANDERING_TRADER);
+            Mc.savedDataFixType());
 
     private final List<BlockPos> positions = new ArrayList<>();
 

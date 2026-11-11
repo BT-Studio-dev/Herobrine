@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import dev.btstudio.herobrine.compat.Mc;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.item.ModItems;
 import dev.btstudio.herobrine.sound.ModSounds;
@@ -160,7 +161,7 @@ public final class IronWard {
         level.playSound(null, pos, ModSounds.FOG, SoundSource.HOSTILE, 1.0F, 0.6F);
 
         herobrine.discard();
-        player.sendSystemMessage(Component.translatable("herobrine.iron.retreat").withStyle(ChatFormatting.GRAY));
+        Mc.sendMessage(player, Component.translatable("herobrine.iron.retreat").withStyle(ChatFormatting.GRAY));
     }
 
     /**
@@ -182,7 +183,7 @@ public final class IronWard {
         }
 
         level.playSound(null, herobrine.blockPosition(), ModSounds.GLITCH, SoundSource.HOSTILE, 1.0F, 1.1F);
-        player.sendSystemMessage(Component.translatable("herobrine.iron.recoil").withStyle(ChatFormatting.GRAY));
+        Mc.sendMessage(player, Component.translatable("herobrine.iron.recoil").withStyle(ChatFormatting.GRAY));
     }
 
     /** One line on the action bar, at most once every two minutes, so the ward is never a mystery. */
@@ -196,7 +197,7 @@ public final class IronWard {
         }
 
         LAST_WARD_MESSAGE.put(player.getUUID(), gameTime);
-        player.sendSystemMessage(Component.translatable("herobrine.iron.ward").withStyle(ChatFormatting.GRAY), true);
+        Mc.sendMessage(player, Component.translatable("herobrine.iron.ward").withStyle(ChatFormatting.GRAY), true);
     }
 
     /** Drops what we were holding about a player who has left. */

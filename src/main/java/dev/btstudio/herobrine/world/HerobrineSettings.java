@@ -7,6 +7,7 @@ import java.util.Map;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import dev.btstudio.herobrine.compat.Mc;
 import dev.btstudio.herobrine.HerobrineMod;
 
 import net.minecraft.server.level.ServerLevel;
@@ -79,7 +80,7 @@ public class HerobrineSettings extends SavedData {
             HerobrineMod.id("settings"),
             HerobrineSettings::new,
             CODEC,
-            DataFixTypes.SAVED_DATA_WANDERING_TRADER);
+            Mc.savedDataFixType());
 
     private final Map<Feature, Boolean> features = new EnumMap<>(Feature.class);
     private boolean purist;

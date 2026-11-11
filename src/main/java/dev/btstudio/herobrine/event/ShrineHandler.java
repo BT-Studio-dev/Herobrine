@@ -1,5 +1,6 @@
 package dev.btstudio.herobrine.event;
 
+import dev.btstudio.herobrine.compat.Mc;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
 import dev.btstudio.herobrine.world.Feature;
@@ -11,7 +12,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.item.Items;
 import net.minecraft.server.level.ServerLevel;
@@ -88,7 +88,7 @@ public final class ShrineHandler {
         double y = center.getY() + 1.0;
         double z = center.getZ() + 0.5;
 
-        LightningBolt bolt = EntityTypes.LIGHTNING_BOLT.create(level, EntitySpawnReason.TRIGGERED);
+        LightningBolt bolt = Mc.createLightning(level);
 
         if (bolt != null) {
             bolt.setPos(x, y, z);

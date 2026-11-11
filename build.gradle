@@ -19,6 +19,13 @@ repositories {
     }
 }
 
+sourceSets {
+    // The 26.3 side of the compatibility layer. The 1.21.11 build uses src/mc121 instead.
+    main {
+        java.srcDirs += ['src/mc26/java']
+    }
+}
+
 loom {
     // Rendering/screen/keybinding code lives in src/client and cannot leak into the server jar.
     splitEnvironmentSourceSets()

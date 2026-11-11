@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 
+import dev.btstudio.herobrine.compat.Mc;
 import dev.btstudio.herobrine.world.HerobrineName;
 
 import net.minecraft.core.BlockPos;
@@ -28,8 +29,6 @@ import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.LanternBlock;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
-import net.minecraft.world.level.block.entity.SignText;
-import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
@@ -72,22 +71,11 @@ public final class Sabotage {
             "herobrine.sign.spring",
     };
 
-    /** The sign is not always oak: Inferno's mod ships every wood variant. */
-    private static final Block[] SIGN_BLOCKS = {
-            Blocks.OAK_SIGN,
-            Blocks.SPRUCE_SIGN,
-            Blocks.BIRCH_SIGN,
-            Blocks.JUNGLE_SIGN,
-            Blocks.ACACIA_SIGN,
-            Blocks.DARK_OAK_SIGN,
-            Blocks.MANGROVE_SIGN,
-            Blocks.CHERRY_SIGN,
-            Blocks.PALE_OAK_SIGN,
-            Blocks.POPLAR_SIGN,
-            Blocks.BAMBOO_SIGN,
-            Blocks.CRIMSON_SIGN,
-            Blocks.WARPED_SIGN,
-    };
+    /**
+     * The sign is not always oak. Which woods exist depends on the version - 1.21.11 has no
+     * poplar - so the list lives in Mc, which each build fills in.
+     */
+    private static final Block[] SIGN_BLOCKS = Mc.signBlocks();
 
     private static final Item[] DONATIONS = {
             Items.BONE,
@@ -195,7 +183,7 @@ public final class Sabotage {
         messages.set(random.nextInt(messages.size()),
                 Component.translatable(key, HerobrineName.component(name)));
 
-        sign.setText(new SignText(messages, messages, DyeColor.RED, false), SignTextSlot.FRONT);
+        Mc.setSignText(sign, messages, DyeColor.RED);
         return true;
     }
 
