@@ -9,8 +9,7 @@ import net.minecraft.network.chat.MutableComponent;
  * The name Herobrine goes by when he pretends to be a player.
  *
  * <p>It is one name per dimension, stored with the settings and owned by the server: any operator
- * may change it, every player may read it with {@code /herobrine settings}, and it is used wherever
- * he turns up as a person - the fake <i>joined the game</i> and <i>left the game</i> lines, his one
+ * may change it, and it is used wherever he turns up as a person - the fake <i>joined the game</i> and <i>left the game</i> lines, his one
  * line of chat, his nametag, the subtitle on the jumpscare, his death messages and the signs he
  * leaves behind.
  *

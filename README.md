@@ -2,19 +2,19 @@
 
 # Herobrine: Haunting
 
-Herobrine for Fabric on Minecraft 26.3: staged hauntings, seven apparitions, the fog closing in, 13 original sounds,
+Herobrine for Fabric on Minecraft 1.21.11: staged hauntings, seven apparitions, the fog closing in, 13 original sounds,
 gold shrines, churches, holy water and the cross. Non-destructive by design.
 
 **[Source & safety guide](website/)** — From The Fog provenance, integration, licensing, and the optional `WAKE_UP.vbs` safety note.
 
 ## Summary
 
-Herobrine: Haunting brings staged, escalating hauntings to Fabric on Minecraft 26.3 — seven apparitions, 13 original
+Herobrine: Haunting brings staged, escalating hauntings to Fabric on Minecraft 1.21.11 — seven apparitions, 13 original
 sounds, gold shrines, churches, holy water and the cross. Non-destructive by design.
 
 ## Purpose
 
-Herobrine: Haunting is a Fabric mod for Minecraft 26.3 that adds a staged, escalating haunting system centered around
+Herobrine: Haunting is a Fabric mod for Minecraft 1.21.11 that adds a staged, escalating haunting system centered around
 Herobrine. It is non-destructive by design: the haunting alters the world procedurally (torches placed, leaves stripped,
 tunnels dug, pyramids built) but never touches player-built structures, with the single optional exception of fire,
 which is behind its own switch.
@@ -67,7 +67,7 @@ which is behind its own switch.
   fake join and leave messages, his line of chat, his nametag and death messages, the jumpscare subtitle and the
   signs he leaves. Server-wide, read by everyone, changed only by an operator. **Reset name** puts him back to
   Herobrine.
-- **Settings screen** (H key or `/herobrine_settings`) saved per world: five tabs — World, Apparitions, Sound,
+- **Settings screen** (H key) saved per world: five tabs — World, Apparitions, Sound,
   Presence, Name — plus purist, banished and the music-volume slider.
 - **Commands** — `/herobrine summon`, `haunt`, `apparition`, `mode`, `schizo`, `shrine`, `give`, `config`, `phantom`,
   and more.
@@ -89,11 +89,11 @@ The world continues running while the settings screen is open.
 ## Compatibility
 
 - Herobrine: Haunting 3.0.4
-- Minecraft 26.3
+- Minecraft 1.21.11
 - Fabric Loader >= 0.19.0
 - Fabric API >= 0.165.0
-- Java >= 25
-- Suggests Mod Menu >= 21.0.0 for in-game settings integration
+- Java >= 21
+- Suggests Mod Menu >= 16.0.0 for in-game settings integration
 - Runs on both client and server; settings are saved with the world and apply per dimension
 - Suggests LambDynamicLights for eye lighting; the mod ships the definition, nothing is required
 - Works with shader packs (Iris and others). The fog and the glowing eyes are drawn so that a shader pack

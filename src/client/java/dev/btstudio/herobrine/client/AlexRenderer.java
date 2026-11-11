@@ -10,9 +10,7 @@ import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.resources.Identifier;
 
 /**
- * Renders Alex with the slim player model - narrower arms, the vanilla Alex silhouette - and the
- * same plain face as Steve: white eyes, blue pupils, no glow. She is meant to read as a person
- * standing next to you, not as another thing in the dark.
+ * Renders Alex with the original slim player model and skin.
  */
 public class AlexRenderer extends HumanoidMobRenderer<AlexFriendEntity, AlexRenderState,
         HumanoidModel<AlexRenderState>> {

@@ -26,7 +26,8 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
 
 /**
- * In-world settings, opened with Mod Menu, H or /herobrine_settings.
+ * In-world settings, opened with Mod Menu or the H key.
+ *
  *
  * <p>One tab per group of switches - the traces he leaves in the world, the ways he shows himself,
  * sound, the bigger pieces of the mod, and the name he goes by - each with an On/Off button that
@@ -153,7 +154,7 @@ public class HerobrineConfigScreen extends Screen {
                     this.pendingVolume = -1;
                     this.volumeDebounce = -1;
                     this.volumeSyncDelay = 30;
-                    this.refreshIn = 8;
+                    this.refreshIn = 4;
                 })
                 .pos(8, bottomY).size(sidebarWidth, CONTROL_HEIGHT).build();
         reset.active = this.canConfigure();
@@ -255,7 +256,7 @@ public class HerobrineConfigScreen extends Screen {
         int width = this.controlWidth();
         Button button = Button.builder(toggleLabel(currentSettings(), entry.getter()), pressed -> {
                     this.runCommand(entry.command());
-                    this.refreshIn = 8;
+                    this.refreshIn = 2;
                 }).pos(this.panelRight - width - 8, y + (ROW_HEIGHT - CONTROL_HEIGHT) / 2)
                 .size(width, CONTROL_HEIGHT).build();
         button.active = this.canConfigure();
@@ -329,7 +330,7 @@ public class HerobrineConfigScreen extends Screen {
     /** Every switch at once, from the two buttons on the bottom row. */
     private void setAll(boolean on) {
         this.runCommand(on ? "herobrine config all on" : "herobrine config all off");
-        this.refreshIn = 8;
+        this.refreshIn = 2;
     }
 
     private void changePage(Page next) {
@@ -586,15 +587,83 @@ public class HerobrineConfigScreen extends Screen {
     /**
      * The single way anything on this screen reaches the server.
      *
-     * <p>Every command under {@code /herobrine config} is an operator command, so sending one
-     * without permission is not a failure the screen can explain: the server rejects it and the
-     * player is left looking at a control that did nothing. Checking here means nothing is sent
-     * that cannot go through.
+     * <p>In singleplayer the settings object is shared in-process, so changes are applied directly
+     * for an immediate, reliable update. On a server we send the matching operator command.
      */
     private void runCommand(String command) {
+        if (!this.inWorld()) {
+            return;
+        }
+
+        HerobrineSettings settings = currentSettings();
+        if (settings != null) {
+            if (this.applyDirect(settings, command)) {
+                this.refreshIn = 2;
+                return;
+            }
+        }
+
         if (this.canConfigure() && this.minecraft.player.connection != null) {
             this.minecraft.player.connection.sendCommand(command);
         }
+    }
+
+    /**
+     * Applies supported config-screen commands directly to singleplayer settings so toggles and
+     * bulk actions take effect immediately even if command dispatch is unavailable.
+     */
+    private boolean applyDirect(HerobrineSettings settings, String command) {
+        if (command.equals("herobrine config reset")) {
+            for (Feature feature : Feature.values()) {
+                settings.setEnabled(feature, feature.defaultOn());
+            }
+            settings.setMusicVolume(70);
+            settings.setPurist(false);
+            settings.setBanished(false);
+            settings.setName(HerobrineName.DEFAULT);
+            return true;
+        }
+        if (command.equals("herobrine config all on")) {
+            settings.setAll(true);
+            return true;
+        }
+        if (command.equals("herobrine config all off")) {
+            settings.setAll(false);
+            return true;
+        }
+        if (command.equals("herobrine mode toggle")) {
+            settings.setPurist(!settings.isPurist());
+            return true;
+        }
+        if (command.equals("herobrine banish on")) {
+            settings.setBanished(true);
+            return true;
+        }
+        if (command.equals("herobrine banish off")) {
+            settings.setBanished(false);
+            return true;
+        }
+        if (command.startsWith("herobrine config name ")) {
+            settings.setName(command.substring("herobrine config name ".length()));
+            return true;
+        }
+        if (command.startsWith("herobrine config musicvolume ")) {
+            try {
+                settings.setMusicVolume(Integer.parseInt(command.substring("herobrine config musicvolume ".length()).trim()));
+                return true;
+            } catch (NumberFormatException ignored) {
+                return false;
+            }
+        }
+        if (command.startsWith("herobrine config ")) {
+            String id = command.substring("herobrine config ".length()).trim();
+            Feature feature = Feature.byCommandId(id);
+            if (feature != null) {
+                settings.toggle(feature);
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean inWorld() {
@@ -602,15 +671,17 @@ public class HerobrineConfigScreen extends Screen {
     }
 
     /**
-     * Whether the controls will actually do anything: in a world, and allowed to run the commands.
-     *
-     * <p>On a server without operator rights every switch here would be a dead button, so they are
-     * greyed out and the screen says why instead. A singleplayer world opened without cheats is the
-     * same case, which is easy to hit and confusing to diagnose from a button that does nothing.
+     * Whether the controls will actually do anything. In singleplayer the integrated server is
+     * local and always configurable from this client; on a server operator permission is required.
      */
     private boolean canConfigure() {
-        return this.inWorld()
-                && this.minecraft.player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
+        if (!this.inWorld()) {
+            return false;
+        }
+        if (currentSettings() != null) {
+            return true;
+        }
+        return this.minecraft.player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
     }
 
     /** The settings of the singleplayer world we are in, or null on a server. */

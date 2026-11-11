@@ -68,7 +68,6 @@ import net.minecraft.world.phys.Vec3;
  * /herobrine apparition &lt;watch|scare|jumpscare|spike|runner|lurking|dwelling&gt; [&lt;player&gt;]
  * /herobrine schizo [on|off]
  * /herobrine hauntstate
- * /herobrine settings
  * /herobrine banish [on|off]
  * /herobrine shrine [gold]
  * /herobrine gravel | marker | herd | miner | window
@@ -143,8 +142,7 @@ public final class HerobrineCommand {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
             // The permission sits on each branch rather than on the root. Brigadier tests the
-            // requirement of every node it walks through, so a requirement here would also hide
-            // /herobrine settings, which only reads values and is open to everyone.
+            // requirement of every node it walks through.
             LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("herobrine")
                     .executes(context -> {
                         context.getSource().sendSuccess(() -> Component.translatable("herobrine.command.help"), false);
@@ -254,11 +252,6 @@ public final class HerobrineCommand {
                             .suggests(RING_SUGGESTIONS)
                             .executes(context -> buildShrine(context, StringArgumentType.getString(context, "ring")
                                     .toLowerCase(Locale.ROOT)))));
-
-            // Only reads settings, so it is the one branch every player may run.
-            root.then(Commands.literal("settings")
-                    .requires(Commands.hasPermission(Commands.LEVEL_ALL))
-                    .executes(HerobrineCommand::settings));
 
             dispatcher.register(root);
         });
@@ -530,57 +523,12 @@ public final class HerobrineCommand {
         return 1;
     }
 
-    /**
-     * Every setting for the dimension the sender is in, one per line, in a single message. This
-     * only reads values, which is why it is the one branch of the command open to everyone: the
-     * rest of {@code /herobrine} changes things and stays behind the operator permission.
-     */
-    private static int settings(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        ServerLevel level = source.getLevel();
-        HerobrineSettings settings = HerobrineSettings.of(level);
-        int stage = stageOf(source);
-        MutableComponent message = Component.translatable("herobrine.command.settings.header");
-
-        line(message, "herobrine.command.settings.name", Component.literal(settings.name()));
-        line(message, "herobrine.command.settings.mode",
-                Component.translatable(modeKey(settings.isPurist())));
-        line(message, "herobrine.command.settings.banished",
-                Component.translatable(onOffKey(settings.isBanished())));
-        line(message, "herobrine.command.settings.volume", Component.literal(settings.musicVolume() + "%"));
-        line(message, "herobrine.command.settings.stage", Component.literal(String.valueOf(stage)));
-        line(message, "herobrine.command.settings.interval",
-                Component.literal(String.valueOf(HauntingEvents.intervalFor(level, stage))));
-        message.append(Component.literal("\n")).append(chaseLine(chaseSeconds(level)));
-
-        // Then every switch there is, filed under the same headings the settings screen uses.
-        for (Feature.Group group : Feature.Group.values()) {
-            message.append(Component.literal("\n"))
-                    .append(Component.translatable("herobrine.command.settings.group."
-                            + group.name().toLowerCase(Locale.ROOT)));
-
-            for (Feature feature : Feature.inGroup(group)) {
-                line(message, "herobrine.command.settings.feature",
-                        Component.translatable(feature.titleKey()),
-                        Component.translatable(onOffKey(settings.enabled(feature))));
-            }
-        }
-
-        source.sendSuccess(() -> message, false);
-        return 1;
-    }
-
-    /** One indented line on the settings listing. */
-    private static void line(MutableComponent message, String key, Object... args) {
-        message.append(Component.literal("\n")).append(Component.translatable(key, args));
-    }
-
     /** Seconds left in the current chase frenzy; 0 when he is not chasing anyone. */
     private static long chaseSeconds(ServerLevel level) {
         return HerobrineSettings.chaseRemainingTicks(level) / 20L;
     }
 
-    /** The chase line, shared by {@code /herobrine hauntstate} and {@code /herobrine settings}. */
+    /** The chase line, used by {@code /herobrine hauntstate}. */
     private static Component chaseLine(long chaseSeconds) {
         return chaseSeconds > 0L
                 ? Component.translatable("herobrine.command.state.chase.active", chaseSeconds)
@@ -788,8 +736,7 @@ public final class HerobrineCommand {
     }
 
     /**
-     * {@code /herobrine config} on its own: a one line reminder of what the branch does rather than
-     * a dump of thirty-odd values, which is what {@code /herobrine settings} is for.
+     * {@code /herobrine config} on its own: a one line reminder of what the branch does.
      */
     private static int configStatus(CommandContext<CommandSourceStack> context) {
         context.getSource().sendSuccess(

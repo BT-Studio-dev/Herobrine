@@ -7,6 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.ToolMaterial;
 import net.minecraft.world.item.equipment.ArmorMaterials;
 import net.minecraft.world.item.equipment.ArmorType;
@@ -47,6 +48,7 @@ public final class ModItems {
     public static final ResourceKey<Item> IRON_BOOTS_KEY = key("iron_boots");
     public static final ResourceKey<Item> HOLY_WATER_KEY = key("holy_water");
     public static final ResourceKey<Item> THE_CROSS_KEY = key("the_cross");
+    public static final ResourceKey<Item> MUSIC_DISC_HEROBRINE_KEY = key("music_disc_herobrine");
 
     public static final Item IRON_STICK = new Item(new Item.Properties().setId(IRON_STICK_KEY));
     public static final Item IRON_SWORD = new Item(new Item.Properties()
@@ -60,6 +62,11 @@ public final class ModItems {
     public static final Item THE_CROSS = new CrossItem(new Item.Properties()
             .setId(THE_CROSS_KEY)
             .stacksTo(1));
+    public static final Item MUSIC_DISC_HEROBRINE = new Item(new Item.Properties()
+            .setId(MUSIC_DISC_HEROBRINE_KEY)
+            .stacksTo(1)
+            .rarity(Rarity.RARE)
+            .jukeboxPlayable(ResourceKey.create(Registries.JUKEBOX_SONG, HerobrineMod.id("herobrine"))));
 
     private ModItems() {
     }
@@ -87,5 +94,6 @@ public final class ModItems {
         Registry.register(BuiltInRegistries.ITEM, IRON_BOOTS_KEY, IRON_BOOTS);
         Registry.register(BuiltInRegistries.ITEM, HOLY_WATER_KEY, HOLY_WATER);
         Registry.register(BuiltInRegistries.ITEM, THE_CROSS_KEY, THE_CROSS);
+        Registry.register(BuiltInRegistries.ITEM, MUSIC_DISC_HEROBRINE_KEY, MUSIC_DISC_HEROBRINE);
     }
 }

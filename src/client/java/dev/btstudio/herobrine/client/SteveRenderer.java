@@ -11,8 +11,7 @@ import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.resources.Identifier;
 
 /**
- * Renders the friendly Steve with the vanilla player proportions and a plain Steve skin - white eyes
- * with blue pupils, no glow. The face is what tells the two of them apart at a glance in the dark.
+ * Renders Steve with the original plain humanoid player mesh and skin.
  */
 public class SteveRenderer extends HumanoidMobRenderer<SteveFriendEntity, SteveRenderState,
         HumanoidModel<SteveRenderState>> {
@@ -27,7 +26,6 @@ public class SteveRenderer extends HumanoidMobRenderer<SteveFriendEntity, SteveR
     private static HumanoidModel<SteveRenderState> createModel() {
         LayerDefinition layer = LayerDefinition.create(
                 HumanoidModel.createMesh(CubeDeformation.NONE, 0.0F), TEXTURE_WIDTH, TEXTURE_HEIGHT);
-
         return new HumanoidModel<>(layer.bakeRoot());
     }
 
