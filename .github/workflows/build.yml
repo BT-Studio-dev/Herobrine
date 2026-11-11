@@ -47,9 +47,23 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       - name: Build
+        id: build
         run: |
           chmod +x ./gradlew
-          ./gradlew -b ${{ matrix.buildFile }} build --stacktrace
+          set -o pipefail
+          ./gradlew -b ${{ matrix.buildFile }} build --stacktrace 2>&1 | tee build.log
+
+      # The runner's log host is unreachable from the agent, so surface the tail of the Gradle
+      # output somewhere readable. Temporary debugging aid.
+      - name: Report build failure
+        if: failure() && steps.build.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAIL=$(tail -c 40000 build.log)
+          BODY=$(printf 'Build failure (%s)\n\n```\n%s\n```' '${{ matrix.label }}' "$TAIL")
+          jq -n --arg body "$BODY" '{body: $body}' > comment.json
+          gh api repos/${{ github.repository }}/commits/${{ github.sha }}/comments --input comment.json
 
       - name: Verify jar
         run: |
