@@ -4,6 +4,7 @@ import dev.btstudio.herobrine.network.HerobrineStatePayload;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -38,23 +39,27 @@ public final class Mc {
     }
 
     /**
-     * Show a player a message in chat. 1.21.11's {@code Player} has no {@code sendSystemMessage};
-     * it has {@code displayClientMessage}, and passing false for the second argument is what puts
-     * the message in chat rather than above the hotbar.
+     * Show a player a message in chat. 1.21.11's {@code Player} has no one argument
+     * {@code sendSystemMessage}; it has {@code displayClientMessage}, and passing false for the
+     * second argument is what puts the message in chat rather than above the hotbar.
      */
     public static void sendMessage(Player player, MutableComponent message) {
         player.displayClientMessage(message, false);
     }
 
-    /** As above, with the message on the action bar instead of in chat when overlay is true. */
-    public static void sendMessage(Player player, MutableComponent message, boolean overlay) {
-        player.displayClientMessage(message, overlay);
+    /**
+     * As above, but on the action bar when overlay is true. This takes a ServerPlayer rather than a
+     * Player because that is what the one call site has, and because the two argument form lives on
+     * ServerPlayer in both versions.
+     */
+    public static void sendMessage(ServerPlayer player, MutableComponent message, boolean overlay) {
+        player.sendSystemMessage(message, overlay);
     }
 
     /**
-     * The data fixer our saved data is filed under. 1.21.11 has no SAVED_DATA_WANDERING_TRADER,
-     * and this mod's data is not a vanilla type whichever constant is used, so any of the
-     * SAVED_DATA_* entries would do. SCOREBOARD is the closest in spirit: plain world state.
+     * The data fixer our saved data is filed under. 1.21.11 has no SAVED_DATA_WANDERING_TRADER, and
+     * this mod's data is not a vanilla type whichever constant is used, so any of the SAVED_DATA_*
+     * entries would do. SCOREBOARD is the closest in spirit: plain world state.
      */
     public static DataFixTypes savedDataFixType() {
         return DataFixTypes.SAVED_DATA_SCOREBOARD;
@@ -90,8 +95,8 @@ public final class Mc {
     }
 
     /**
-     * Write the front face of a sign. 1.21.11 has no SignTextSlot: the front and back are chosen
-     * with a boolean, and SignText takes arrays rather than lists.
+     * Write the front face of a sign. 1.21.11 has no SignTextSlot: front and back are chosen with a
+     * boolean, and SignText takes arrays rather than lists.
      */
     public static void setSignText(SignBlockEntity sign, List<Component> messages, DyeColor colour) {
         Component[] lines = messages.toArray(new Component[0]);

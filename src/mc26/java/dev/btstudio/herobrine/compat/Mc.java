@@ -4,6 +4,7 @@ import dev.btstudio.herobrine.network.HerobrineStatePayload;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
@@ -41,12 +42,12 @@ public final class Mc {
     }
 
     /**
-     * As above, with the message on the action bar instead of in chat when overlay is true. Both
-     * versions spell this displayClientMessage, which is the only form Player itself carries in
-     * both; sendSystemMessage's second argument lives on ServerPlayer and is not on Player here.
+     * As above, but on the action bar when overlay is true. This takes a ServerPlayer rather than a
+     * Player because that is what the one call site has, and because the two argument form lives on
+     * ServerPlayer in both versions.
      */
-    public static void sendMessage(Player player, MutableComponent message, boolean overlay) {
-        player.displayClientMessage(message, overlay);
+    public static void sendMessage(ServerPlayer player, MutableComponent message, boolean overlay) {
+        player.sendSystemMessage(message, overlay);
     }
 
     /** The data fixer our saved data is filed under. */
