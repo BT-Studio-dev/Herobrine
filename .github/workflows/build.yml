@@ -55,7 +55,7 @@ jobs:
         continue-on-error: true
         run: |
           cd legacy
-          ../gradlew dumpMcApi --quiet 2>&1 | tee ../api.log
+          ../gradlew dumpMcApi --console=plain 2>&1 | tee ../api.log
 
       - name: Report 1.21.11 API
         if: matrix.dir == 'legacy'

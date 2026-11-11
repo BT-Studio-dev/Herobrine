@@ -192,6 +192,6 @@ tasks.register('dumpMcApi') {
             c.constructors.each { out << "  (${it.parameterTypes*.simpleName})\n" }
         }
 
-        println out
+        logger.lifecycle(out.toString())
     }
 }
