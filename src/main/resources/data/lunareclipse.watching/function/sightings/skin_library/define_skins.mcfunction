@@ -1407,3 +1407,19 @@ function #lunareclipse.watching:custom_skins
 
 # Add the new pages to the config.
 function lunareclipse.utils:forloop/start {target:"lunareclipse.watching:global_values",path:"skin_library.custom_skin.pack_list",command:"lunareclipse.watching:sightings/skin_library/append_pages/create_page"}
+function lunareclipse.watching:sightings/skin_library/define_skin_info {\
+id: "wilderness_bound",\
+namespace: "lunareclipse.watching",\
+credit: "BT Studio",\
+custom: "false",\
+parts: ["head", "body", "left_arm", "right_arm", "right_arm_item", "left_leg", "right_leg"],\
+pivots: {\
+head: {left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,1.5f,0f],scale:[1f,1f,1f]},\
+body: {left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0.75f,0f],scale:[1f,1f,1f]},\
+left_arm: {left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0.375f,1.375f,0f],scale:[1f,1f,1f]},\
+right_arm: {left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[-0.375f,1.375f,0f],scale:[1f,1f,1f]},\
+right_arm_item: {left_rotation:[0f,0f,0f,1f],right_rotation:[0.7f,0f,0f,1f],translation:[-0.375f,0.8125f,0.3125f],scale:[1f,1f,1f]},\
+left_leg: {left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0.125f,0.6875f,0f],scale:[1f,1f,1f]},\
+right_leg: {left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[-0.125f,0.6875f,0f],scale:[1f,1f,1f]}\
+}\
+}
