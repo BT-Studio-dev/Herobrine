@@ -198,7 +198,9 @@ nav, .feat>div, .seed code, .player, .settings, dl.req div {
   border: 1px solid var(--glass-line);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
   backdrop-filter: blur(16px) saturate(150%);
+  color: var(--ink);
 }
+.seed code { display: inline-block; }
 dl.req div { border-left: 3px solid var(--accent); }
 html[data-glass="off"] nav,
 html[data-glass="off"] .feat>div,
