@@ -13,6 +13,9 @@
 // The jar lands in legacy/build/libs/ as herobrine-<version>+1.21.11.jar, which cannot collide
 // with the 26.3 jar in build/libs/.
 
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
 plugins {
     id 'fabric-loom' version "${legacy_loom_version}"
 }
@@ -35,16 +38,19 @@ repositories {
     }
 }
 
-// This has to come before the source sets are pointed at ../src: it is what creates the client
-// source set, and doing it the other way round fails with "Cannot add a SourceSet with name
-// 'client' as a SourceSet with that name already exists".
+// There is deliberately no client side here. The common sources in ../src/client are written
+// against 26.3's rendering stack (GuiGraphicsExtractor, the keymapping package, the current
+// submitModelPart signature and Mod Menu's API) and porting them would mean rewriting five files
+// that cannot be checked without running the game. So this build is server-side only: the
+// hauntings, the sounds, the saved settings and the commands all work, and the fog overlay, the
+// glowing eyes, the config screen and the Mod Menu entry do not.
+//
+// splitEnvironmentSourceSets() is therefore not called, which is also why there is no client
+// source set to configure: without it, src/client is simply never compiled.
 loom {
-    splitEnvironmentSourceSets()
-
     mods {
         "herobrine" {
             sourceSet sourceSets.main
-            sourceSet sourceSets.client
         }
     }
 }
@@ -54,10 +60,6 @@ sourceSets {
     main {
         java.srcDirs = ['../src/main/java', '../src/mc121/java']
         resources.srcDirs = ['../src/main/resources']
-    }
-    client {
-        java.srcDirs = ['../src/client/java']
-        resources.srcDirs = [] // this project has no src/client/resources
     }
 }
 
@@ -72,8 +74,6 @@ dependencies {
 
     modImplementation "net.fabricmc:fabric-loader:${legacy_loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${legacy_fabric_api_version}"
-
-    clientCompileOnly "com.terraformersmc:modmenu:${legacy_modmenu_version}"
 }
 
 processResources {
@@ -84,36 +84,44 @@ processResources {
         expand "version": version
     }
 
-    // Same sources, different game, so the dependency block has to be rewritten after the fact.
-    // Kept here rather than templated into fabric.mod.json so the 26.3 build is left untouched.
+    // Same sources, different game - and a different shape of mod. Edited structurally rather
+    // than by string replacement, and it fails loudly if the file stops looking as expected
+    // rather than shipping a jar that claims to want 26.3 and a client.
     doLast {
-        def modJson = layout.buildDirectory.file("resources/main/fabric.mod.json").get().asFile
-        def replacements = [
-            '"fabricloader": ">=0.19.0"': '"fabricloader": ">=0.16.0"',
-            '"minecraft": "~26.3"'       : '"minecraft": "~1.21.11"',
-            '"java": ">=25"'             : '"java": ">=21"',
-            '"fabric-api": ">=0.165.0"'  : '"fabric-api": "*"',
-            '"modmenu": ">=21.0.0"'      : '"modmenu": ">=16.0.0"',
-            'on Minecraft 26.3'          : 'on Minecraft 1.21.11',
+        def resources = layout.buildDirectory.dir("resources/main").get().asFile
+        def slurper = new JsonSlurper()
+
+        def modJson = new File(resources, "fabric.mod.json")
+        def mod = slurper.parse(modJson)
+
+        if (mod.depends.minecraft != "~26.3") {
+            throw new GradleException("fabric.mod.json no longer targets ~26.3; update legacy/build.gradle")
+        }
+
+        mod.depends = [
+            fabricloader: ">=0.16.0",
+            minecraft   : "~1.21.11",
+            java        : ">=21",
+            "fabric-api": "*",
         ]
+        mod.description = mod.description.replace("Minecraft 26.3", "Minecraft 1.21.11")
 
-        def text = modJson.text
-        def original = text
-        replacements.each { from, to -> text = text.replace(from, to) }
+        // Server-side only, so the client and Mod Menu entrypoints must go with the code.
+        mod.environment = "server"
+        mod.entrypoints.remove("client")
+        mod.entrypoints.remove("modmenu")
+        mod.remove("suggests")
 
-        if (text == original) {
-            throw new GradleException(
-                "No dependency replacements applied to fabric.mod.json. The file has changed; " +
-                "update the replacements in legacy/build.gradle.")
-        }
+        modJson.text = JsonOutput.prettyPrint(JsonOutput.toJson(mod))
 
-        replacements.each { from, to ->
-            if (original.contains(from) && !text.contains(to)) {
-                throw new GradleException("Dependency replacement failed for: ${from}")
-            }
-        }
+        def mixinJson = new File(resources, "herobrine.mixins.json")
+        def mixins = slurper.parse(mixinJson)
 
-        modJson.text = text
+        // The two client mixins target classes this build does not ship.
+        mixins.remove("client")
+        mixins.compatibilityLevel = "JAVA_21"
+
+        mixinJson.text = JsonOutput.prettyPrint(JsonOutput.toJson(mixins))
     }
 }
 
@@ -132,66 +140,4 @@ java {
 tasks.withType(AbstractArchiveTask).configureEach {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
-}
-
-// Temporary: print the shape of the 1.21.11 API we need, because the agent has no access to the
-// Minecraft jars and cannot read the runner's logs. Delete along with the workflow step.
-tasks.register('dumpMcApi') {
-    doLast {
-        def urls = sourceSets.main.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
-        def cl = new URLClassLoader(urls, null as ClassLoader)
-        def out = new StringBuilder()
-
-        def klass = { String name ->
-            try {
-                return Class.forName(name, false, cl)
-            } catch (Throwable t) {
-                out << "MISSING: ${name}\n"
-                return null
-            }
-        }
-
-        ['net.minecraft.world.entity.EntityType',
-         'net.minecraft.world.entity.EntitySpawnReason',
-         'net.minecraft.world.entity.player.Player',
-         'net.minecraft.world.level.saveddata.SavedDataType',
-         'net.minecraft.world.level.saveddata.SavedData$Factory',
-         'net.minecraft.world.level.block.entity.SignText',
-         'net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry',
-        ].each { name -> def c = klass(name); if (c) out << "OK: ${name}\n" }
-
-        def methods = { Class c, String filter ->
-            if (c == null) return
-            out << "=== ${c.name} methods /${filter}/\n"
-            c.methods.findAll { it.name.toLowerCase().contains(filter.toLowerCase()) }
-                     .unique { it.name + it.parameterTypes*.simpleName }
-                     .each { out << "  ${it.returnType.simpleName} ${it.name}(${it.parameterTypes*.simpleName})\n" }
-        }
-
-        methods(klass('net.minecraft.world.entity.player.Player'), 'message')
-        methods(klass('net.minecraft.world.entity.EntityType'), 'create')
-        methods(klass('net.minecraft.world.entity.EntityType'), 'spawn')
-        methods(klass('net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry'), 'play')
-
-        def c = klass('net.minecraft.world.level.saveddata.SavedData$Factory')
-        if (c) {
-            out << "=== SavedData\$Factory constructors\n"
-            c.constructors.each { out << "  (${it.parameterTypes*.simpleName})\n" }
-        }
-
-        c = klass('net.minecraft.world.level.saveddata.DimensionDataStorage')
-        if (c == null) c = klass('net.minecraft.world.level.storage.DimensionDataStorage')
-        if (c) {
-            out << "=== ${c.name} methods\n"
-            c.methods.each { out << "  ${it.returnType.simpleName} ${it.name}(${it.parameterTypes*.simpleName})\n" }
-        }
-
-        c = klass('net.minecraft.world.level.block.entity.SignText')
-        if (c) {
-            out << "=== SignText constructors\n"
-            c.constructors.each { out << "  (${it.parameterTypes*.simpleName})\n" }
-        }
-
-        logger.lifecycle(out.toString())
-    }
 }
