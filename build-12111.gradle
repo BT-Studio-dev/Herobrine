@@ -1,0 +1,117 @@
+// A second build for Minecraft 1.21.11, using the same sources as the 26.3 build in build.gradle.
+//
+// It has to be a separate script rather than a flag in build.gradle because the two versions need
+// different Loom plugins: 26.x ships unobfuscated and uses the non-remapping Loom with plain
+// `implementation` dependencies, while 1.21.11 is obfuscated and needs the remapping Loom with
+// `modImplementation` and a mappings set. The plugin id is fixed in the plugins block, so it
+// cannot be switched from the command line.
+//
+// The sources are written against Mojang's names (that is what unobfuscated 26.x exposes), so this
+// build asks for Mojang's official mappings too. Yarn would need net.minecraft.sound where Mojang
+// has net.minecraft.sounds, and the imports would not resolve.
+//
+// Build it with:
+//
+//     ./gradlew -b build-12111.gradle build
+//
+// The jar lands in build/libs/ as herobrine-<version>+1.21.11.jar, which cannot collide with the
+// 26.3 jar. Run it in its own workspace: it shares build/ with the other build.
+
+plugins {
+    id 'fabric-loom' version "${legacy_loom_version}"
+}
+
+version = project.mod_version + "+1.21.11"
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    maven {
+        name = "TerraformersMC"
+        url = "https://maven.terraformersmc.com/releases/"
+    }
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "herobrine" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${legacy_minecraft_version}"
+
+    // Mojang's official mappings, so the sources read the same here as they do on unobfuscated 26.x.
+    mappings loom.officialMojangMappings()
+
+    modImplementation "net.fabricmc:fabric-loader:${legacy_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${legacy_fabric_api_version}"
+
+    clientCompileOnly "com.terraformersmc:modmenu:${legacy_modmenu_version}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+
+    // Same sources, different game, so the dependency block has to be rewritten after the fact.
+    // Kept here rather than templated into fabric.mod.json so the 26.3 build is left untouched.
+    doLast {
+        def modJson = layout.buildDirectory.file("resources/main/fabric.mod.json").get().asFile
+        def replacements = [
+            '"fabricloader": ">=0.19.0"': '"fabricloader": ">=0.16.0"',
+            '"minecraft": "~26.3"'       : '"minecraft": "~1.21.11"',
+            '"java": ">=25"'             : '"java": ">=21"',
+            '"fabric-api": ">=0.165.0"'  : '"fabric-api": "*"',
+            '"modmenu": ">=21.0.0"'      : '"modmenu": ">=16.0.0"',
+            'on Minecraft 26.3'          : 'on Minecraft 1.21.11',
+        ]
+
+        def text = modJson.text
+        def original = text
+        replacements.each { from, to -> text = text.replace(from, to) }
+
+        if (text == original) {
+            throw new GradleException(
+                "No dependency replacements applied to fabric.mod.json. The file has changed; " +
+                "update the replacements in build-12111.gradle.")
+        }
+
+        replacements.each { from, to ->
+            if (original.contains(from) && !text.contains(to)) {
+                throw new GradleException("Dependency replacement failed for: ${from}")
+            }
+        }
+
+        modJson.text = text
+    }
+}
+
+// 1.21.11 runs on Java 21, where 26.3 needs Java 25.
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+}
+
+java {
+    withSourcesJar()
+
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}

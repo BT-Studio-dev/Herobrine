@@ -17,7 +17,21 @@ concurrency:
 
 jobs:
   build:
+    name: Build ${{ matrix.label }}
     runs-on: ubuntu-latest
+
+    # 26.3 first, and do not cancel the other one if either fails: they are separate deliverables
+    # and a failure on one says nothing about the other.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: '26.3'
+            buildFile: build.gradle
+            artifact: herobrine-jar-26.3
+          - label: '1.21.11'
+            buildFile: build-12111.gradle
+            artifact: herobrine-jar-1.21.11
 
     steps:
       - name: Checkout
@@ -35,7 +49,7 @@ jobs:
       - name: Build
         run: |
           chmod +x ./gradlew
-          ./gradlew build --stacktrace
+          ./gradlew -b ${{ matrix.buildFile }} build --stacktrace
 
       - name: Verify jar
         run: |
@@ -71,6 +85,6 @@ jobs:
       - name: Upload mod jar
         uses: actions/upload-artifact@v6
         with:
-          name: herobrine-jar
+          name: ${{ matrix.artifact }}
           path: build/libs/herobrine-*.jar
           if-no-files-found: error
