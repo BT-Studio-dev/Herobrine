@@ -37,8 +37,6 @@
     glass: "on",
     bg: "none",
     sounds: "off",
-    music: "off",
-    alex: "off",
     disc: "off",
     text: "m",
     volume: 0.5

@@ -96,40 +96,7 @@
 
     <section id="music">
       <h2>Music</h2>
-      <p>Three pieces, all generated for the mod. His is ten minutes of drone, wind, distant
-        bells and something moving under the floor, with a real arc and silent ends so it loops.
-        Hers is two and a half: a bell over a warm bed, in his key. The cave disc is 2:37.
-        None is fetched until you ask for it.</p>
-
-      <div class="player" data-player="music">
-        <h3>His — the haunting track</h3>
-        <p class="hint">Drone, wind, distant bells and something moving under the floor.</p>
-        <div class="transport">
-          <button class="btn" type="button" data-set="music" data-value="on" aria-pressed="false">Play</button>
-          <button class="btn" type="button" data-set="music" data-value="off" aria-pressed="true">Stop</button>
-          <label for="volume-his">Volume</label>
-          <input id="volume-his" type="range" min="0" max="1" step="0.05" value="0.5" data-volume aria-label="Music volume">
-        </div>
-        <div class="seek-row">
-          <span class="time" data-position>0:00</span>
-          <span class="seek">
-            <span class="seek-track">
-              <span class="seek-buffer" data-seek-buffer></span>
-              <span class="seek-fill" data-seek-fill></span>
-            </span>
-            <input type="range" min="0" max="1000" step="1" value="0" data-seek aria-label="Position in the track">
-          </span>
-          <span class="time" data-duration>--:--</span>
-        </div>
-        <p class="status" data-status role="status" aria-live="polite"></p>
-        <p class="foot">
-          <a class="btn" href="./assets/music_haunt.ogg" download>Download the track</a>
-          <span class="hint">Ogg Vorbis, 10:00, 5.1 MB.</span>
-        </p>
-        <audio id="track" src="./assets/music_haunt.ogg" loop preload="none"
-               data-playing="Playing the ten minute haunting track."
-               data-fetching="Fetching the ten minute track…"></audio>
-      </div>
+      <p>A cave track generated for the mod and used by the in-game Herobrine music disc. It loops without a seam and is not fetched until you ask for it.</p>
 
       <div class="player" data-player="disc">
         <h3>Cave — Herobrine music disc</h3>
@@ -159,36 +126,6 @@
         <audio id="disc-track" src="./assets/music_disc_herobrine.ogg" loop preload="none"
                data-playing="Playing the cave music disc."
                data-fetching="Fetching the cave music disc…"></audio>
-      </div>
-
-      <div class="player" data-player="alex">
-        <h3>Hers — Alex’s theme</h3>
-        <p class="hint">A bell over a warm bed, in his key, and slow. It loops without a seam.</p>
-        <div class="transport">
-          <button class="btn" type="button" data-set="alex" data-value="on" aria-pressed="false">Play</button>
-          <button class="btn" type="button" data-set="alex" data-value="off" aria-pressed="true">Stop</button>
-          <label for="volume-hers">Volume</label>
-          <input id="volume-hers" type="range" min="0" max="1" step="0.05" value="0.5" data-volume aria-label="Music volume">
-        </div>
-        <div class="seek-row">
-          <span class="time" data-position>0:00</span>
-          <span class="seek">
-            <span class="seek-track">
-              <span class="seek-buffer" data-seek-buffer></span>
-              <span class="seek-fill" data-seek-fill></span>
-            </span>
-            <input type="range" min="0" max="1000" step="1" value="0" data-seek aria-label="Position in the track">
-          </span>
-          <span class="time" data-duration>--:--</span>
-        </div>
-        <p class="status" data-status role="status" aria-live="polite"></p>
-        <p class="foot">
-          <a class="btn" href="./assets/music_alex.ogg" download>Download the track</a>
-          <span class="hint">Ogg Vorbis, 2:30, 0.5 MB.</span>
-        </p>
-        <audio id="alex-track" src="./assets/music_alex.ogg" loop preload="none"
-               data-playing="Playing Alex’s theme."
-               data-fetching="Fetching Alex’s theme…"></audio>
       </div>
     </section>
 
@@ -259,22 +196,6 @@
     <span class="seg">
       <button type="button" data-set="sounds" data-value="off" aria-pressed="true">Off</button>
       <button type="button" data-set="sounds" data-value="on" aria-pressed="false">On</button>
-    </span>
-  </div>
-
-  <div class="row">
-    <span>His music</span>
-    <span class="seg">
-      <button type="button" data-set="music" data-value="off" aria-pressed="true">Off</button>
-      <button type="button" data-set="music" data-value="on" aria-pressed="false">On</button>
-    </span>
-  </div>
-
-  <div class="row">
-    <span>Her music</span>
-    <span class="seg">
-      <button type="button" data-set="alex" data-value="off" aria-pressed="true">Off</button>
-      <button type="button" data-set="alex" data-value="on" aria-pressed="false">On</button>
     </span>
   </div>
 
