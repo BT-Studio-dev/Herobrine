@@ -193,13 +193,17 @@ html[data-glass="off"] .player::after{display:none}
 #copied{color:var(--accent);min-height:1.5em;margin:.6rem 0 0}
 
 /* Glass blur cards (all): respect data-glass toggle */
-nav, .feat>div, .seed code, .player, .settings, dl.req div {
+nav, .feat>div, .seed code, .player, .settings, dl.req div, .source-card {
   background: var(--glass);
   border: 1px solid var(--glass-line);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
   backdrop-filter: blur(16px) saturate(150%);
   color: var(--ink);
 }
+.source-card{display:inline-flex;flex-direction:column;gap:.15rem;padding:.8rem 1.2rem;border-radius:1rem;text-decoration:none;min-width:14rem}
+.source-card-title{font:700 1.05rem var(--body);color:var(--ink)}
+.source-card-sub{font-size:.95rem;color:var(--muted)}
+.source-card:hover{border-color:var(--accent)}
 .seed code { display: inline-block; }
 dl.req div { border-left: 3px solid var(--accent); }
 html[data-glass="off"] nav,
@@ -207,7 +211,8 @@ html[data-glass="off"] .feat>div,
 html[data-glass="off"] .seed code,
 html[data-glass="off"] .player,
 html[data-glass="off"] .settings,
-html[data-glass="off"] dl.req div {
+html[data-glass="off"] dl.req div,
+html[data-glass="off"] .source-card {
   background: var(--surface);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
