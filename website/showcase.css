@@ -24,7 +24,7 @@
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
-body{margin:0;background:radial-gradient(circle at 15% 10%,var(--b1),transparent 45%),radial-gradient(circle at 85% 55%,var(--b2),transparent 50%),var(--bg);background-attachment:fixed;color:var(--ink);font:400 1.125rem/1.65 var(--body);-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--bg);background-attachment:fixed;color:var(--ink);font:400 1.125rem/1.65 var(--body);-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-underline-offset:.2em}
 a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .wrap{max-width:62rem;margin:0 auto;padding:0 1.25rem;position:relative;z-index:1}
@@ -91,7 +91,7 @@ footer a{margin-right:1rem}
 /* A background image layer, kept separate from body's gradients so that
    "none" can mean none without breaking the shorthand. */
 #bg{position:fixed;inset:0;pointer-events:none;z-index:-1;
-  background-image:var(--bg-image,none);background-size:cover;background-position:center;opacity:.4}
+  background-image:var(--bg-image,none);background-size:cover;background-position:center;opacity:1}
 html[data-bg="shader"]{--bg-image:url("assets/herobrine-shader-background.webp")}
 html[data-bg="snow"]{--bg-image:url("assets/herobrine-snow-one-moon.webp")}
 
