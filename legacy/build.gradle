@@ -17,11 +17,15 @@ plugins {
     id 'fabric-loom' version "${legacy_loom_version}"
 }
 
-version = project.mod_version + "+1.21.11"
-group = project.maven_group
+// mod_version, maven_group and archives_base_name come from the repository root's
+// gradle.properties, loaded in settings.gradle, so a version bump only has to happen once.
+def shared = gradle.ext.shared
+
+version = shared['mod_version'] + "+1.21.11"
+group = shared['maven_group']
 
 base {
-    archivesName = project.archives_base_name
+    archivesName = shared['archives_base_name']
 }
 
 // This project has no sources of its own; everything lives one directory up.
