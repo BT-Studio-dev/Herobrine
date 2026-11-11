@@ -58,6 +58,13 @@ jobs:
           chmod +x ./gradlew
           ./gradlew build --stacktrace
 
+      # Gradle 9 removed -b/--build-file, so the 1.21.11 build is a project of its own and is
+      # entered rather than selected by a flag.
+      - name: Build the 1.21.11 jar
+        run: |
+          cd legacy
+          ../gradlew build --stacktrace
+
       - name: Check the jar before publishing
         run: |
           set -euo pipefail
@@ -82,6 +89,23 @@ jobs:
               || { echo "::error::Missing entity texture $texture.png"; exit 1; }
           done
 
+          LEGACY=$(ls legacy/build/libs/herobrine-*.jar | grep -v sources | head -n 1)
+          echo "legacy jar: $LEGACY"
+
+          LVERSION=$(unzip -p "$LEGACY" fabric.mod.json | grep -o '"version": *"[^"]*"' | head -n 1 | cut -d'"' -f4)
+          echo "legacy jar version: $LVERSION"
+          if [ "$LVERSION" != "${{ steps.version.outputs.version }}+1.21.11" ]; then
+            echo "::error::Legacy jar version '$LVERSION' is not '${{ steps.version.outputs.version }}+1.21.11'"
+            exit 1
+          fi
+
+          # The 1.21.11 build is server-side only, so it must not advertise a client it does not
+          # contain: loading would fail on the missing entrypoint.
+          if unzip -p "$LEGACY" fabric.mod.json | grep -q '"client"'; then
+            echo "::error::The 1.21.11 jar still declares a client entrypoint"
+            exit 1
+          fi
+
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -96,7 +120,8 @@ jobs:
             TARGET=""
           fi
 
-          ASSETS=("$JAR")
+          LEGACY=$(ls legacy/build/libs/herobrine-*.jar | grep -v sources | head -n 1)
+          ASSETS=("$JAR" "$LEGACY")
           # The shader is a separate, experimental MIT-licensed pack, not part of the mod JAR.
           # Shipped whenever the pack is in the tree, so a new version needs no edit here.
           if [ -f "shaders/optimism-26.3-test.zip" ]; then
@@ -110,13 +135,15 @@ jobs:
           fi
 
           gh release create "$TAG" "${ASSETS[@]}" \
-            --title "Herobrine: Haunting ${TAG#v} for Minecraft 26.3" \
+            --title "Herobrine: Haunting ${TAG#v} (26.3 and 1.21.11)" \
             "${NOTES[@]}" \
             $TARGET
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v6
         with:
-          name: herobrine-release-jar
-          path: build/libs/herobrine-*.jar
+          name: herobrine-release-jars
+          path: |
+            build/libs/herobrine-*.jar
+            legacy/build/libs/herobrine-*.jar
           if-no-files-found: error
