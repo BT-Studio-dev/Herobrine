@@ -76,8 +76,9 @@ dl.req dd{margin:0;font:600 1.4rem var(--body);font-variant-numeric:lining-nums}
 .lead-feat{grid-column:1/-1;padding:1.6rem 1.6rem 1.4rem}
 .lead-feat p{color:var(--ink);max-width:46rem}
 
-.seed{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-top:1rem}
-.seed code{font:600 2rem var(--body);font-variant-numeric:lining-nums tabular-nums;padding:.4rem 1rem;border-radius:.8rem;letter-spacing:.04em}
+.seed{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-top:1.25rem}
+.seed code{font:700 2.6rem var(--display);font-variant-numeric:lining-nums tabular-nums;padding:.85rem 1.5rem;border-radius:.9rem;letter-spacing:.06em;line-height:1}
+.seed .btn{padding:.85rem 1.2rem}
 #copied{color:var(--accent);min-height:1.5em;margin:.5rem 0 0}
 
 footer{padding:2.5rem 0 3.5rem;border-top:1px solid var(--line);color:var(--muted);font-size:1rem}
