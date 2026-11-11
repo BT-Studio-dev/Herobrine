@@ -133,3 +133,67 @@ tasks.withType(AbstractArchiveTask).configureEach {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }
+
+// Temporary: print the shape of the 1.21.11 API we need, because the agent has no access to the
+// Minecraft jars and cannot read the runner's logs. Delete along with the workflow step.
+tasks.register('dumpMcApi') {
+    doLast {
+        def urls = sourceSets.main.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def cl = new URLClassLoader(urls, null as ClassLoader)
+        def out = new StringBuilder()
+
+        def klass = { String name ->
+            try {
+                return Class.forName(name, false, cl)
+            } catch (Throwable t) {
+                out << "CLASS MISSING: ${name}\n"
+                return null
+            }
+        }
+
+        ['net.minecraft.world.entity.EntityType',
+         'net.minecraft.world.entity.EntityTypes',
+         'net.minecraft.world.level.block.entity.SignTextSlot',
+         'net.minecraft.world.level.block.entity.SignText',
+        ].each { name -> def c = klass(name); if (c) out << "CLASS OK: ${name}\n" }
+
+        def methods = { Class c, String filter ->
+            if (c == null) return
+            out << "=== ${c.name} methods matching /${filter}/\n"
+            c.methods.findAll { it.name.toLowerCase().contains(filter.toLowerCase()) }
+                     .unique { it.name + it.parameterTypes*.simpleName }
+                     .each { out << "  ${it.returnType.simpleName} ${it.name}(${it.parameterTypes*.simpleName})\n" }
+        }
+
+        methods(klass('net.minecraft.world.entity.Player'), 'message')
+        methods(klass('net.minecraft.server.level.ServerPlayer'), 'message')
+        methods(klass('net.minecraft.world.level.block.entity.SignBlockEntity'), 'text')
+
+        def c = klass('net.minecraft.world.level.block.Blocks')
+        if (c) {
+            out << "=== Blocks fields containing SIGN\n"
+            c.fields.findAll { it.name.contains('SIGN') }.each { out << "  ${it.name}\n" }
+        }
+
+        c = klass('net.minecraft.util.datafix.DataFixTypes')
+        if (c) {
+            out << "=== DataFixTypes fields\n"
+            c.fields.each { out << "  ${it.name}\n" }
+        }
+
+        c = klass('net.minecraft.network.protocol.common.custom.PayloadTypeRegistry')
+        if (c) {
+            out << "=== PayloadTypeRegistry methods\n"
+            c.methods.each { out << "  ${it.returnType.simpleName} ${it.name}()\n" }
+            out << "=== nested: ${c.declaredClasses*.simpleName}\n"
+        }
+
+        c = klass('net.minecraft.world.level.saveddata.SavedData')
+        if (c) {
+            out << "=== SavedData constructors\n"
+            c.constructors.each { out << "  (${it.parameterTypes*.simpleName})\n" }
+        }
+
+        println out
+    }
+}
