@@ -205,8 +205,6 @@ html[data-glass="off"] .player::after{display:none}
 .seek input[type="range"]::-moz-range-track{height:1.5rem;background:transparent;border:none}
 
 .status{color:var(--muted);font-size:.9rem;margin-top:.6rem;min-height:1.2em;max-width:42rem}
-.foot{margin:0;display:flex;flex-wrap:wrap;gap:.5rem .9rem;align-items:center}
-.foot .hint{display:inline}
 
 /* ---- Prose notes ---------------------------------------------------- */
 

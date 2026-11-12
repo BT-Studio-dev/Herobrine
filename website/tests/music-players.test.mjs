@@ -34,9 +34,17 @@ for (const panel of panels) {
   check(`${key}: has a status line`, !!panel.querySelector("[data-status]"));
   check(`${key}: has a seek slider`, !!panel.querySelector("[data-seek]"));
   check(`${key}: has a volume slider`, !!panel.querySelector("[data-volume]"));
-  check(`${key}: download link points at the track`,
-        panel.querySelector('a[download]')?.getAttribute("href") === audio?.getAttribute("src"));
+  // The download button and the "Ogg Vorbis, ..." file row were removed from the
+  // foot of every card; the track is still played from the file, just not offered
+  // as one. Assert the row is gone rather than merely absent from this card.
+  check(`${key}: no download link left in the card`, !panel.querySelector("a[download]"));
+  check(`${key}: no file row left in the card`, !panel.querySelector(".foot"));
+  check(`${key}: the audio source itself is untouched`, !!audio?.getAttribute("src"));
 }
+
+console.log("page-wide");
+check("no download link anywhere on the page", d.querySelectorAll("a[download]").length === 0);
+check("no .foot row anywhere on the page", d.querySelectorAll(".foot").length === 0);
 
 console.log("seed");
 const seed = d.querySelector("[data-seed-value]")?.textContent.trim();
