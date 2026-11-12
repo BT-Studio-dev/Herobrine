@@ -46,6 +46,17 @@ console.log("page-wide");
 check("no download link anywhere on the page", d.querySelectorAll("a[download]").length === 0);
 check("no .foot row anywhere on the page", d.querySelectorAll(".foot").length === 0);
 
+console.log("banner");
+{
+  const img = d.querySelector(".banner img");
+  check("a banner image is in the page", !!img);
+  check("the banner file exists", img && fs.existsSync(root + "/" + img.getAttribute("src").replace("./", "")));
+  check("the banner carries the mod name as alt text", img?.getAttribute("alt") === "Herobrine: Haunting");
+  check("the banner has intrinsic width and height, so it cannot shift the page as it loads",
+        !!img?.getAttribute("width") && !!img?.getAttribute("height"));
+  check("no duplicate text wordmark left behind beside it", !d.querySelector(".mark"));
+}
+
 console.log("backgrounds");
 {
   const html = fs.readFileSync(root + "/index.html", "utf8");

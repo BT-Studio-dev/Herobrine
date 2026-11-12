@@ -53,8 +53,10 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-off
 #fog{position:fixed;inset:0;pointer-events:none;z-index:20;opacity:0;
   background:radial-gradient(ellipse at 50% 45%,rgba(var(--fog),0) 28%,rgba(var(--fog),.55) 62%,rgba(var(--fog),.95) 100%)}
 
-header.top{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem 0;flex-wrap:wrap}
-.mark{font:700 1.15rem var(--display);color:var(--ink);text-decoration:none}
+/* The banner is the wordmark, so the header below it only carries the nav. */
+.banner{display:block;margin:1.25rem 0 0}
+.banner img{display:block;width:100%;height:auto;border-radius:.6rem}
+header.top{display:flex;justify-content:flex-end;align-items:center;gap:1rem;padding:1rem 0;flex-wrap:wrap}
 nav,.feat>div,.seed code{background:var(--glass);border:1px solid var(--glass-line);-webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);position:relative;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.08)}
 nav::after,.feat>div::after,.seed code::after{display:none}
 nav:hover::after,.feat>div:hover::after,.seed code:hover::after{display:none}
