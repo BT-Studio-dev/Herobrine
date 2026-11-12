@@ -70,7 +70,7 @@ which is behind its own switch.
   Herobrine.
 - **Settings screen** (H key) saved per world: five tabs — World, Apparitions, Sound,
   Presence, Name — plus purist, banished and the music-volume slider.
-- **Commands** — `/herobrine summon`, `haunt`, `apparition`, `mode`, `schizo`, `shrine`, `give`, `config`, `phantom`,
+- **Commands** — `/herobrine summon`, `haunt`, `apparition`, `mode`, `schizo`, `shrine`, `config`, `phantom`,
   and more.
 - **No sleep** while he stands nearby.
 The settings screen is also available through Mod Menu. Its Haunting and Audio & World tabs group
@@ -163,7 +163,7 @@ https://github.com/BT-Studio-dev/Herobrine
 /herobrine phantom [add|clear]
 /herobrine mode [full|purist|toggle]
 /herobrine schizo [on|off] | hauntstate | settings | banish [on|off]
-/herobrine shrine [gold] | church | give <iron_stick|iron_sword|iron_helmet|iron_chestplate|iron_leggings|iron_boots|holy_water|the_cross>
+/herobrine shrine [gold] | church
 
 /herobrine config <setting>              toggle one feature on or off
 /herobrine config all <on|off>           switch every feature on or off at once

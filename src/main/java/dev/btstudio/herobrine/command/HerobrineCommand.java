@@ -23,7 +23,6 @@ import dev.btstudio.herobrine.event.HauntingEvents;
 import dev.btstudio.herobrine.event.Dread;
 import dev.btstudio.herobrine.event.NotchAppleRitual;
 import dev.btstudio.herobrine.event.Sabotage;
-import dev.btstudio.herobrine.item.ModItems;
 import dev.btstudio.herobrine.sound.ModSounds;
 import dev.btstudio.herobrine.world.Feature;
 import dev.btstudio.herobrine.world.HerobrineName;
@@ -47,9 +46,6 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
@@ -75,7 +71,6 @@ import net.minecraft.world.phys.Vec3;
  * /herobrine steve [spawn|dismiss|stay|follow]
  * /herobrine alex [spawn|dismiss|stay|follow]
  * /herobrine church
- * /herobrine give &lt;iron_stick|iron_sword|iron_helmet|iron_chestplate|iron_leggings|iron_boots|holy_water|the_cross&gt;
  * </pre>
  */
 public final class HerobrineCommand {
@@ -104,10 +99,6 @@ public final class HerobrineCommand {
     private static final SuggestionProvider<CommandSourceStack> APPARITION_SUGGESTIONS =
             (context, builder) -> SharedSuggestionProvider.suggest(
                     List.of("watch", "scare", "jumpscare", "spike", "runner", "lurking", "dwelling"), builder);
-    private static final SuggestionProvider<CommandSourceStack> GIVE_SUGGESTIONS =
-            (context, builder) -> SharedSuggestionProvider.suggest(
-                    List.of("iron_stick", "iron_sword", "iron_helmet", "iron_chestplate", "iron_leggings",
-                            "iron_boots", "holy_water", "the_cross"), builder);
     private static final SuggestionProvider<CommandSourceStack> RING_SUGGESTIONS =
             (context, builder) -> SharedSuggestionProvider.suggest(List.of("gold"), builder);
 
@@ -240,11 +231,6 @@ public final class HerobrineCommand {
                     .then(Commands.literal("off").executes(context -> setBanish(context, false))));
 
             root.then(op("church").executes(HerobrineCommand::buildChurch));
-
-            root.then(op("give")
-                    .then(Commands.argument("item", StringArgumentType.word())
-                            .suggests(GIVE_SUGGESTIONS)
-                            .executes(HerobrineCommand::give)));
 
             root.then(op("shrine")
                     .executes(context -> buildShrine(context, "gold"))
@@ -894,40 +880,6 @@ public final class HerobrineCommand {
         }
 
         source.sendSuccess(() -> Component.translatable("herobrine.command.church.success"), true);
-        return 1;
-    }
-
-    private static int give(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        CommandSourceStack source = context.getSource();
-        ServerPlayer player = source.getPlayerOrException();
-        ServerLevel level = source.getLevel();
-        String name = StringArgumentType.getString(context, "item").toLowerCase(Locale.ROOT);
-
-        Item item = switch (name) {
-            case "iron_stick" -> ModItems.IRON_STICK;
-            case "iron_sword", "sword" -> ModItems.IRON_SWORD;
-            case "iron_helmet", "helmet" -> ModItems.IRON_HELMET;
-            case "iron_chestplate", "chestplate" -> ModItems.IRON_CHESTPLATE;
-            case "iron_leggings", "leggings" -> ModItems.IRON_LEGGINGS;
-            case "iron_boots", "boots" -> ModItems.IRON_BOOTS;
-            case "holy_water" -> ModItems.HOLY_WATER;
-            case "the_cross", "cross" -> ModItems.THE_CROSS;
-            default -> null;
-        };
-
-        if (item == null) {
-            source.sendFailure(Component.translatable("herobrine.command.give.unknown", name));
-            return 0;
-        }
-
-        ItemStack stack = new ItemStack(item);
-
-        if (!player.getInventory().add(stack)) {
-            level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), stack));
-        }
-
-        source.sendSuccess(() -> Component.translatable("herobrine.command.give.success",
-                stack.getHoverName(), player.getDisplayName()), true);
         return 1;
     }
 

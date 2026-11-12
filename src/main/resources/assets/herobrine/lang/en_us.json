@@ -65,8 +65,6 @@
   "herobrine.advancement.iron_ward.description": "Hammer yourself a piece of iron. He will not come as close.",
   "herobrine.command.church.success": "Raised a church - the cauldron on the altar holds holy water (bring an empty bottle)",
   "herobrine.command.church.failed": "No room for a church there - it needs 7x9 blocks of clear, level ground",
-  "herobrine.command.give.success": "Gave %s to %s",
-  "herobrine.command.give.unknown": "Unknown item '%s' - use iron_stick, iron_sword, iron_helmet, iron_chestplate, iron_leggings, iron_boots, holy_water or the_cross",
   "subtitles.herobrine.ambient": "Something hums",
   "subtitles.herobrine.whisper": "Something whispers",
   "subtitles.herobrine.footstep": "Footsteps behind you",
