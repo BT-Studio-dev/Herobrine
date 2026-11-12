@@ -1,7 +1,0 @@
-{
-	"parent": "lunareclipse.watching:item/skins/werewolf_gray/right_leg",
-	"textures": {
-		"1": "lunareclipse.watching:item/skins/werewolf_gray/transparent",
-		"skin": "lunareclipse.watching:item/skins/werewolf_gray/skin_emissive"
-	}
-}

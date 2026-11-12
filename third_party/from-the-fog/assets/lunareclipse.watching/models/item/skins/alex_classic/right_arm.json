@@ -1,6 +1,0 @@
-{
-	"parent": "lunareclipse.watching:item/skins/template/right_arm_slim",
-	"textures": {
-		"skin": "lunareclipse.watching:item/skins/alex_classic/skin"
-	}
-}

@@ -1,1 +1,0 @@
-execute as Bret06 at @s run function lunareclipse.watching:ghost_miner/start
