@@ -5,7 +5,7 @@
 Herobrine for Fabric on Minecraft 26.3 and 1.21.11: staged hauntings, seven apparitions, the fog closing in, 13
 original sounds, gold shrines, churches, holy water and the cross. Non-destructive by design.
 
-**[Source & safety guide](website/)** — From The Fog provenance, integration, licensing, and the optional `WAKE_UP.vbs` safety note.
+**[Showcase site](website/)** — what the mod does, the three original tracks, and a seed to start on.
 
 ## Summary
 
@@ -62,7 +62,7 @@ which is behind its own switch.
 - **Banish toggle** — send him to the void until you call him back.
 - **A switch for everything** — every feature below can be turned off on its own, per dimension. World events,
   each of the seven apparitions, sounds, music, the fog closing in, churches, Steve, the Notch Apple ritual, the
-  shrine and the bundled From The Fog content. **All on** / **All off** does the lot in one press. Everything
+  shrine. **All on** / **All off** does the lot in one press. Everything
   defaults to the behaviour it has always had, so an existing world keeps running exactly as you left it.
 - **Name him what you like** — one name, up to 16 characters of letters, numbers and underscores, used for the
   fake join and leave messages, his line of chat, his nametag and death messages, the jumpscare subtitle and the
@@ -73,13 +73,6 @@ which is behind its own switch.
 - **Commands** — `/herobrine summon`, `haunt`, `apparition`, `mode`, `schizo`, `shrine`, `give`, `config`, `phantom`,
   and more.
 - **No sleep** while he stands nearby.
-- **From The Fog content** (optional, off by default) — the bundled
-  [From The Fog](https://github.com/LunarEclipseStudios/From-The-Fog) datapack by Lunar Eclipse
-  Studios ships with the mod. Its tick and load functions are deliberately *not* registered with
-  Minecraft's `tick`/`load` function tags, so they never run on their own; turn on **From The Fog**
-  in the settings screen or with `/herobrine config fog` to run them. See
-  [Bundled third-party content](#bundled-third-party-content) below.
-
 The settings screen is also available through Mod Menu. Its Haunting and Audio & World tabs group
 the existing controls, including a music-volume slider. Changes apply immediately; Reset defaults
 restores the current dimension's settings. Join a world before changing settings: commands require
@@ -145,30 +138,14 @@ The track is synthesised rather than recorded, and the generator that builds it 
 at `tools/generate_haunting_track.py` — pip install numpy and soundfile, then run it from the repo
 root to regenerate the file. Tweak the bell times, the melody or the drone partials and re-run.
 
-## Bundled third-party content
-
-This mod bundles an unmodified copy of the [From The Fog](https://github.com/LunarEclipseStudios/From-The-Fog)
-datapack under `src/main/resources/`, in its own namespaces
-(`lunareclipse.watching`, `lunareclipse.utils`, `from_the_fog`, `watching`). Nothing from its
-`assets/minecraft` or `data/minecraft` folders is included, so **no vanilla textures, sounds,
-shaders or function tags are overridden**, and its tick/load functions are not registered with
-Minecraft's `tick`/`load` tags — they run only when you switch **From The Fog** on.
-
-The bundled content is licensed **CC BY-NC-SA 4.0**, which is a **non-commercial** license: the
-same terms this mod uses. See [LICENSE_FROM_THE_FOG.md](src/main/resources/LICENSE_FROM_THE_FOG.md)
-for the full text.
-
-## Credits
-
-- **From The Fog** by Lunar Eclipse Studios
-  ([https://github.com/LunarEclipseStudios/From-The-Fog](https://github.com/LunarEclipseStudios/From-The-Fog)),
-  CC BY-NC-SA 4.0. Bundled verbatim, unmodified, in its own namespaces.
-
 ## License
 
-Herobrine: Haunting is **CC BY-NC-SA 4.0** — see [LICENSE](LICENSE). Bundling From The Fog does not
-change that: both are non-commercial Share-Alike, so the combined work stays
-**CC BY-NC-SA 4.0** and may not be used commercially.
+Herobrine: Haunting is **CC BY-NC-SA 4.0** — see [LICENSE](LICENSE). It is non-commercial
+Share-Alike: you may share and adapt it, but not sell it, and derivatives carry the same terms.
+
+Earlier versions bundled the [From The Fog](https://github.com/LunarEclipseStudios/From-The-Fog)
+datapack by Lunar Eclipse Studios (also CC BY-NC-SA 4.0). That is no longer included: the mod
+ships only its own content now.
 
 ## Source
 

@@ -35,9 +35,9 @@ import net.minecraft.world.level.saveddata.SavedDataType;
  *       {@link HerobrineName}.</li>
  * </ul>
  *
- * <p>Everything else is a {@link Feature} switch. Six of them are still stored under the top-level
+ * <p>Everything else is a {@link Feature} switch. Five of them are still stored under the top-level
  * keys they had before the feature map existed ({@code schizo}, {@code herd}, {@code miner},
- * {@code arson}, {@code music} and {@code from_the_fog}) so that a world saved by an older version
+ * {@code arson} and {@code music}) so that a world saved by an older version
  * keeps them exactly as they were; the rest live in the {@code features} map, which only ever
  * records the switches that were moved off their default.
  */
@@ -62,14 +62,12 @@ public class HerobrineSettings extends SavedData {
                     Codec.LONG.optionalFieldOf("chase_until", 0L).forGetter(HerobrineSettings::chaseUntil),
                     Codec.INT.optionalFieldOf("dread", 0).forGetter(HerobrineSettings::dread),
                     Codec.INT.optionalFieldOf("music_volume", DEFAULT_MUSIC_VOLUME).forGetter(HerobrineSettings::musicVolume),
-                    // The six switches that predate the feature map keep their original keys.
+                    // The five switches that predate the feature map keep their original keys.
                     Codec.BOOL.optionalFieldOf("schizo", true).forGetter(s -> s.enabled(Feature.SOUNDS)),
                     Codec.BOOL.optionalFieldOf("herd", true).forGetter(s -> s.enabled(Feature.HERD)),
                     Codec.BOOL.optionalFieldOf("miner", true).forGetter(s -> s.enabled(Feature.MINER)),
                     Codec.BOOL.optionalFieldOf("arson", true).forGetter(s -> s.enabled(Feature.FIRE)),
                     Codec.BOOL.optionalFieldOf("music", true).forGetter(s -> s.enabled(Feature.MUSIC)),
-                    Codec.BOOL.optionalFieldOf("from_the_fog", false)
-                            .forGetter(s -> s.enabled(Feature.FROM_THE_FOG)),
                     FEATURES_CODEC.optionalFieldOf("features", Map.of())
                             .forGetter(HerobrineSettings::savedFeatures),
                     Codec.STRING.optionalFieldOf("name", HerobrineName.DEFAULT)
@@ -88,13 +86,13 @@ public class HerobrineSettings extends SavedData {
     private String name;
 
     public HerobrineSettings() {
-        this(false, false, 0L, 0, DEFAULT_MUSIC_VOLUME, true, true, true, true, true, false,
+        this(false, false, 0L, 0, DEFAULT_MUSIC_VOLUME, true, true, true, true, true,
                 Map.of(), HerobrineName.DEFAULT);
     }
 
     private HerobrineSettings(boolean purist, boolean banished, long chaseUntil, int dread, int musicVolume,
                               boolean schizo, boolean herd, boolean miner, boolean arson, boolean music,
-                              boolean fog, Map<String, Boolean> stored, String name) {
+                              Map<String, Boolean> stored, String name) {
         for (Feature feature : Feature.values()) {
             this.features.put(feature, feature.defaultOn());
         }
@@ -105,7 +103,6 @@ public class HerobrineSettings extends SavedData {
         this.features.put(Feature.MINER, miner);
         this.features.put(Feature.FIRE, arson);
         this.features.put(Feature.MUSIC, music);
-        this.features.put(Feature.FROM_THE_FOG, fog);
 
         for (Map.Entry<String, Boolean> entry : stored.entrySet()) {
             Feature feature = Feature.byKey(entry.getKey());
@@ -271,18 +268,6 @@ public class HerobrineSettings extends SavedData {
         }
     }
 
-    /**
-     * Whether the bundled <i>From The Fog</i> content may run. Off unless a player turns it on:
-     * those functions are their own haunting, and running both at once is not the point.
-     */
-    public boolean isFog() {
-        return this.enabled(Feature.FROM_THE_FOG);
-    }
-
-    public void setFog(boolean fog) {
-        this.setEnabled(Feature.FROM_THE_FOG, fog);
-    }
-
     public long chaseUntil() {
         return this.chaseUntil;
     }
@@ -436,15 +421,6 @@ public class HerobrineSettings extends SavedData {
         HerobrineSettings settings = of(level);
         settings.setMusicVolume(volume);
         return settings.musicVolume();
-    }
-
-    public static boolean fog(ServerLevel level) {
-        return enabled(level, Feature.FROM_THE_FOG);
-    }
-
-    /** Flips the bundled <i>From The Fog</i> switch and returns the new state. */
-    public static boolean toggleFog(ServerLevel level) {
-        return toggle(level, Feature.FROM_THE_FOG);
     }
 
     public static boolean arson(ServerLevel level) {

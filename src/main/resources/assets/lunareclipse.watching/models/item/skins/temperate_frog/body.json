@@ -1,6 +1,0 @@
-{
-	"parent": "lunareclipse.watching:item/skins/template_frog/base",
-	"textures": {
-		"skin": "entity/frog/frog_temperate"
-	}
-}

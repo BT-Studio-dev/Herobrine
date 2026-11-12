@@ -16,11 +16,10 @@ import net.minecraft.world.item.Items;
  * <p>Each feature carries the key it is stored under, the group the settings screen files it under,
  * and the value a world gets when it has never been changed. Every default matches the behaviour of
  * the mod before these switches existed, so a world saved by an older version carries on exactly as
- * it was - with the bundled <i>From The Fog</i> content as the one exception, because that one has
- * always been opt-in.
+ * it was.
  *
- * <p>Six of them predate this enum and are still stored under their original top-level keys
- * ({@code schizo}, {@code herd}, {@code miner}, {@code arson}, {@code music}, {@code from_the_fog}),
+ * <p>Five of them predate this enum and are still stored under their original top-level keys
+ * ({@code schizo}, {@code herd}, {@code miner}, {@code arson}, {@code music}),
  * which is what {@link #legacyKey()} is for: those keys are read and written by
  * {@link HerobrineSettings} directly, so an old world file keeps working untouched.
  */
@@ -108,11 +107,6 @@ public enum Feature {
     /** The gold shrine: eight gold blocks, four redstone torches, and lightning. */
     SHRINE(Group.PRESENCE, Items.GOLD_BLOCK),
     /**
-     * The bundled <i>From The Fog</i> content. Opt-in, like {@link #ESCALATION}, so it starts off.
-     */
-    FROM_THE_FOG(Group.PRESENCE, Items.SCULK_CATALYST, "from_the_fog", false),
-
-    /**
      * Escalation: he keeps a grudge. Provoking him - killing animals, lingering in the dark below
      * ground - pushes a dread score up through four tiers, and each one brings him closer and more
      * often. Warding him off pushes it back down. Off, the haunting escalates on time alone, the
@@ -127,12 +121,11 @@ public enum Feature {
 
     /**
      * Names these switches went by before they had keys of their own. {@code arson} became
-     * {@link #FIRE} and {@code fog} became {@link #FROM_THE_FOG}, and both old names still work on
-     * the command line so nothing anyone typed into a command block stops working.
+     * {@link #FIRE}, and the old name still works on the command line so nothing anyone typed
+     * into a command block stops working.
      */
     private static final Map<String, Feature> ALIASES = Map.of(
-            "arson", FIRE,
-            "fog", FROM_THE_FOG);
+            "arson", FIRE);
 
     private final Group group;
     private final ItemLike icon;
