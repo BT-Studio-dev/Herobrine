@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "herobrine",
+  "version": "${version}",
+  "name": "The Legend of Herobrine",
+  "description": "Adds Herobrine to Minecraft, and other herobrine related things.",
+  "accessWidener" : "herobrine.accesswidener",
+  "authors": [
+    "Alex MacLean"
+  ],
+  "contributors": [
+    "\nThe track C418 - Dog is property of Daniel Rosenfeld (C418) please do not redistribute this song. If you like it please buy it on bandcamp https://c418.bandcamp.com"
+  ],
+    "contact": {
+      "email": "macleanalex78@gmail.com",
+      "homepage": "https://herobrinemod.com",
+      "sources": "https://github.com/Alex-MacLean/TheLegendOfHerobrine",
+      "issues": "https://github.com/Alex-MacLean/TheLegendOfHerobrine/issues"
+  },
+  "license": "LGPL-3.0-or-later",
+  "icon": "assets/herobrine/logo.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "com.herobrinemod.herobrine.client.HerobrineClient"
+    ],
+    "main": [
+      "com.herobrinemod.herobrine.HerobrineMod"
+    ]
+  },
+  "mixins": [
+    "herobrine.mixins.json"
+  ],
+  "depends": {
+    "java": ">=21",
+    "fabricloader": ">=0.15.11",
+    "fabric": ">=0.100.1",
+    "fabric-api": ">=0.100.1",
+    "minecraft": ">=1.21"
+  },
+  "custom": {
+    "modmenu": {
+      "update_checker": true
+    }
+  }
+}
