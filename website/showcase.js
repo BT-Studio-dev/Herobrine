@@ -23,6 +23,7 @@
   const BACKGROUNDS = {
     none: "none",
     shader: 'url("assets/herobrine-shader-background.webp")',
+    day: 'url("assets/herobrine-shader-day.webp")',
     snow: 'url("assets/herobrine-snow-one-moon.webp")'
   };
 

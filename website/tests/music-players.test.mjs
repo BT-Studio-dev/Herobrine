@@ -46,6 +46,39 @@ console.log("page-wide");
 check("no download link anywhere on the page", d.querySelectorAll("a[download]").length === 0);
 check("no .foot row anywhere on the page", d.querySelectorAll(".foot").length === 0);
 
+console.log("backgrounds");
+{
+  const html = fs.readFileSync(root + "/index.html", "utf8");
+  const js = fs.readFileSync(root + "/showcase.js", "utf8");
+  const css = fs.readFileSync(root + "/showcase.css", "utf8");
+
+  // The three places a background has to agree: the <option>, the map in the
+  // script that sets --bg-image, and the stylesheet rule that works without
+  // scripting. Miss one and the choice silently does nothing.
+  const options = [...html.matchAll(/<option value="([^"]+)"[^>]*>([^<]*)</g)].map((m) => m[1]);
+  const block = js.match(/const BACKGROUNDS = \{([\s\S]*?)\};/);
+  const jsKeys = [...block[1].matchAll(/^\s*(\w+):/gm)].map((m) => m[1]);
+  const cssKeys = [...css.matchAll(/--bg-image:url\("([^"]+)"\)/g)].map((m) => m[1]);
+  const cssAttrs = [...css.matchAll(/html\[data-bg="(\w+)"\]\{--bg-image/g)].map((m) => m[1]);
+  // Stop at the comma: the veiled backgrounds are written as one selector list,
+  // and a pattern that runs to the brace would only ever capture the first.
+  const veilAttrs = [...css.matchAll(/html\[data-bg="(\w+)"\][^{,]*#bg::after/g)].map((m) => m[1]);
+
+  check("every dropdown option has a script entry",
+        options.every((o) => o === "none" || jsKeys.includes(o)));
+  check("every script entry is offered in the dropdown",
+        jsKeys.every((k) => k === "none" || options.includes(k)));
+  check("every background has a stylesheet rule",
+        jsKeys.filter((k) => k !== "none").every((k) => cssAttrs.includes(k)));
+  check("every background is veiled, so text stays legible over it",
+        jsKeys.filter((k) => k !== "none").every((k) => veilAttrs.includes(k)));
+
+  cssKeys.forEach((rel) => {
+    const file = root + "/assets/" + rel.replace(/^assets\//, "");
+    check(`background file exists: ${rel.replace(/^assets\//, "")}`, fs.existsSync(file));
+  });
+}
+
 console.log("seed");
 const seed = d.querySelector("[data-seed-value]")?.textContent.trim();
 check("seed shown", seed === "10528182");
