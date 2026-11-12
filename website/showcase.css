@@ -121,9 +121,11 @@ footer a{margin-right:1rem}
    the dark one. With no background picked there is nothing to veil. */
 html[data-bg="shader"] #bg::after,
 html[data-bg="day"] #bg::after,
+html[data-bg="ai"] #bg::after,
 html[data-bg="snow"] #bg::after{content:"";position:absolute;inset:0;background:var(--bg-veil)}
 html[data-bg="shader"]{--bg-image:url("assets/herobrine-shader-background.webp")}
 html[data-bg="day"]{--bg-image:url("assets/herobrine-shader-day.webp")}
+html[data-bg="ai"]{--bg-image:url("assets/herobrine-shader-ai.webp")}
 html[data-bg="snow"]{--bg-image:url("assets/herobrine-snow-one-moon.webp")}
 
 /* Text scale. Everything in the design is sized in rem, so moving the root

@@ -24,6 +24,7 @@
     none: "none",
     shader: 'url("assets/herobrine-shader-background.webp")',
     day: 'url("assets/herobrine-shader-day.webp")',
+    ai: 'url("assets/herobrine-shader-ai.webp")',
     snow: 'url("assets/herobrine-snow-one-moon.webp")'
   };
 
