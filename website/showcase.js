@@ -25,7 +25,8 @@
     shader: 'url("assets/herobrine-shader-background.webp")',
     day: 'url("assets/herobrine-shader-day.webp")',
     ai: 'url("assets/herobrine-shader-ai.webp")',
-    snow: 'url("assets/herobrine-snow-one-moon.webp")'
+    snow: 'url("assets/herobrine-snow-one-moon.webp")',
+    mc263: 'url("assets/herobrine-26-3.webp")'
   };
 
   const prefersLight = typeof window.matchMedia === "function"

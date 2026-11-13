@@ -124,11 +124,13 @@ footer a{margin-right:1rem}
 html[data-bg="shader"] #bg::after,
 html[data-bg="day"] #bg::after,
 html[data-bg="ai"] #bg::after,
-html[data-bg="snow"] #bg::after{content:"";position:absolute;inset:0;background:var(--bg-veil)}
+html[data-bg="snow"] #bg::after,
+html[data-bg="mc263"] #bg::after{content:"";position:absolute;inset:0;background:var(--bg-veil)}
 html[data-bg="shader"]{--bg-image:url("assets/herobrine-shader-background.webp")}
 html[data-bg="day"]{--bg-image:url("assets/herobrine-shader-day.webp")}
 html[data-bg="ai"]{--bg-image:url("assets/herobrine-shader-ai.webp")}
 html[data-bg="snow"]{--bg-image:url("assets/herobrine-snow-one-moon.webp")}
+html[data-bg="mc263"]{--bg-image:url("assets/herobrine-26-3.webp")}
 
 /* Text scale. Everything in the design is sized in rem, so moving the root
    font size moves the whole page. */
