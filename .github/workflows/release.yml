@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (must match mod_version in gradle.properties)'
+        required: true
+        default: 'v3.0.5'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          VERSION=$(grep -E '^mod_version=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag $TAG / mod_version $VERSION"
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::Tag '$TAG' does not match mod_version '$VERSION' (expected 'v$VERSION')"
+            exit 1
+          fi
+
+      - name: Build and test
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build --stacktrace
+
+      # Gradle 9 removed -b/--build-file, so the 1.21.11 build is a project of its own and is
+      # entered rather than selected by a flag.
+      - name: Build the 1.21.11 jar
+        run: |
+          cd legacy
+          ../gradlew build --stacktrace
+
+      - name: Check the jar before publishing
+        run: |
+          set -euo pipefail
+          JAR=$(ls build/libs/herobrine-*.jar | grep -v sources | head -n 1)
+          echo "jar: $JAR"
+
+          # the jar must carry the version from fabric.mod.json, not the placeholder
+          VERSION=$(unzip -p "$JAR" fabric.mod.json | grep -o '"version": *"[^"]*"' | head -n 1 | cut -d'"' -f4)
+          echo "jar version: $VERSION"
+          if [ "$VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Jar version '$VERSION' does not match mod_version '${{ steps.version.outputs.version }}'"
+            exit 1
+          fi
+
+          for entry in fabric.mod.json herobrine.mixins.json assets/herobrine/icon.png; do
+            unzip -l "$JAR" | grep -F " $entry" > /dev/null \
+              || { echo "::error::Jar is missing $entry"; exit 1; }
+          done
+          for texture in herobrine herobrine_eyes herobrine_hostile herobrine_hostile_eyes \
+                         herobrine_elite herobrine_elite_eyes steve_friend; do
+            unzip -p "$JAR" "assets/herobrine/textures/entity/$texture.png" > /dev/null \
+              || { echo "::error::Missing entity texture $texture.png"; exit 1; }
+          done
+
+          LEGACY=$(ls legacy/build/libs/herobrine-*.jar | grep -v sources | head -n 1)
+          echo "legacy jar: $LEGACY"
+
+          LVERSION=$(unzip -p "$LEGACY" fabric.mod.json | grep -o '"version": *"[^"]*"' | head -n 1 | cut -d'"' -f4)
+          echo "legacy jar version: $LVERSION"
+          if [ "$LVERSION" != "${{ steps.version.outputs.version }}+1.21.11" ]; then
+            echo "::error::Legacy jar version '$LVERSION' is not '${{ steps.version.outputs.version }}+1.21.11'"
+            exit 1
+          fi
+
+          # The 1.21.11 build is server-side only, so it must not advertise a client it does not
+          # contain: loading would fail on the missing entrypoint.
+          if unzip -p "$LEGACY" fabric.mod.json | grep -q '"client"'; then
+            echo "::error::The 1.21.11 jar still declares a client entrypoint"
+            exit 1
+          fi
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          JAR=$(ls build/libs/herobrine-*.jar | grep -v sources | head -n 1)
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TARGET="--target $GITHUB_SHA"
+          else
+            TARGET=""
+          fi
+
+          LEGACY=$(ls legacy/build/libs/herobrine-*.jar | grep -v sources | head -n 1)
+          ASSETS=("$JAR" "$LEGACY")
+          # The shader is a separate, experimental MIT-licensed pack, not part of the mod JAR.
+          # Shipped whenever the pack is in the tree, so a new version needs no edit here.
+          if [ -f "shaders/optimism-26.3-test.zip" ]; then
+            ASSETS+=("shaders/optimism-26.3-test.zip")
+          fi
+          NOTES_FILE="release-notes/$TAG.md"
+          if [ -f "$NOTES_FILE" ]; then
+            NOTES=(--notes-file "$NOTES_FILE")
+          else
+            NOTES=(--generate-notes)
+          fi
+
+          gh release create "$TAG" "${ASSETS[@]}" \
+            --title "Herobrine: Haunting ${TAG#v} (26.3 and 1.21.11)" \
+            "${NOTES[@]}" \
+            $TARGET
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: herobrine-release-jars
+          path: |
+            build/libs/herobrine-*.jar
+            legacy/build/libs/herobrine-*.jar
+          if-no-files-found: error

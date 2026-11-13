@@ -43,6 +43,7 @@ public class FogRendererMixin {
 
         fog.environmentalStart = Math.min(fog.environmentalStart, near);
         fog.environmentalEnd = Math.min(fog.environmentalEnd, far);
+        HerobrineFog.noteApplied();
         cir.setReturnValue(fog);
     }
 }

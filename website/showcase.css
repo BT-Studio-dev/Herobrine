@@ -1,0 +1,262 @@
+:root{
+  --bg:#e4e9e6; --surface:#d3dbd7; --ink:#18221f; --muted:#4b5a55; --line:#9fb0aa;
+  --accent:#2f5d50; --eye:#fffbe0; --fog:228,233,230;
+  --glass:rgba(255,255,255,.46); --glass-line:rgba(56,84,74,.16); --glow:47,93,80;
+  --glass-shadow:0 10px 26px rgba(16,26,23,.16), inset 0 1px 0 rgba(255,255,255,.6);
+  --sb-track:#dbe2de; --sb-thumb:#658377;
+  --b1:rgba(143,197,178,.6); --b2:rgba(180,198,232,.55);
+  --bg-veil:rgba(233,238,235,.72);
+  --display:"Pixelify Sans","Courier New",monospace; --body:"Spectral",Georgia,serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#16211f; --surface:#1e2c29; --ink:#e3eae6; --muted:#9db0a9; --line:#34483f;
+    --accent:#8fc5b2; --eye:#fffbe0; --fog:22,33,31;
+    --glass:rgba(214,236,229,.12); --glass-line:rgba(226,244,238,.22); --glow:255,251,224;
+    --glass-shadow:0 14px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.09);
+    --sb-track:#0f1a18; --sb-thumb:#4a706a;
+    --b1:rgba(47,93,80,.6); --b2:rgba(40,55,100,.55);
+    --bg-veil:rgba(9,17,16,.5);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16211f; --surface:#1e2c29; --ink:#e3eae6; --muted:#9db0a9; --line:#34483f;
+  --accent:#8fc5b2; --eye:#fffbe0; --fog:22,33,31; color-scheme:dark;
+  --glass:rgba(214,236,229,.12); --glass-line:rgba(226,244,238,.22); --glow:255,251,224;
+  --glass-shadow:0 14px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.09);
+  --sb-track:#0f1a18; --sb-thumb:#4a706a;
+  --b1:rgba(47,93,80,.6); --b2:rgba(40,55,100,.55);
+  --bg-veil:rgba(9,17,16,.5);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth;
+  scrollbar-width:thin;scrollbar-color:var(--sb-thumb) var(--sb-track)}
+/* Left to itself the browser paints a light grey scrollbar down the right-hand
+   side of what is otherwise a dark page. The standard pair comes first; the
+   webkit pseudo-elements are what older Chrome and Safari fall back to, and
+   whichever one applies, the result is themed. */
+::-webkit-scrollbar{width:14px;height:14px}
+::-webkit-scrollbar-track{background:var(--sb-track)}
+::-webkit-scrollbar-thumb{background:var(--sb-thumb);border:3px solid var(--sb-track);border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+body{margin:0;background:var(--bg);background-attachment:fixed;color:var(--ink);font:400 1.125rem/1.65 var(--body);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-underline-offset:.2em}
+a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.wrap{max-width:62rem;margin:0 auto;padding:0 1.25rem;position:relative;z-index:1}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--ink);color:var(--bg);padding:.5rem 1rem;z-index:50}
+
+/* fog: the one memorable thing — it closes in as you read */
+#fog{position:fixed;inset:0;pointer-events:none;z-index:20;opacity:0;
+  background:radial-gradient(ellipse at 50% 45%,rgba(var(--fog),0) 28%,rgba(var(--fog),.55) 62%,rgba(var(--fog),.95) 100%)}
+
+/* The banner is the wordmark, so the header below it only carries the nav. */
+.banner{display:block;margin:1.25rem 0 0}
+.banner img{display:block;width:100%;height:auto;border-radius:.6rem}
+header.top{display:flex;justify-content:flex-end;align-items:center;gap:1rem;padding:1rem 0;flex-wrap:wrap}
+nav,.feat>div,.seed code{background:var(--glass);border:1px solid var(--glass-line);-webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);position:relative;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+nav::after,.feat>div::after,.seed code::after{display:none}
+nav:hover::after,.feat>div:hover::after,.seed code:hover::after{display:none}
+nav{display:flex;gap:.2rem;padding:.3rem;border-radius:999px}
+nav a{position:relative;z-index:1;padding:.4rem 1.05rem;border-radius:999px;color:var(--muted);text-decoration:none;font-size:1rem}
+nav a:hover{color:var(--ink);background:rgba(var(--glow),.16)}
+
+.hero{position:relative;min-height:min(82vh,46rem);display:flex;flex-direction:column;justify-content:center;padding:3rem 0 4rem}
+.hero h1{font:700 clamp(2.4rem,8vw,5.4rem)/1.02 var(--display);margin:0 0 1.5rem;max-width:15ch;text-wrap:balance;letter-spacing:-.01em;text-shadow:0 2px 18px rgba(0,0,0,.18)}
+.hero p.lead{font-size:1.3rem;max-width:34rem;color:var(--muted);margin:0 0 2rem;text-shadow:0 1px 10px rgba(0,0,0,.12)}
+.hero-herobrine{position:absolute;right:4%;top:14%;width:128px;height:128px;opacity:0;animation:wake 6s 2.5s ease-in forwards;filter:drop-shadow(0 0 18px rgba(255,251,224,.18))}
+.hero-head{width:100%;height:100%;background:url("./assets/herobrine_skin.png") -128px -128px/1024px 1024px no-repeat;image-rendering:pixelated;image-rendering:crisp-edges}
+.eyes{position:absolute;inset:0;pointer-events:none}
+.eyes i{position:absolute;display:block;width:32px;height:16px;background:#ffffff;box-shadow:0 0 14px 4px rgba(255,251,224,.65);will-change:transform}
+.eyes .eye-l{left:16px;top:64px}
+.eyes .eye-r{left:80px;top:64px}
+@keyframes wake{0%{opacity:0}30%{opacity:.95}45%{opacity:.95;transform:scaleY(1)}50%{transform:scaleY(.08)}55%{transform:scaleY(1)}100%{opacity:.95}}
+.btns{display:flex;gap:.9rem;flex-wrap:wrap}
+.btn{display:inline-block;font:600 1.05rem var(--body);padding:.8rem 1.4rem;border:2px solid var(--ink);color:var(--ink);text-decoration:none;background:transparent;cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn:hover{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+
+section{padding:3.5rem 0;border-top:1px solid var(--line)}
+h2{font:700 clamp(1.7rem,4vw,2.4rem)/1.15 var(--display);margin:0 0 1.2rem}
+h3{font:700 1.25rem/1.3 var(--display);margin:0 0 .3rem}
+p{margin:0 0 1rem;max-width:42rem}
+
+dl.req{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:1rem 2rem;margin:1.5rem 0 0}
+dl.req div{border-left:3px solid var(--accent);padding-left:.9rem}
+dl.req dt{color:var(--muted);font-size:.95rem}
+dl.req dd{margin:0;font:600 1.4rem var(--body);font-variant-numeric:lining-nums}
+
+.feat{display:grid;gap:2.2rem 3rem;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));margin-top:2rem}
+.feat p{color:var(--ink);opacity:.82;margin:0}
+.feat>div{padding:1.4rem 1.5rem;border-radius:1.1rem}
+.feat>div:last-child{grid-column:1/-1}
+.lead-feat{grid-column:1/-1;padding:1.6rem 1.6rem 1.4rem}
+.lead-feat p{color:var(--ink);max-width:46rem}
+
+.seed{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-top:1.25rem}
+.seed code{font:700 2.6rem var(--display);font-variant-numeric:lining-nums tabular-nums;padding:.85rem calc(1.5rem - .06em) .85rem 1.5rem;border-radius:.9rem;letter-spacing:.06em;line-height:1}
+.seed .btn{padding:.85rem 1.2rem}
+#copied{color:var(--accent);min-height:1.5em;margin:.5rem 0 0}
+
+footer{padding:2.5rem 0 3.5rem;border-top:1px solid var(--line);color:var(--muted);font-size:1rem}
+footer a{margin-right:1rem}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.eyes{animation:none;opacity:.9}}
+
+
+/* =====================================================================
+   Everything below was not in the redesign. It is the interactive half of
+   the site - the settings panel, the two transports, the backgrounds, the
+   glass switch and the text scale - rewritten to use this design's own
+   variables so it inherits the palette instead of fighting it.
+   ===================================================================== */
+
+/* A background image layer, kept separate from body's gradients so that
+   "none" can mean none without breaking the shorthand. */
+#bg{position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background-image:var(--bg-image,none);background-size:cover;background-position:center;opacity:1}
+/* Both photographs are night scenes, and at full strength one of them puts the
+   light theme's near-black text on a dark picture. A veil is laid over
+   whichever is chosen - lightening it under the light theme, settling it under
+   the dark one. With no background picked there is nothing to veil. */
+html[data-bg="shader"] #bg::after,
+html[data-bg="day"] #bg::after,
+html[data-bg="ai"] #bg::after,
+html[data-bg="snow"] #bg::after,
+html[data-bg="mc263"] #bg::after{content:"";position:absolute;inset:0;background:var(--bg-veil)}
+html[data-bg="shader"]{--bg-image:url("assets/herobrine-shader-background.webp")}
+html[data-bg="day"]{--bg-image:url("assets/herobrine-shader-day.webp")}
+html[data-bg="ai"]{--bg-image:url("assets/herobrine-shader-ai.webp")}
+html[data-bg="snow"]{--bg-image:url("assets/herobrine-snow-one-moon.webp")}
+html[data-bg="mc263"]{--bg-image:url("assets/herobrine-26-3.webp")}
+
+/* Text scale. Everything in the design is sized in rem, so moving the root
+   font size moves the whole page. */
+html[data-text="s"]{font-size:15px}
+html[data-text="m"]{font-size:16px}
+html[data-text="l"]{font-size:18px}
+
+/* Glass off: flat surfaces, no blur, no cursor light behind the panels. */
+html[data-glass="off"] nav,
+html[data-glass="off"] .feat>div,
+html[data-glass="off"] .seed code,
+html[data-glass="off"] .player,
+html[data-glass="off"] .settings{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}
+.player::after{display:none}
+.player:hover::after{display:none}
+
+html[data-glass="off"] nav::after,
+html[data-glass="off"] .feat>div::after,
+html[data-glass="off"] .seed code::after,
+html[data-glass="off"] .player::after{display:none}
+
+/* ---- Settings ------------------------------------------------------- */
+
+.settings-toggle{position:fixed;right:1rem;bottom:1rem;z-index:31;
+  font:600 1rem var(--body);padding:.6rem 1.1rem;border:2px solid var(--ink);
+  border-radius:999px;background:var(--surface);color:var(--ink);cursor:pointer}
+.settings-toggle:hover{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+
+/* Above the fog, which sits at 20 and is meant to wash over the page - a
+   control you cannot read is not a control. */
+.settings{position:fixed;right:1rem;bottom:4.2rem;z-index:30;
+  width:min(23rem,calc(100vw - 2rem));max-height:min(70vh,34rem);overflow-y:auto;
+  background:var(--surface);border:1px solid var(--line);border-radius:1rem;
+  padding:1.1rem 1.2rem;box-shadow:0 18px 50px rgba(0,0,0,.28)}
+.settings[hidden]{display:none}
+.settings h2{font:700 1.15rem var(--display);margin:0 0 1rem}
+.settings .row{display:flex;align-items:center;justify-content:space-between;gap:.9rem;margin-bottom:.95rem;flex-wrap:wrap}
+.settings .row>span,.settings .row>label{font-size:1rem}
+.settings .hint{font-size:.85rem;opacity:.8}
+
+.seg{display:flex;gap:.15rem;background:var(--glass);border:1px solid var(--glass-line);border-radius:999px;padding:.18rem}
+.seg button{font:600 .92rem var(--body);padding:.3rem .75rem;border:0;border-radius:999px;
+  background:transparent;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--bg)}
+
+.settings select{font:400 1rem var(--body);background:var(--bg);color:var(--ink);
+  border:1px solid var(--line);border-radius:.5rem;padding:.25rem .45rem}
+.settings input[type="range"]{width:100%;min-width:8rem;accent-color:var(--accent)}
+.settings .row.stack{display:block}
+.settings .row.stack>label{display:block;margin-bottom:.35rem}
+
+/* ---- Transports ----------------------------------------------------- */
+
+.player{margin-top:1.6rem;padding:1.2rem 1.3rem;border-radius:1.1rem;position:relative;overflow:hidden;
+  background:var(--glass);border:1px solid var(--glass-line);
+  -webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);
+  box-shadow:0 8px 30px rgba(0,0,0,.08)}
+.player h3{margin:0 0 .3rem}
+.player>.hint{margin:0;color:var(--muted);font-size:.95rem}
+
+.transport{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-top:.9rem}
+.transport .btn{padding:.5rem 1rem;font-size:1rem}
+.transport label{font-size:.95rem}
+.transport input[type="range"]{width:9rem;accent-color:var(--accent)}
+
+/* The bar: a clock at each end, and between them how far in we are and how
+   much of the file has arrived. The range input sits on top of the drawn bar
+   so the bar can be styled while the thumb stays the browser's own, and so
+   it stays draggable by keyboard. */
+.seek-row{display:flex;align-items:center;gap:.75rem;margin-top:.9rem}
+.seek-row .time{color:var(--muted);font-size:.85rem;font-variant-numeric:tabular-nums;min-width:3.1rem}
+.seek-row .time:last-child{text-align:right}
+.seek{position:relative;flex:1 1 auto;min-width:7rem;height:1.5rem;display:flex;align-items:center}
+.seek-track{position:absolute;left:0;right:0;height:.32rem;border-radius:999px;background:var(--line);overflow:hidden}
+.seek-buffer{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--muted);opacity:.4}
+.seek-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent)}
+.seek input[type="range"]{position:relative;width:100%;height:1.5rem;margin:0;background:transparent;
+  -webkit-appearance:none;appearance:none}
+.seek input[type="range"]::-webkit-slider-runnable-track{height:1.5rem;background:transparent;border:none}
+.seek input[type="range"]::-moz-range-track{height:1.5rem;background:transparent;border:none}
+
+.status{color:var(--muted);font-size:.9rem;margin-top:.6rem;min-height:1.2em;max-width:42rem}
+
+/* ---- Prose notes ---------------------------------------------------- */
+
+.panel-note{margin:1rem 0 0;color:var(--muted);font-size:.95rem;line-height:1.55;max-width:46rem}
+.panel-note b{color:var(--ink)}
+.panel-note code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.9em;
+  padding:.05em .3em;border-radius:4px;background:color-mix(in srgb,var(--accent) 15%,transparent)}
+#copied{color:var(--accent);min-height:1.5em;margin:.6rem 0 0}
+
+/* Glass, defined once for every panel that uses it.
+
+   The blur on its own cannot make a panel legible. Over a smooth stretch of
+   photograph it blurs into the colour it started from, and a dark scrim laid
+   over a dark picture is no scrim at all - which is why these panels measured
+   two per cent away from their own background and disappeared. So the fill is
+   a light one in both themes: it lifts by roughly the same amount whatever
+   sits behind it. A hairline edge and a shadow then say where the pane stops,
+   so the card reads as a card even where the picture behind it is flat. */
+nav, .feat>div, .seed code, .player, .settings, dl.req div, .source-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: var(--glass-shadow);
+  color: var(--ink);
+}
+.source-card{display:inline-flex;flex-direction:column;gap:.15rem;padding:.8rem 1.2rem;border-radius:1rem;text-decoration:none;min-width:14rem;box-shadow:var(--glass-shadow)}
+.source-card-title{font:700 1.05rem var(--body);color:var(--ink)}
+.source-card-sub{font-size:.95rem;color:var(--muted)}
+.source-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.seed code { display: inline-block; }
+/* These were a rule and a left border, not boxes. The glass rule above turns
+   each into one, so they need room inside and a corner to match the rest. */
+dl.req div { border-left: 3px solid var(--accent); padding: .8rem .95rem .85rem; border-radius: .7rem; }
+html[data-glass="off"] nav,
+html[data-glass="off"] .feat>div,
+html[data-glass="off"] .seed code,
+html[data-glass="off"] .player,
+html[data-glass="off"] .settings,
+html[data-glass="off"] dl.req div,
+html[data-glass="off"] .source-card {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}

@@ -1,0 +1,143 @@
+// A second build of the same mod for Minecraft 1.21.11, from the sources in ../src.
+//
+// It has to be a project of its own rather than a flag in build.gradle, for two reasons: Gradle 9
+// removed -b/--build-file, and the two versions need different Loom plugins anyway. 26.x ships
+// unobfuscated and uses the non-remapping Loom with plain `implementation` dependencies, while
+// 1.21.11 is obfuscated and needs the remapping Loom with `modImplementation` and a mappings set.
+// The plugin id is fixed in the plugins block, so it cannot be switched at the command line.
+//
+// Build it from the repository root with:
+//
+//     cd legacy && ../gradlew build
+//
+// The jar lands in legacy/build/libs/ as herobrine-<version>+1.21.11.jar, which cannot collide
+// with the 26.3 jar in build/libs/.
+
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'fabric-loom' version "${legacy_loom_version}"
+}
+
+// mod_version, maven_group and archives_base_name come from the repository root's
+// gradle.properties, loaded in settings.gradle, so a version bump only has to happen once.
+def shared = gradle.ext.shared
+
+version = shared['mod_version'] + "+1.21.11"
+group = shared['maven_group']
+
+base {
+    archivesName = shared['archives_base_name']
+}
+
+repositories {
+    maven {
+        name = "TerraformersMC"
+        url = "https://maven.terraformersmc.com/releases/"
+    }
+}
+
+// There is deliberately no client side here. The common sources in ../src/client are written
+// against 26.3's rendering stack (GuiGraphicsExtractor, the keymapping package, the current
+// submitModelPart signature and Mod Menu's API) and porting them would mean rewriting five files
+// that cannot be checked without running the game. So this build is server-side only: the
+// hauntings, the sounds, the saved settings and the commands all work, and the fog overlay, the
+// glowing eyes, the config screen and the Mod Menu entry do not.
+//
+// splitEnvironmentSourceSets() is therefore not called, which is also why there is no client
+// source set to configure: without it, src/client is simply never compiled.
+loom {
+    mods {
+        "herobrine" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+// This project has no sources of its own; everything lives one directory up.
+sourceSets {
+    main {
+        java.srcDirs = ['../src/main/java', '../src/mc121/java']
+        resources.srcDirs = ['../src/main/resources']
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${legacy_minecraft_version}"
+
+    // Mojang's official mappings, so the sources read the same here as they do on unobfuscated
+    // 26.x. This is the fix for the failure on the earlier attempt: that one pulled in Yarn, which
+    // calls the package net.minecraft.sound where Mojang calls it net.minecraft.sounds, and
+    // ModSounds.java stopped compiling.
+    mappings loom.officialMojangMappings()
+
+    modImplementation "net.fabricmc:fabric-loader:${legacy_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${legacy_fabric_api_version}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property "version", version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": version
+    }
+
+    // Same sources, different game - and a different shape of mod. Edited structurally rather
+    // than by string replacement, and it fails loudly if the file stops looking as expected
+    // rather than shipping a jar that claims to want 26.3 and a client.
+    doLast {
+        def resources = layout.buildDirectory.dir("resources/main").get().asFile
+        def slurper = new JsonSlurper()
+
+        def modJson = new File(resources, "fabric.mod.json")
+        def mod = slurper.parse(modJson)
+
+        if (mod.depends.minecraft != "~26.3") {
+            throw new GradleException("fabric.mod.json no longer targets ~26.3; update legacy/build.gradle")
+        }
+
+        mod.depends = [
+            fabricloader: ">=0.16.0",
+            minecraft   : "~1.21.11",
+            java        : ">=21",
+            "fabric-api": "*",
+        ]
+        mod.description = mod.description.replace("Minecraft 26.3", "Minecraft 1.21.11")
+
+        // Server-side only, so the client and Mod Menu entrypoints must go with the code.
+        mod.environment = "server"
+        mod.entrypoints.remove("client")
+        mod.entrypoints.remove("modmenu")
+        mod.remove("suggests")
+
+        modJson.text = JsonOutput.prettyPrint(JsonOutput.toJson(mod))
+
+        def mixinJson = new File(resources, "herobrine.mixins.json")
+        def mixins = slurper.parse(mixinJson)
+
+        // The two client mixins target classes this build does not ship.
+        mixins.remove("client")
+        mixins.compatibilityLevel = "JAVA_21"
+
+        mixinJson.text = JsonOutput.prettyPrint(JsonOutput.toJson(mixins))
+    }
+}
+
+// 1.21.11 runs on Java 21, where 26.3 needs Java 25.
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+}
+
+java {
+    withSourcesJar()
+
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}

@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "herobrine:infected_axolotl",
+    "#herobrine:is_herobrine"
+  ]
+}

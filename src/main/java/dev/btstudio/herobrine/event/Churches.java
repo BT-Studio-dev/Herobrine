@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dev.btstudio.herobrine.item.ModItems;
+import dev.btstudio.herobrine.world.Feature;
+import dev.btstudio.herobrine.world.HerobrineSettings;
 import dev.btstudio.herobrine.world.HolySites;
 
 import net.minecraft.core.BlockPos;
@@ -50,6 +52,10 @@ public final class Churches {
      * @return true when one was built
      */
     public static boolean spawnNearPlayer(ServerLevel level, ServerPlayer player, RandomSource random) {
+        if (!HerobrineSettings.enabled(level, Feature.CHURCHES)) {
+            return false;
+        }
+
         for (int attempt = 0; attempt < 12; attempt++) {
             double angle = random.nextDouble() * Math.PI * 2.0;
             int distance = MIN_DISTANCE + random.nextInt(MAX_DISTANCE - MIN_DISTANCE + 1);
@@ -76,6 +82,10 @@ public final class Churches {
 
     /** Raises the chapel with {@code origin} as the block the player would stand on inside it. */
     public static boolean build(ServerLevel level, BlockPos origin) {
+        if (!HerobrineSettings.enabled(level, Feature.CHURCHES)) {
+            return false;
+        }
+
         if (!level.getBlockState(origin.below()).isFaceSturdy(level, origin.below(), Direction.UP)) {
             return false;
         }

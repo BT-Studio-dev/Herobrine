@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "com.herobrinemod.herobrine.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BlockMixin",
+    "CrashReportMixin",
+    "LivingEntityMixin",
+    "PotionEntityMixin",
+    "ServerWorldMixin",
+    "VanillaBiomeParametersMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Herobrine: Haunting — a Fabric mod for Minecraft: Java Edition</title>
+<meta name="description" content="Staged hauntings, seven apparitions, closing fog and an original score for him and for her, for Minecraft: Java Edition 26.3 and 1.21.11. Nothing of yours is ever destroyed.">
+<link rel="icon" type="image/png" href="./assets/icon.png">
+<link rel="apple-touch-icon" href="./assets/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./showcase.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div id="bg" aria-hidden="true"></div>
+<div id="fog" aria-hidden="true"></div>
+
+<div class="wrap">
+  <a class="banner" href="#top">
+    <img src="./assets/herobrine-haunting-logo.webp" alt="Herobrine: Haunting"
+         width="2064" height="512" fetchpriority="high">
+  </a>
+
+  <header class="top">
+    <nav aria-label="Main">
+      <a href="#mod">The mod</a><a href="#music">Music</a><a href="#seed">Seed</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <div class="hero" id="top">
+      <div class="hero-herobrine" aria-hidden="true">
+        <div class="hero-head"></div>
+        <div class="eyes">
+          <i class="eye eye-l"></i>
+          <i class="eye eye-r"></i>
+        </div>
+      </div>
+      <h1>He was never in the game. Now he is.</h1>
+      <p class="lead">A Fabric mod for Minecraft: Java Edition. Staged hauntings, seven
+        apparitions and an original score for him and for her. Nothing of yours is ever
+        destroyed.</p>
+      <div class="btns">
+        <a class="btn primary" href="https://github.com/BT-Studio-dev/Herobrine/releases/tag/v3.0.5" target="_blank" rel="noreferrer">Download v3.0.5</a>
+        <a class="source-card" href="https://github.com/BT-Studio-dev/Herobrine" target="_blank" rel="noreferrer">
+          <span class="source-card-title">Source on GitHub</span>
+          <span class="source-card-sub">Code, issues, and releases</span>
+        </a>
+      </div>
+    </div>
+
+    <section id="requirements">
+      <h2>What you need</h2>
+      <p>Works on a client or a server. These versions come from the mod’s own metadata.</p>
+      <dl class="req">
+        <div><dt>Minecraft</dt><dd>Java 26.3, or 1.21.11</dd></div>
+        <div><dt>Java</dt><dd>25+ on 26.3 &middot; 21+ on 1.21.11</dd></div>
+        <div><dt>Fabric Loader</dt><dd>0.19.0+ on 26.3 &middot; 0.16.0+ on 1.21.11</dd></div>
+        <div><dt>Fabric API</dt><dd>0.165.0+ on 26.3</dd></div>
+        <div><dt>Mod version</dt><dd>3.0.5</dd></div>
+      </dl>
+      <p class="panel-note">
+        <b>26.3 is not 1.21.11.</b> Mojang dropped the old 1.x numbers at the end of 2025 —
+        1.21.11 was the last release to use them — and moved to a year-and-drop scheme, so 26.3
+        is the third drop of 2026. They are different versions and the jars are not
+        interchangeable, so there is one of each: <code>herobrine-3.0.5.jar</code> for 26.3 and
+        <code>herobrine-3.0.5+1.21.11.jar</code> for 1.21.11. Take the one that matches your
+        game. To check which you are on, look at the bottom-left corner of the title screen.
+      </p>
+      <p class="panel-note">
+        <b>The 1.21.11 jar is server-side only.</b> The hauntings, the sounds, the saved settings
+        and the <code>/herobrine</code> command all work, but the HUD fog overlay, his glowing
+        eyes, the in-game config screen and the Mod Menu entry are not in it: they are written
+        against 26.3's rendering code, which does not exist in 1.21.11. Everything is in the 26.3
+        jar.
+      </p>
+    </section>
+
+    <section id="mod">
+      <h2>The mod</h2>
+      <p>Thirty-five switches, each set per dimension, so you can tune the haunting to a single
+        effect or turn it off. Every default matches what the mod already did, so an existing
+        world carries on as you left it.</p>
+      <div class="feat">
+        <div class="lead-feat">
+          <h3>Non-destructive</h3>
+          <p>Tunnels are dug, groves are stripped and pyramids appear, but your builds are never
+            touched. Every change is one he makes, not one he does to you.</p>
+        </div>
+        <div><h3>Seven apparitions</h3><p>The watcher on the ridge, the runner across the water,
+          the thing at your window. Each behaves differently, and none is guaranteed to stay
+          where you saw it.</p></div>
+        <div><h3>Iron is a ward</h3><p>Iron armour (per piece), an iron sword or stick in either
+          hand, and iron on the ground all keep him back. A full set is a strong ward, not a
+          wall.</p></div>
+        <div><h3>The fog closes in</h3><p>The nearer he is, the thicker the fog. With a shader
+          pack loaded it falls back to a vignette that no pack can remove.</p></div>
+        <div><h3>He holds a grudge</h3><p>Killing animals and spending time in the dark
+          underground push him closer through four tiers. Carrying iron pushes him back. It is
+          opt-in, so existing worlds stay as they are.</p></div>
+        <div><h3>Alex walks with you</h3><p>Summon her the way you summon Steve. She follows and
+          fights what comes at you. When she is beside you and he is not, her own theme plays: a
+          bell over a warm bed, in his key.</p></div>
+        <div><h3>Thirteen sounds, all original</h3><p>Whispers, footsteps, a pickaxe where no one
+          is mining, a bell for the cross, ten minutes of his music and two and a half of hers.
+          All generated for this mod.</p></div>
+      </div>
+    </section>
+
+    <section id="music">
+      <h2>Music</h2>
+      <p>Three tracks, all generated for this mod. Each loops without a seam, and none is
+        fetched until you ask for it. The third is the one the in-game Herobrine music disc
+        plays.</p>
+
+      <div class="player" data-player="haunt">
+        <h3>Haunting — his theme</h3>
+        <p class="hint">Ten minutes of drone, wind, distant bells and something moving under the floor. It loops without a seam.</p>
+        <div class="transport">
+          <button class="btn" type="button" data-set="haunt" data-value="on" aria-pressed="false">Play</button>
+          <button class="btn" type="button" data-set="haunt" data-value="off" aria-pressed="true">Stop</button>
+          <label for="volume-haunt">Volume</label>
+          <input id="volume-haunt" type="range" min="0" max="1" step="0.05" value="0.5" data-volume aria-label="Music volume">
+        </div>
+        <div class="seek-row">
+          <span class="time" data-position>0:00</span>
+          <span class="seek">
+            <span class="seek-track">
+              <span class="seek-buffer" data-seek-buffer></span>
+              <span class="seek-fill" data-seek-fill></span>
+            </span>
+            <input type="range" min="0" max="1000" step="1" value="0" data-seek aria-label="Position in the track">
+          </span>
+          <span class="time" data-duration>--:--</span>
+        </div>
+        <p class="status" data-status role="status" aria-live="polite"></p>
+        <audio id="haunt-track" src="./assets/music_haunt.ogg" loop preload="none"
+               data-playing="Playing his theme."
+               data-fetching="Fetching the track&hellip;"></audio>
+      </div>
+
+      <div class="player" data-player="alex">
+        <h3>Alex — her theme</h3>
+        <p class="hint">A struck bell over a warm bed: his key and his reverb, but slow and in the major. Two and a half minutes, looping.</p>
+        <div class="transport">
+          <button class="btn" type="button" data-set="alex" data-value="on" aria-pressed="false">Play</button>
+          <button class="btn" type="button" data-set="alex" data-value="off" aria-pressed="true">Stop</button>
+          <label for="volume-alex">Volume</label>
+          <input id="volume-alex" type="range" min="0" max="1" step="0.05" value="0.5" data-volume aria-label="Music volume">
+        </div>
+        <div class="seek-row">
+          <span class="time" data-position>0:00</span>
+          <span class="seek">
+            <span class="seek-track">
+              <span class="seek-buffer" data-seek-buffer></span>
+              <span class="seek-fill" data-seek-fill></span>
+            </span>
+            <input type="range" min="0" max="1000" step="1" value="0" data-seek aria-label="Position in the track">
+          </span>
+          <span class="time" data-duration>--:--</span>
+        </div>
+        <p class="status" data-status role="status" aria-live="polite"></p>
+        <audio id="alex-track" src="./assets/music_alex.ogg" loop preload="none"
+               data-playing="Playing her theme."
+               data-fetching="Fetching the track&hellip;"></audio>
+      </div>
+
+      <div class="player" data-player="disc">
+        <h3>Cave — Herobrine music disc</h3>
+        <p class="hint">A cave track for the in-game music disc. It loops without a seam.</p>
+        <div class="transport">
+          <button class="btn" type="button" data-set="disc" data-value="on" aria-pressed="false">Play</button>
+          <button class="btn" type="button" data-set="disc" data-value="off" aria-pressed="true">Stop</button>
+          <label for="volume-disc">Volume</label>
+          <input id="volume-disc" type="range" min="0" max="1" step="0.05" value="0.5" data-volume aria-label="Music volume">
+        </div>
+        <div class="seek-row">
+          <span class="time" data-position>0:00</span>
+          <span class="seek">
+            <span class="seek-track">
+              <span class="seek-buffer" data-seek-buffer></span>
+              <span class="seek-fill" data-seek-fill></span>
+            </span>
+            <input type="range" min="0" max="1000" step="1" value="0" data-seek aria-label="Position in the track">
+          </span>
+          <span class="time" data-duration>--:--</span>
+        </div>
+        <p class="status" data-status role="status" aria-live="polite"></p>
+        <audio id="disc-track" src="./assets/music_disc_herobrine.ogg" loop preload="none"
+               data-playing="Playing the cave music disc."
+               data-fetching="Fetching the cave music disc…"></audio>
+      </div>
+    </section>
+
+    <section id="seed">
+      <h2>A seed to start on</h2>
+      <p>Type a word instead of a number and Minecraft turns it into one: the number below is
+        what the game makes of his name. Every structure the mod builds is placed by hand, not
+        by worldgen, so it works on any seed — this one just has his name on it.</p>
+      <div class="seed">
+        <code data-seed-value>10528182</code>
+        <button class="btn" type="button" data-copy-seed>Copy seed</button>
+      </div>
+      <p id="copied" data-seed-status role="status"></p>
+      <p class="panel-note">Type <code>Herobrine</code> into the seed box and the game arrives at
+        the same world: Java Edition hashes the text into a signed 32-bit number, and that hash
+        is <code>10528182</code>. Copy the number if you would rather paste than spell. The
+        hashing is a rule of Java itself rather than of any one Minecraft version, so the number
+        is the same on 26.3 and on 1.21.11.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p style="max-width:none">Herobrine: Haunting by BT-Studio, licensed CC BY-NC-SA 4.0.</p>
+    <a href="https://github.com/BT-Studio-dev/Herobrine">GitHub</a>
+  </footer>
+</div>
+
+<button class="settings-toggle" type="button" data-toggle-settings aria-expanded="false"
+        aria-controls="settings">Display</button>
+
+<div class="settings" id="settings" hidden>
+  <h2>Display</h2>
+
+  <div class="row">
+    <span>Theme</span>
+    <span class="seg">
+      <button type="button" data-set="theme" data-value="light" aria-pressed="false">Light</button>
+      <button type="button" data-set="theme" data-value="dark" aria-pressed="true">Dark</button>
+    </span>
+  </div>
+
+  <div class="row">
+    <span>Glass <span class="hint">Blur behind the panels</span></span>
+    <span class="seg">
+      <button type="button" data-set="glass" data-value="off" aria-pressed="false">Off</button>
+      <button type="button" data-set="glass" data-value="on" aria-pressed="true">On</button>
+    </span>
+  </div>
+
+  <div class="row">
+    <label for="bg-select">Background</label>
+    <select id="bg-select" data-bg-select>
+      <option value="none">Plain</option>
+      <option value="shader">Shader</option>
+      <option value="day">Shader — daylight</option>
+      <option value="ai">Shader — AI</option>
+      <option value="snow">Snow and one moon</option>
+      <option value="mc263">Minecraft 26.3</option>
+    </select>
+  </div>
+
+  <div class="row">
+    <span>Text size</span>
+    <span class="seg">
+      <button type="button" data-set="text" data-value="s" aria-pressed="false">S</button>
+      <button type="button" data-set="text" data-value="m" aria-pressed="true">M</button>
+      <button type="button" data-set="text" data-value="l" aria-pressed="false">L</button>
+    </span>
+  </div>
+
+  <div class="row">
+    <span>Sounds <span class="hint">Interface clicks</span></span>
+    <span class="seg">
+      <button type="button" data-set="sounds" data-value="off" aria-pressed="true">Off</button>
+      <button type="button" data-set="sounds" data-value="on" aria-pressed="false">On</button>
+    </span>
+  </div>
+
+  <div class="row">
+    <span>Disc music</span>
+    <span class="seg">
+      <button type="button" data-set="disc" data-value="off" aria-pressed="true">Off</button>
+      <button type="button" data-set="disc" data-value="on" aria-pressed="false">On</button>
+    </span>
+  </div>
+
+  <div class="row stack">
+    <label for="volume">Music volume</label>
+    <input id="volume" type="range" min="0" max="1" step="0.05" value="0.5" data-volume>
+  </div>
+
+  <div class="row">
+    <button class="btn" type="button" data-reset>Reset to defaults</button>
+  </div>
+</div>
+
+<script src="./showcase.js"></script>
+</body>
+</html>

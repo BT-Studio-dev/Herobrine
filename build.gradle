@@ -19,6 +19,13 @@ repositories {
     }
 }
 
+sourceSets {
+    // The 26.3 side of the compatibility layer. The 1.21.11 build uses src/mc121 instead.
+    main {
+        java.srcDirs += ['src/mc26/java']
+    }
+}
+
 loom {
     // Rendering/screen/keybinding code lives in src/client and cannot leak into the server jar.
     splitEnvironmentSourceSets()
@@ -49,6 +56,79 @@ processResources {
         expand "version": version
     }
 }
+
+// Catch missing or malformed entity skins before publishing a jar. Bodies use the 64x64 player
+// layout; eye masks use the same UV layout at 256x256 to give both eyes a softer halo.
+tasks.register('verifyEntityTextures') {
+    def textures = ['herobrine', 'herobrine_eyes', 'herobrine_hostile', 'herobrine_hostile_eyes',
+                    'herobrine_elite', 'herobrine_elite_eyes', 'steve_friend', 'alex_friend']
+    def textureDir = layout.projectDirectory.dir('src/main/resources/assets/herobrine/textures/entity')
+    inputs.files(textures.collect { textureDir.file("${it}.png") })
+    doLast {
+        textures.each { name ->
+            def file = textureDir.file("${name}.png").asFile
+            if (!file.isFile()) {
+                throw new GradleException("Missing entity texture: ${file}")
+            }
+            def image = javax.imageio.ImageIO.read(file)
+            def size = name.endsWith('_eyes') ? 256 : 64
+            if (image == null || image.width != size || image.height != size) {
+                throw new GradleException("Invalid entity texture (expected ${size}x${size} PNG): ${file}")
+            }
+            if (name.endsWith('_eyes')) {
+                // Both eyes glow. The head's front face is skin 8,8 to 16,16, so on the 4x mask it
+                // occupies x 32-63, y 32-63. Nothing may glow outside it, or the glow would show up
+                // on the back, the sides or the top of the head, or down on the body.
+                for (int y = 0; y < size; y++) {
+                    for (int x = 0; x < size; x++) {
+                        if (((image.getRGB(x, y) >>> 24) & 0xff) != 0 &&
+                            (x < 32 || x > 63 || y < 32 || y > 63)) {
+                            throw new GradleException("Eye glow outside the head's front face: ${file}")
+                        }
+                    }
+                }
+
+                // The bridge of the nose sits between x=47 and x=48, so the second eye is the first
+                // one mirrored about x + x' = 95. The two halves have to be identical.
+                for (int y = 0; y < size; y++) {
+                    for (int x = 32; x <= 63; x++) {
+                        if (((image.getRGB(x, y) >>> 24) & 0xff) !=
+                            ((image.getRGB(95 - x, y) >>> 24) & 0xff)) {
+                            throw new GradleException("Eye mask not mirrored at x=${x}, y=${y}: ${file}")
+                        }
+                    }
+                }
+
+                // Each eye needs an opaque core on skin pixels 9-10 and 13-14 (mask x 38 and its
+                // mirror x 57), with a softer halo around it (mask x 35 and its mirror x 60).
+                if (((image.getRGB(38, 50) >>> 24) & 0xff) != 255 ||
+                    ((image.getRGB(57, 50) >>> 24) & 0xff) != 255) {
+                    throw new GradleException("Missing an opaque eye core: ${file}")
+                }
+
+                if (((image.getRGB(35, 50) >>> 24) & 0xff) == 0 ||
+                    ((image.getRGB(60, 50) >>> 24) & 0xff) == 0) {
+                    throw new GradleException("Missing an eye halo: ${file}")
+                }
+
+                // The halo has to stay in the eye band: off the hair (skin y 8-9, so mask y 32-39)
+                // and off the jaw and everything below it (mask y 60 and down).
+                for (int y = 32; y < size; y++) {
+                    if (y >= 40 && y <= 59) {
+                        continue
+                    }
+
+                    for (int x = 32; x <= 63; x++) {
+                        if (((image.getRGB(x, y) >>> 24) & 0xff) != 0) {
+                            throw new GradleException("Eye glow outside the eye band at y=${y}: ${file}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+tasks.named('check') { dependsOn tasks.named('verifyEntityTextures') }
 
 tasks.withType(JavaCompile).configureEach {
     it.options.release = 25

@@ -1,0 +1,99 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - 'arena/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.label }}
+    runs-on: ubuntu-latest
+
+    # 26.3 first, and do not cancel the other one if either fails: they are separate deliverables
+    # and a failure on one says nothing about the other.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: '26.3'
+            dir: '.'
+            jarDir: build/libs
+            artifact: herobrine-jar-26.3
+          - label: '1.21.11'
+            dir: legacy
+            jarDir: legacy/build/libs
+            artifact: herobrine-jar-1.21.11
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      # Gradle 9 removed -b/--build-file, so the 1.21.11 build is a project of its own in
+      # legacy/ and is entered rather than selected by a flag.
+      - name: Build
+        run: |
+          chmod +x ./gradlew
+          if [ "${{ matrix.dir }}" = "." ]; then
+            ./gradlew build --stacktrace
+          else
+            cd "${{ matrix.dir }}"
+            ../gradlew build --stacktrace
+          fi
+
+      - name: Verify jar
+        run: |
+          set -euo pipefail
+          JAR=$(ls ${{ matrix.jarDir }}/herobrine-*.jar | grep -v sources | head -n 1)
+          echo "== jar: $JAR"
+
+          echo "== fabric.mod.json"
+          unzip -p "$JAR" fabric.mod.json
+
+          echo "== mixin config present"
+          unzip -p "$JAR" herobrine.mixins.json > /dev/null
+
+          echo "== compiled classes present"
+          unzip -l "$JAR" | grep -F 'dev/btstudio/herobrine/HerobrineMod.class' > /dev/null
+          unzip -l "$JAR" | grep -F 'dev/btstudio/herobrine/mixin/NaturalSpawnerMixin.class' > /dev/null
+
+          echo "== entity skins and eye textures present"
+          for texture in herobrine herobrine_eyes herobrine_hostile herobrine_hostile_eyes \
+                         herobrine_elite herobrine_elite_eyes steve_friend alex_friend; do
+            unzip -p "$JAR" "assets/herobrine/textures/entity/$texture.png" > /dev/null \
+              || { echo "::error::Missing entity texture $texture.png"; exit 1; }
+          done
+
+          echo "== both music tracks present"
+          for sound in music_haunt music_alex; do
+            unzip -p "$JAR" "assets/herobrine/sounds/$sound.ogg" > /dev/null \
+              || { echo "::error::Missing sound $sound.ogg"; exit 1; }
+          done
+
+          echo "jar verified"
+
+      - name: Upload mod jar
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.jarDir }}/herobrine-*.jar
+          if-no-files-found: error

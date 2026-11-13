@@ -7,9 +7,12 @@ import java.util.Map;
 import java.util.UUID;
 
 import dev.btstudio.herobrine.entity.Apparition;
+import dev.btstudio.herobrine.entity.AlexFriendEntity;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
 import dev.btstudio.herobrine.sound.ModSounds;
+import dev.btstudio.herobrine.world.Feature;
+import dev.btstudio.herobrine.world.HerobrineName;
 import dev.btstudio.herobrine.world.HerobrineSettings;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -23,6 +26,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
@@ -51,6 +55,9 @@ import net.minecraft.world.phys.Vec3;
  * in twelve starts a <b>chase mode</b> frenzy where all of this happens three times as fast. A
  * <b>Notch Apple</b> burned on netherrack ({@link NotchAppleRitual}) sets the per-dimension banished
  * flag, and then nothing in here runs at all.
+ *
+ * <p>Iron works the other way: the iron-stick gear ({@link IronWard}) lowers the chance of an
+ * apparition for whoever is carrying it, and it makes him retreat when it hits him.
  */
 public final class HauntingEvents {
     /** Chance per player per second at stage 0 (1/180 is roughly once every 3 min). */
@@ -73,7 +80,20 @@ public final class HauntingEvents {
     private static final boolean FAKE_CHAT_MESSAGES = true;
 
     /** Stops a single roll from shredding a whole forest. */
-    private static final int MAX_LEAVES_STRIPPED = 48;
+    /** The base of a sand pyramid, in blocks from the centre. A radius of 3 steps 7-5-3-1. */
+    private static final int PYRAMID_RADIUS = 3;
+    /** How far out the bare grove reaches, in blocks. */
+    private static final int GROVE_RADIUS = 6;
+    private static final int GROVE_HEIGHT_ABOVE = 10;
+    private static final int GROVE_DEPTH_BELOW = 2;
+
+    /**
+     * A backstop, not a design limit: a grove is meant to take a whole stand of trees, but a dense
+     * jungle canopy inside that radius can run to well over a thousand blocks, and clearing that
+     * many in a single tick is a stutter everyone on the server feels. Generous enough that no
+     * normal grove ever notices it.
+     */
+    private static final int MAX_LEAVES_PER_GROVE = 512;
     /** ...or from felling every tree and fungus nearby. */
     private static final int MAX_TREE_LOGS_REMOVED = 24;
     private static final int MAX_WARTS_STRIPPED = 32;
@@ -87,21 +107,46 @@ public final class HauntingEvents {
     private static final int CHASE_TICKS = 3600;
     /** Chance (one in N) that an apparition kicks off a chase. */
     private static final int CHASE_ONE_IN = 12;
+    /** Each escalation tier brings that down, so a provoked world is chased more often. */
+    private static final int CHASE_TIER_STEP = 2;
+    private static final int CHASE_MIN_ONE_IN = 4;
 
     /** The haunting track plays when he is this close... */
     private static final double MUSIC_RANGE = 28.0;
     /** ...at most once every five minutes... */
-    private static final int MUSIC_COOLDOWN_TICKS = 6_000;
+    /** Ten minutes, plus half a minute of quiet: the track is ten minutes long, so a shorter
+     * gap would start a second one on top of the first. */
+    private static final int MUSIC_COOLDOWN_TICKS = 12_600;
     /** ...and it is only ever considered every ten seconds. */
     private static final int MUSIC_CHECK_TICKS = 200;
     /** Played at this fraction of the configured volume: music, not a siren. */
     private static final float MUSIC_BASE_VOLUME = 0.6F;
 
+    /**
+     * Alex's theme: two and a half minutes of bell over a warm bed, played while she is walking
+     * with you and he is nowhere near. It is a loop, so it needs a start time rather than a
+     * cooldown - two and a half minutes is far too short to put a ten minute gap behind.
+     */
+    private static final double ALEX_MUSIC_RANGE = 24.0;
+    private static final int ALEX_TRACK_TICKS = 3_000;
+    /** Checked once a second: the proximity scan walks the entity list twice. */
+    private static final int ALEX_MUSIC_CHECK_TICKS = 20;
+    private static final Map<UUID, Long> ALEX_MUSIC_START = new HashMap<>();
+
     /** When each player last heard the track, in game ticks. */
     private static final Map<UUID, Long> LAST_MUSIC = new HashMap<>();
+    /**
+     * When each player's looping track started, and therefore which players have one running.
+     * The track is exactly six hundred seconds, so this is also what tells us it has run out.
+     */
+    private static final Map<UUID, Long> MUSIC_LOOP_START = new HashMap<>();
+    /** The length of the track in ticks: 600 seconds at twenty a second. */
+    private static final int MUSIC_TRACK_TICKS = 12_000;
 
     /** How many blocks the dug tunnel runs into the hillside. */
-    private static final int TUNNEL_LENGTH = 5;
+    private static final int TUNNEL_LENGTH = 24;
+    /** A corridor shorter than this is not worth the hole in the surface, so nothing is dug. */
+    private static final int MIN_TUNNEL_LENGTH = 6;
 
     /**
      * Event weights. The roll is 0-99 and each event owns everything below its threshold, so the
@@ -147,60 +192,258 @@ public final class HauntingEvents {
 
                 ServerLevel level = player.level();
 
+                // Read the settings once per player per second rather than three or four times:
+                // every lookup goes through the saved-data store, and this runs on every tick of
+                // every world on the server.
+                HerobrineSettings settings = HerobrineSettings.of(level);
+
                 // Banished to the void by the Notch Apple ritual: nothing happens at all.
-                if (HerobrineSettings.banished(level)) {
+                if (settings.isBanished()) {
                     continue;
                 }
 
                 RandomSource random = player.getRandom();
 
-                if (random.nextInt(intervalFor(level, stageOf(player))) == 0) {
-                    runRandomEvent(server, player, random);
+                // Escalation: the grudge moves before the roll is made, so a kill or a minute in
+                // the dark is felt by the very next roll rather than the one after it.
+                Dread.tick(level, player, settings);
+
+                if (random.nextInt(intervalFor(settings, level, stageOf(settings, level))) == 0) {
+                    runRandomEvent(server, player, random, settings);
                 }
 
-                maybePlayMusic(level, player);
+                maybePlayMusic(level, player, settings);
             }
         });
+
+        // Her theme runs on its own pass rather than inside that loop, because the loop skips
+        // Creative players: someone setting up a shot with Alex in it should still hear her.
+        ServerTickEvents.END_SERVER_TICK.register(HauntingEvents::tickAlexMusic);
+    }
+
+    private static void tickAlexMusic(MinecraftServer server) {
+        if (server.getTickCount() % 20 != 0) {
+            return;
+        }
+
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (player.isSpectator() || !player.isAlive()) {
+                continue;
+            }
+
+            ServerLevel level = player.level();
+            HerobrineSettings settings = HerobrineSettings.of(level);
+
+            if (!settings.isBanished()) {
+                maybePlayAlexMusic(level, player, settings);
+            }
+        }
     }
 
     /**
-     * The haunting track: fifty seconds of drone and distant bells, played when he is genuinely
-     * close. It is a setting, it has a volume, and it never interrupts itself.
+     * The haunting track: ten minutes of drone, wind, distant bells and something moving under
+     * the floor, played when he is genuinely close. It is a setting, it has a volume, and the
+     * gap between plays is longer than the track, so it never interrupts itself.
      */
-    private static void maybePlayMusic(ServerLevel level, ServerPlayer player) {
+    private static void maybePlayMusic(ServerLevel level, ServerPlayer player, HerobrineSettings settings) {
         long gameTime = level.getLevelData().getGameTime();
+        UUID id = player.getUUID();
+        Long looping = MUSIC_LOOP_START.get(id);
 
+        // Switched off or turned down: whatever is playing goes, and nothing new starts.
+        if (!settings.isMusic() || settings.musicVolume() <= 0) {
+            if (looping != null) {
+                stopMusic(player);
+                MUSIC_LOOP_START.remove(id);
+            }
+
+            return;
+        }
+
+        boolean loop = settings.enabled(Feature.MUSIC_LOOP);
+
+        if (loop && looping != null) {
+            // Only two things can happen to a loop that is already running: he leaves, or the
+            // track runs out. Asking whether it has run out is two comparisons, so it is worth
+            // doing every tick - a ten second gate would leave up to ten seconds of silence
+            // between one playthrough and the next. The proximity scan is the expensive part and
+            // stays behind the gate.
+            if (gameTime % MUSIC_CHECK_TICKS == 0 && !nearHerobrine(level, player)) {
+                stopMusic(player);
+                MUSIC_LOOP_START.remove(id);
+                return;
+            }
+
+            if (gameTime - looping >= MUSIC_TRACK_TICKS) {
+                startMusic(level, player, settings);
+                MUSIC_LOOP_START.put(id, gameTime);
+            }
+
+            return;
+        }
+
+        // Checked before anything else is looked at: most calls fall out here, once a second.
         if (gameTime % MUSIC_CHECK_TICKS != 0) {
             return;
         }
 
-        HerobrineSettings settings = HerobrineSettings.of(level);
+        if (loop) {
+            // Nothing running yet, so the only question is whether he is close enough to start it.
+            if (nearHerobrine(level, player)) {
+                startMusic(level, player, settings);
+                MUSIC_LOOP_START.put(id, gameTime);
+            }
 
-        if (!settings.isMusic() || settings.musicVolume() <= 0) {
             return;
         }
 
-        Long last = LAST_MUSIC.get(player.getUUID());
+        Long last = LAST_MUSIC.get(id);
 
         if (last != null && gameTime - last < MUSIC_COOLDOWN_TICKS) {
             return;
         }
 
-        boolean nearby = !level.getEntitiesOfClass(HerobrineEntity.class,
-                player.getBoundingBox().inflate(MUSIC_RANGE), HerobrineEntity::isAlive).isEmpty();
-
-        if (!nearby) {
+        if (!nearHerobrine(level, player)) {
             return;
         }
 
-        LAST_MUSIC.put(player.getUUID(), gameTime);
+        LAST_MUSIC.put(id, gameTime);
+        startMusic(level, player, settings);
+    }
+
+    /** Whether he is alive and within earshot, which is what the track is gated on. */
+    private static boolean nearHerobrine(ServerLevel level, ServerPlayer player) {
+        return !level.getEntitiesOfClass(HerobrineEntity.class,
+                player.getBoundingBox().inflate(MUSIC_RANGE), HerobrineEntity::isAlive).isEmpty();
+    }
+
+    private static void startMusic(ServerLevel level, ServerPlayer player, HerobrineSettings settings) {
         level.playSound(null, player.getX(), player.getY(), player.getZ(), ModSounds.MUSIC_HAUNT,
                 SoundSource.MUSIC, MUSIC_BASE_VOLUME * settings.musicVolume() / 100.0F, 1.0F);
     }
 
+    /**
+     * Cuts the track short. The server has no handle on a sound once it has been played, so this
+     * sends the same packet vanilla's own {@code /stopsound} sends, naming this one sound in this
+     * one category so nothing else that happens to be playing is touched.
+     */
+    private static void stopMusic(ServerPlayer player) {
+        player.connection.send(new ClientboundStopSoundPacket(ModSounds.MUSIC_HAUNT.location(),
+                SoundSource.MUSIC));
+    }
+
+    /**
+     * Alex's theme. The rule is the whole of it: hers plays when she is with you and he is not.
+     * Two tracks at once is noise, and a warm one underneath a haunting is worse than silence -
+     * she is meant to be the moment you notice you are not being watched.
+     */
+    private static void maybePlayAlexMusic(ServerLevel level, ServerPlayer player,
+                                          HerobrineSettings settings) {
+        long gameTime = level.getLevelData().getGameTime();
+        UUID id = player.getUUID();
+        Long started = ALEX_MUSIC_START.get(id);
+
+        if (!settings.enabled(Feature.ALEX) || !settings.isMusic() || settings.musicVolume() <= 0) {
+            if (started != null) {
+                stopAlexMusic(player);
+                ALEX_MUSIC_START.remove(id);
+            }
+
+            return;
+        }
+
+        if (gameTime % ALEX_MUSIC_CHECK_TICKS != 0) {
+            return;
+        }
+
+        boolean hers = nearAlex(level, player) && !nearHerobrine(level, player);
+
+        if (started == null) {
+            if (hers) {
+                startAlexMusic(level, player, settings);
+                ALEX_MUSIC_START.put(id, gameTime);
+            }
+
+            return;
+        }
+
+        boolean finished = gameTime - started >= ALEX_TRACK_TICKS;
+
+        if (!hers) {
+            stopAlexMusic(player);
+            ALEX_MUSIC_START.remove(id);
+        } else if (finished) {
+            startAlexMusic(level, player, settings);
+            ALEX_MUSIC_START.put(id, gameTime);
+        }
+    }
+
+    /** Whether your own Alex is alive and within earshot. */
+    private static boolean nearAlex(ServerLevel level, ServerPlayer player) {
+        return !level.getEntitiesOfClass(AlexFriendEntity.class,
+                player.getBoundingBox().inflate(ALEX_MUSIC_RANGE),
+                alex -> alex.isAlive() && alex.isOwnedBy(player)).isEmpty();
+    }
+
+    private static void startAlexMusic(ServerLevel level, ServerPlayer player,
+                                       HerobrineSettings settings) {
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), ModSounds.MUSIC_ALEX,
+                SoundSource.MUSIC, MUSIC_BASE_VOLUME * settings.musicVolume() / 100.0F, 1.0F);
+    }
+
+    private static void stopAlexMusic(ServerPlayer player) {
+        player.connection.send(new ClientboundStopSoundPacket(ModSounds.MUSIC_ALEX.location(),
+                SoundSource.MUSIC));
+    }
+
+    /**
+     * Forgets everything held about a player's music, called when they leave. A track cut short by
+     * logging out is otherwise still counted as running, and coming back to find it silent for the
+     * rest of what would have been its ten minutes is not a bug worth having.
+     *
+     * <p>This is also where the per-player maps give their memory back. They are small - a few
+     * hundred bytes each - but nothing else ever removes them, so on a server that runs for months
+     * they grow by one entry for every player who joins.
+     */
+    public static void forgetMusic(UUID id) {
+        LAST_MUSIC.remove(id);
+        MUSIC_LOOP_START.remove(id);
+        ALEX_MUSIC_START.remove(id);
+    }
+
+    /**
+     * The volume the haunting track would play at right now, or 0 when it would not play at all -
+     * the switch is off, the volume is zero, or he is not within {@link #MUSIC_RANGE}. Nothing is
+     * played and no cooldown is touched: this is what {@code /herobrine config musictest} reports.
+     */
+    public static float musicTestVolume(ServerLevel level) {
+        HerobrineSettings settings = HerobrineSettings.of(level);
+
+        if (!settings.isMusic() || settings.musicVolume() <= 0) {
+            return 0.0F;
+        }
+
+        return MUSIC_BASE_VOLUME * settings.musicVolume() / 100.0F;
+    }
+
     /** 0-3, one step every two in-game days, so a long-lived world gets noticeably worse. */
     public static int stageOf(ServerPlayer player) {
-        long days = player.level().getLevelData().getGameTime() / TICKS_PER_STAGE;
+        return stageOf(HerobrineSettings.of(player.level()), player.level());
+    }
+
+    /**
+     * As {@link #stageOf(ServerPlayer)}, for a caller that already has the settings.
+     *
+     * <p>With escalation on, the stage is not the clock at all: it is the tier his grudge has
+     * reached, so a careful world stays at nothing however long it is played, and a careless one
+     * climbs. With it off this is the two-in-game-days step it always was.
+     */
+    public static int stageOf(HerobrineSettings settings, ServerLevel level) {
+        if (settings.enabled(Feature.ESCALATION)) {
+            return Dread.tierOf(settings.dread());
+        }
+
+        long days = level.getLevelData().getGameTime() / TICKS_PER_STAGE;
         return (int) Math.min(MAX_STAGE, Math.max(0L, days));
     }
 
@@ -211,9 +454,14 @@ public final class HauntingEvents {
 
     /** The effective roll interval: three times as fast while a chase frenzy is running. */
     public static int intervalFor(ServerLevel level, int stage) {
+        return intervalFor(HerobrineSettings.of(level), level, stage);
+    }
+
+    /** As {@link #intervalFor(ServerLevel, int)}, for a caller that already has the settings. */
+    public static int intervalFor(HerobrineSettings settings, ServerLevel level, int stage) {
         int base = oneInFor(stage);
 
-        if (!HerobrineSettings.isChasing(level)) {
+        if (!settings.isChasing(level)) {
             return base;
         }
 
@@ -221,8 +469,13 @@ public final class HauntingEvents {
     }
 
     public static void runRandomEvent(MinecraftServer server, ServerPlayer player, RandomSource random) {
+        runRandomEvent(server, player, random, HerobrineSettings.of(player.level()));
+    }
+
+    /** As {@link #runRandomEvent(MinecraftServer, ServerPlayer, RandomSource)}, reusing the caller's settings. */
+    public static void runRandomEvent(MinecraftServer server, ServerPlayer player, RandomSource random,
+                                      HerobrineSettings settings) {
         ServerLevel level = player.level();
-        HerobrineSettings settings = HerobrineSettings.of(level);
 
         if (settings.isBanished()) {
             return;
@@ -233,97 +486,145 @@ public final class HauntingEvents {
             return;
         }
 
-        boolean schizo = settings.isSchizo();
+        boolean sounds = settings.enabled(Feature.SOUNDS);
         boolean nether = level.dimension().equals(Level.NETHER);
         int roll = random.nextInt(100);
 
+        // Every branch below is one roll of the dice, and every one of them starts by asking
+        // whether that particular thing is switched on. A switch that is off is not a failure:
+        // whatever he would have done simply does not happen, and the next roll comes on its own.
         if (roll < TORCH_ROLL) {
-            placeTorch(level, player, random);
+            if (settings.enabled(Feature.TORCHES)) {
+                placeTorch(level, player, random);
+            }
         } else if (roll < FOOTSTEP_ROLL) {
-            // /herobrine schizo off: the noises stop, the rest of him does not.
-            if (schizo) {
+            // "Fearful footsteps". With the sounds off he used to leave a torch instead, and he
+            // still does - but only while torches are switched on too.
+            if (sounds) {
                 footsteps(level, player, random);
-            } else {
+            } else if (settings.enabled(Feature.TORCHES)) {
                 placeTorch(level, player, random);
             }
         } else if (roll < SOUND_ROLL) {
-            if (schizo) {
+            if (sounds) {
                 creepySound(level, player, random);
-            } else {
+            } else if (settings.enabled(Feature.DOORS)) {
                 Sabotage.ghostDoor(level, player, random);
             }
         } else if (roll < SNUFF_ROLL) {
-            Sabotage.snuffLights(level, player, random);
+            if (settings.enabled(Feature.CANDLES)) {
+                Sabotage.snuffLights(level, player, random);
+            }
         } else if (roll < CURSE_ROLL) {
-            if (random.nextBoolean()) {
-                Sabotage.curseLights(level, player, random);
+            // Two halves of one branch: the crimson curse, or every candle and campfire going out.
+            // Whichever he reaches for first, he falls back on the other when it is switched off.
+            boolean curseFirst = random.nextBoolean();
+
+            if (curseFirst) {
+                if (settings.enabled(Feature.CURSE)) {
+                    Sabotage.curseLights(level, player, random);
+                } else if (settings.enabled(Feature.CANDLES)) {
+                    Sabotage.douseFlames(level, player, random);
+                }
             } else {
-                Sabotage.douseFlames(level, player, random);
+                if (settings.enabled(Feature.CANDLES)) {
+                    Sabotage.douseFlames(level, player, random);
+                } else if (settings.enabled(Feature.CURSE)) {
+                    Sabotage.curseLights(level, player, random);
+                }
             }
         } else if (roll < LEAVE_ROLL) {
             // In the Nether there are no leaves to strip, so he takes the wart blocks instead.
             if (nether) {
-                stripNetherWarts(level, player);
-            } else {
+                if (settings.enabled(Feature.WARTS)) {
+                    stripNetherWarts(level, player);
+                }
+            } else if (settings.enabled(Feature.LEAVES)) {
                 stripLeaves(level, player, random);
             }
         } else if (roll < TUNNEL_ROLL) {
-            digTunnel(level, player, random);
+            if (settings.enabled(Feature.TUNNELS)) {
+                digTunnel(level, player, random);
+            }
         } else if (roll < SIGN_ROLL) {
-            Sabotage.creepySign(level, player, random);
+            if (settings.enabled(Feature.SIGNS)) {
+                Sabotage.creepySign(level, player, random, HerobrineSettings.name(level));
+            }
         } else if (roll < DONATION_ROLL) {
-            Sabotage.donation(level, player, random);
+            if (settings.enabled(Feature.DONATION)) {
+                Sabotage.donation(level, player, random);
+            }
         } else if (roll < DOOR_ROLL) {
-            Sabotage.ghostDoor(level, player, random);
+            if (settings.enabled(Feature.DOORS)) {
+                Sabotage.ghostDoor(level, player, random);
+            }
         } else if (FAKE_CHAT_MESSAGES && roll < JOIN_ROLL) {
-            fakeJoinLeave(server, random);
+            fakeJoinLeave(server, random, HerobrineSettings.name(level));
         } else if (FAKE_CHAT_MESSAGES && roll < MESSAGE_ROLL) {
-            creepyMessage(server);
-        } else if (settings.isArson() && roll < ARSON_ROLL) {
-            Sabotage.arson(level, player, random);
+            creepyMessage(server, HerobrineSettings.name(level));
+        } else if (roll < ARSON_ROLL) {
+            if (settings.enabled(Feature.FIRE)) {
+                Sabotage.arson(level, player, random);
+            }
         } else if (roll < STRUCTURE_ROLL) {
             // "Perfect sand pyramids in the oceans or rivers" first, a dry one if there is no water.
-            if (!buildPyramid(level, player, random, true)) {
+            if (settings.enabled(Feature.STRUCTURES) && !buildPyramid(level, player, random, true)) {
                 buildPyramid(level, player, random, false);
             }
         } else if (roll < COBBLE_ROLL) {
-            placeCobblestone(level, player, random);
+            if (settings.enabled(Feature.COBBLE)) {
+                placeCobblestone(level, player, random);
+            }
         } else if (roll < TREE_ROLL) {
             // "Mined trees": the logs are gone, the leaves are still floating there.
             if (nether) {
-                stripNetherWarts(level, player);
-            } else {
+                if (settings.enabled(Feature.WARTS)) {
+                    stripNetherWarts(level, player);
+                }
+            } else if (settings.enabled(Feature.TREES)) {
                 stripTreeLogs(level, player, random);
             }
         } else if (roll < WART_ROLL) {
             if (nether) {
-                stripNetherWarts(level, player);
-            } else {
+                if (settings.enabled(Feature.WARTS)) {
+                    stripNetherWarts(level, player);
+                }
+            } else if (settings.enabled(Feature.COBBLE)) {
                 placeCobblestone(level, player, random);
             }
         } else if (roll < CHURCH_ROLL) {
             // "Things spawn that you don't remember building": a chapel out in the plains.
-            Churches.spawnNearPlayer(level, player, random);
+            if (settings.enabled(Feature.CHURCHES)) {
+                Churches.spawnNearPlayer(level, player, random);
+            }
         } else if (roll < GRAVEL_ROLL) {
-            placeGravelMound(level, player, random);
+            if (settings.enabled(Feature.GRAVEL)) {
+                placeGravelMound(level, player, random);
+            }
         } else if (roll < MARKER_ROLL) {
-            placeMarker(level, player, random);
+            if (settings.enabled(Feature.MARKERS)) {
+                placeMarker(level, player, random);
+            }
         } else if (roll < HERD_ROLL) {
-            // "Haunted herd": one of the animals nearby stops behaving like an animal.
-            if (!settings.isHerd() || !herdEvent(level, player, random)) {
+            // "Haunted herd": one of the animals nearby stops behaving like an animal. No animal
+            // to possess, and he leaves a block of cobblestone instead - if he is allowed to.
+            if (!(settings.enabled(Feature.HERD) && herdEvent(level, player, random))
+                    && settings.enabled(Feature.COBBLE)) {
                 placeCobblestone(level, player, random);
             }
         } else if (roll < MINER_ROLL) {
             // "Ghost miner": a pickaxe in stone that nobody is swinging.
-            if (settings.isMiner()) {
+            if (settings.enabled(Feature.MINER)) {
                 ghostMiner(level, player, random);
-            } else {
+            } else if (sounds) {
                 creepySound(level, player, random);
             }
         } else if (roll < WINDOW_ROLL) {
-            windowSighting(level, player, random);
+            if (settings.enabled(Feature.WINDOW)) {
+                windowSighting(level, player, random);
+            }
         } else {
-            spawnApparition(level, player, random, stageOf(player));
+            spawnApparition(level, player, random, stageOf(settings, level));
         }
     }
 
@@ -332,6 +633,9 @@ public final class HauntingEvents {
      *
      * <p>Early on he mostly just watches. By stage 2 the four are equally likely, so the odds of him
      * standing behind you or in your face go up the longer the world has been running.
+     *
+     * <p>Iron is the one thing that lowers those odds again: a player carrying or wearing the
+     * iron-stick gear ({@link IronWard}) turns a share of the sightings away, up to six in ten.
      */
     public static HerobrineEntity spawnApparition(ServerLevel level, ServerPlayer player, RandomSource random,
                                                   int stage) {
@@ -339,61 +643,73 @@ public final class HauntingEvents {
             return null;
         }
 
-        Apparition apparition = pickApparition(random, stage);
+        // He keeps his distance from iron: the sighting is dropped, and nothing is built or moved
+        // to make up for it.
+        if (IronWard.turnsAway(player, random)) {
+            return null;
+        }
+
+        Apparition apparition = pickApparition(level, random, stage);
+
+        if (apparition == null) {
+            return null;
+        }
+
+        // Automatic rolls never tell the player when they find no ground: a sighting that cannot
+        // be placed simply is not placed, and the next roll happens on its own. Only the operator
+        // command reports a failure.
         HerobrineEntity herobrine = Apparitions.spawn(level, player, apparition, random);
 
         if (herobrine != null) {
-            maybeStartChase(level, random);
+            maybeStartChase(level, random, stage);
         }
 
         return herobrine;
     }
 
-    private static Apparition pickApparition(RandomSource random, int stage) {
-        int roll = random.nextInt(100);
+    /**
+     * Picks one of the sightings that are switched on, weighted by {@link Apparition#weight(int)}.
+     * With all seven on the weights add up to 100, so this rolls exactly as it always did; with some
+     * of them off the others take their share. Null when every sighting is switched off, in which
+     * case no apparition is placed at all.
+     */
+    public static Apparition pickApparition(ServerLevel level, RandomSource random, int stage) {
+        int total = 0;
 
-        if (stage < 2) {
-            if (roll < 30) {
-                return Apparition.WATCH;
+        for (Apparition apparition : Apparition.values()) {
+            if (HerobrineSettings.enabled(level, apparition.feature())) {
+                total += apparition.weight(stage);
+            }
+        }
+
+        if (total <= 0) {
+            return null;
+        }
+
+        int roll = random.nextInt(total);
+
+        for (Apparition apparition : Apparition.values()) {
+            if (!HerobrineSettings.enabled(level, apparition.feature())) {
+                continue;
             }
 
-            if (roll < 45) {
-                return Apparition.RUNNER;
+            roll -= apparition.weight(stage);
+
+            if (roll < 0) {
+                return apparition;
             }
-
-            if (roll < 65) {
-                return Apparition.LURKING;
-            }
-
-            if (roll < 80) {
-                return Apparition.DWELLING;
-            }
-
-            return roll < 90 ? Apparition.SCARE : roll < 97 ? Apparition.JUMPSCARE : Apparition.SPIKE;
         }
 
-        if (roll < 15) {
-            return Apparition.WATCH;
-        }
-
-        if (roll < 30) {
-            return Apparition.RUNNER;
-        }
-
-        if (roll < 50) {
-            return Apparition.LURKING;
-        }
-
-        if (roll < 70) {
-            return Apparition.DWELLING;
-        }
-
-        return roll < 82 ? Apparition.SCARE : roll < 92 ? Apparition.JUMPSCARE : Apparition.SPIKE;
+        return null;
     }
 
     /** Chase mode: a few minutes where he cannot leave you alone. */
-    private static void maybeStartChase(ServerLevel level, RandomSource random) {
-        if (HerobrineSettings.isChasing(level) || random.nextInt(CHASE_ONE_IN) != 0) {
+    private static void maybeStartChase(ServerLevel level, RandomSource random, int stage) {
+        // The worse his grudge, the likelier a sighting turns into a chase: one in twelve when he
+        // has nothing against you, one in four once he has everything.
+        int oneIn = Math.max(CHASE_MIN_ONE_IN, CHASE_ONE_IN - stage * CHASE_TIER_STEP);
+
+        if (HerobrineSettings.of(level).isChasing(level) || random.nextInt(oneIn) != 0) {
             return;
         }
 
@@ -568,6 +884,7 @@ public final class HauntingEvents {
                 }
 
                 if (Apparitions.spawnAt(level, outside, Apparition.WATCH, player) != null) {
+                    lightTheWindow(level, outside, glass);
                     level.playSound(null, outside.getX() + 0.5, outside.getY() + 0.5, outside.getZ() + 0.5,
                             ModSounds.WHISPER, SoundSource.AMBIENT, 1.0F, 0.9F);
                     return true;
@@ -576,6 +893,25 @@ public final class HauntingEvents {
         }
 
         return false;
+    }
+
+    /**
+     * Sets a soul torch beside him on the far side of the pane. Without it a night-time sighting is
+     * a silhouette you cannot actually make out, which defeats the point of him standing there.
+     * Only air over solid ground is used, and the pane itself is never replaced.
+     */
+    private static void lightTheWindow(ServerLevel level, BlockPos outside, BlockPos glass) {
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            BlockPos pos = outside.relative(direction);
+
+            if (pos.equals(glass) || !level.getBlockState(pos).isAir()
+                    || level.getBlockState(pos.below()).isAir()) {
+                continue;
+            }
+
+            level.setBlock(pos, Blocks.SOUL_TORCH.defaultBlockState(), 3);
+            return;
+        }
     }
 
     /** "Gravel mounds": a small pile of gravel where nothing was a second ago. */
@@ -624,18 +960,24 @@ public final class HauntingEvents {
     }
 
     /**
-     * Removes the leaves from a nearby tree but leaves the trunk standing - the "who stripped my
-     * tree?" sign that the original story is built on.
+     * Strips every leaf in a grove-sized sphere and leaves the trunks standing - the "who stripped
+     * my trees?" sign that the original story is built on. The whole stand goes at once rather than
+     * a fixed handful of blocks, so what is left is a ring of bare trunks with open sky above them.
      */
     public static void stripLeaves(ServerLevel level, ServerPlayer player, RandomSource random) {
         BlockPos centre = randomSurfacePos(level, player, random, 8, 24);
+        int radiusSquared = GROVE_RADIUS * GROVE_RADIUS;
         int removed = 0;
 
-        for (int dx = -5; dx <= 5; dx++) {
-            for (int dy = -5; dy <= 6; dy++) {
-                for (int dz = -5; dz <= 5; dz++) {
-                    if (removed >= MAX_LEAVES_STRIPPED) {
+        for (int dx = -GROVE_RADIUS; dx <= GROVE_RADIUS; dx++) {
+            for (int dy = -GROVE_DEPTH_BELOW; dy <= GROVE_HEIGHT_ABOVE; dy++) {
+                for (int dz = -GROVE_RADIUS; dz <= GROVE_RADIUS; dz++) {
+                    if (removed >= MAX_LEAVES_PER_GROVE) {
                         return;
+                    }
+
+                    if (dx * dx + dy * dy + dz * dz > radiusSquared) {
+                        continue;
                     }
 
                     BlockPos pos = centre.offset(dx, dy, dz);
@@ -674,23 +1016,50 @@ public final class HauntingEvents {
         corridor.add(floor);
         corridor.add(floor.relative(side));
 
-        for (int step = 1; step <= TUNNEL_LENGTH; step++) {
-            BlockPos column = floor.relative(direction, step);
-            corridor.add(column);
-            corridor.add(column.above());
-            corridor.add(column.relative(side));
-            corridor.add(column.relative(side).above());
-        }
-
         for (BlockPos pos : corridor) {
-            if (!level.getBlockState(pos).isAir() && !isNaturalGround(level.getBlockState(pos))) {
+            if (!isDiggable(level, pos)) {
                 return;
             }
+        }
+
+        // The corridor runs on until the hillside stops being natural. Carving as far as the
+        // ground allows - rather than abandoning the whole tunnel the moment one block is wrong -
+        // is what lets it run long: a 24 block corridor almost always meets a cave or an ore
+        // seam part of the way, and a tunnel that stops there is still a tunnel.
+        int carved = 0;
+
+        for (int step = 1; step <= TUNNEL_LENGTH; step++) {
+            BlockPos column = floor.relative(direction, step);
+            List<BlockPos> ring = List.of(column, column.above(), column.relative(side),
+                    column.relative(side).above());
+            boolean clear = true;
+
+            for (BlockPos pos : ring) {
+                clear &= isDiggable(level, pos);
+            }
+
+            if (!clear) {
+                break;
+            }
+
+            corridor.addAll(ring);
+            carved = step;
+        }
+
+        if (carved < MIN_TUNNEL_LENGTH) {
+            return;
         }
 
         for (BlockPos pos : corridor) {
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
         }
+    }
+
+    /** Air, or ground that was there before the player was: stone, dirt, netherrack and friends. */
+    private static boolean isDiggable(ServerLevel level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+
+        return state.isAir() || isNaturalGround(state);
     }
 
     /**
@@ -716,17 +1085,21 @@ public final class HauntingEvents {
     }
 
     private static void pyramidAt(ServerLevel level, BlockPos base) {
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                BlockPos pos = base.offset(dx, 0, dz);
+        for (int layer = PYRAMID_RADIUS; layer >= 1; layer--) {
+            int y = PYRAMID_RADIUS - layer;
 
-                if (isReplaceableForSand(level, pos)) {
-                    level.setBlock(pos, Blocks.SAND.defaultBlockState(), 3);
+            for (int dx = -layer; dx <= layer; dx++) {
+                for (int dz = -layer; dz <= layer; dz++) {
+                    BlockPos pos = base.offset(dx, y, dz);
+
+                    if (isReplaceableForSand(level, pos)) {
+                        level.setBlock(pos, Blocks.SAND.defaultBlockState(), 3);
+                    }
                 }
             }
         }
 
-        BlockPos cap = base.above();
+        BlockPos cap = base.above(PYRAMID_RADIUS);
 
         if (isReplaceableForSand(level, cap)) {
             level.setBlock(cap, Blocks.SAND.defaultBlockState(), 3);
@@ -821,20 +1194,24 @@ public final class HauntingEvents {
         return false;
     }
 
-    private static void fakeJoinLeave(MinecraftServer server, RandomSource random) {
+    /**
+     * The oldest trick in the book: a line in chat saying he joined, or left, when he did neither.
+     * He goes by whatever name the world has given him.
+     */
+    private static void fakeJoinLeave(MinecraftServer server, RandomSource random, String name) {
         String key = random.nextBoolean() ? "multiplayer.player.joined" : "multiplayer.player.left";
 
         server.getPlayerList().broadcastSystemMessage(
-                Component.translatable(key, Component.literal("Herobrine"))
+                Component.translatable(key, HerobrineName.component(name))
                         .withStyle(ChatFormatting.YELLOW),
                 false);
     }
 
-    /** Herobrine answers in chat with the one word the original creepypasta is famous for. */
-    private static void creepyMessage(MinecraftServer server) {
+    /** He answers in chat with the one word the original creepypasta is famous for. */
+    private static void creepyMessage(MinecraftServer server, String name) {
         server.getPlayerList().broadcastSystemMessage(
                 Component.translatable("chat.type.text",
-                        Component.literal("Herobrine").withStyle(ChatFormatting.DARK_RED),
+                        HerobrineName.component(name).withStyle(ChatFormatting.DARK_RED),
                         Component.translatable("herobrine.message.stop")),
                 false);
     }

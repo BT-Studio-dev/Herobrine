@@ -2,6 +2,8 @@ package dev.btstudio.herobrine.command;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -10,6 +12,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 
+import dev.btstudio.herobrine.entity.AlexFriendEntity;
 import dev.btstudio.herobrine.entity.Apparition;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
@@ -17,9 +20,12 @@ import dev.btstudio.herobrine.entity.SteveFriendEntity;
 import dev.btstudio.herobrine.event.Apparitions;
 import dev.btstudio.herobrine.event.Churches;
 import dev.btstudio.herobrine.event.HauntingEvents;
+import dev.btstudio.herobrine.event.Dread;
 import dev.btstudio.herobrine.event.NotchAppleRitual;
 import dev.btstudio.herobrine.event.Sabotage;
-import dev.btstudio.herobrine.item.ModItems;
+import dev.btstudio.herobrine.sound.ModSounds;
+import dev.btstudio.herobrine.world.Feature;
+import dev.btstudio.herobrine.world.HerobrineName;
 import dev.btstudio.herobrine.world.HerobrineSettings;
 import dev.btstudio.herobrine.world.PhantomPresence;
 
@@ -32,14 +38,14 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
@@ -49,134 +55,184 @@ import net.minecraft.world.phys.Vec3;
  * tested without hunting for a haunting or stacking blocks by hand.
  *
  * <pre>
- * /herobrine summon &lt;stalker|hostile|elite&gt;
+ * /herobrine summon [&lt;stalker|hostile|elite|watcher&gt;]
  * /herobrine haunt [&lt;player&gt;]
  * /herobrine leaves | tunnel | structure [water] | tree | cobble | warts
  * /herobrine torches | curse | candles | sign | donation | door | fire
  * /herobrine phantom [add|clear]
- * /herobrine mode [full|purist]
+ * /herobrine mode [full|purist|toggle]
  * /herobrine apparition &lt;watch|scare|jumpscare|spike|runner|lurking|dwelling&gt; [&lt;player&gt;]
  * /herobrine schizo [on|off]
  * /herobrine hauntstate
  * /herobrine banish [on|off]
  * /herobrine shrine [gold]
  * /herobrine gravel | marker | herd | miner | window
- * /herobrine config [herd|miner|arson|music|musicvolume]
+ * /herobrine config [&lt;setting&gt; | all on|off | name &lt;text&gt;|reset | reset | musicvolume]
  * /herobrine steve [spawn|dismiss|stay|follow]
+ * /herobrine alex [spawn|dismiss|stay|follow]
  * /herobrine church
- * /herobrine give &lt;iron_stick|holy_water|the_cross&gt;
  * </pre>
  */
 public final class HerobrineCommand {
     private static final SuggestionProvider<CommandSourceStack> FORM_SUGGESTIONS =
-            (context, builder) -> SharedSuggestionProvider.suggest(List.of("stalker", "hostile", "elite", "inferno", "watcher"), builder);
+            (context, builder) -> SharedSuggestionProvider.suggest(List.of("stalker", "hostile", "elite", "watcher"), builder);
+
+    /**
+     * What each accepted word means, including the obvious guesses. These last are worth carrying:
+     * "summon herobrine" is what everyone types first, and bouncing it back as an unknown form is
+     * unhelpful when there is exactly one thing it could mean.
+     */
+    private static final Map<String, String> FORMS = Map.ofEntries(
+            Map.entry("stalker", "stalker"),
+            Map.entry("hostile", "hostile"),
+            Map.entry("elite", "elite"),
+            Map.entry("watcher", "watcher"),
+            Map.entry("herobrine", "stalker"),
+            Map.entry("default", "stalker"),
+            Map.entry("normal", "stalker"),
+            Map.entry("passive", "stalker"),
+            Map.entry("aggressive", "hostile"),
+            Map.entry("angry", "hostile"));
+
+    /** Forms that used to exist and were deliberately taken out, so they can be named as such. */
+    private static final Set<String> REMOVED_FORMS = Set.of("inferno");
     private static final SuggestionProvider<CommandSourceStack> APPARITION_SUGGESTIONS =
             (context, builder) -> SharedSuggestionProvider.suggest(
                     List.of("watch", "scare", "jumpscare", "spike", "runner", "lurking", "dwelling"), builder);
-    private static final SuggestionProvider<CommandSourceStack> GIVE_SUGGESTIONS =
-            (context, builder) -> SharedSuggestionProvider.suggest(
-                    List.of("iron_stick", "holy_water", "the_cross"), builder);
     private static final SuggestionProvider<CommandSourceStack> RING_SUGGESTIONS =
             (context, builder) -> SharedSuggestionProvider.suggest(List.of("gold"), builder);
+
+    /**
+     * Which switch governs each one-off trace command. Kept next to the command tree it belongs to
+     * so that turning a thing off really does stop it, however it was asked for.
+     */
+    private static final Map<String, Feature> TRACE_FEATURES = Map.ofEntries(
+            Map.entry("leaves", Feature.LEAVES),
+            Map.entry("tunnel", Feature.TUNNELS),
+            Map.entry("structure", Feature.STRUCTURES),
+            Map.entry("structure.water", Feature.STRUCTURES),
+            Map.entry("tree", Feature.TREES),
+            Map.entry("cobble", Feature.COBBLE),
+            Map.entry("warts", Feature.WARTS),
+            Map.entry("gravel", Feature.GRAVEL),
+            Map.entry("marker", Feature.MARKERS),
+            Map.entry("herd", Feature.HERD),
+            Map.entry("miner", Feature.MINER),
+            Map.entry("window", Feature.WINDOW),
+            Map.entry("torches", Feature.CANDLES),
+            Map.entry("curse", Feature.CURSE),
+            Map.entry("candles", Feature.CANDLES),
+            Map.entry("sign", Feature.SIGNS),
+            Map.entry("donation", Feature.DONATION),
+            Map.entry("door", Feature.DOORS),
+            Map.entry("fire", Feature.FIRE));
 
     private HerobrineCommand() {
     }
 
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
+            // The permission sits on each branch rather than on the root. Brigadier tests the
+            // requirement of every node it walks through.
             LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("herobrine")
-                    .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                     .executes(context -> {
                         context.getSource().sendSuccess(() -> Component.translatable("herobrine.command.help"), false);
                         return 1;
                     });
 
-            root.then(Commands.literal("summon")
+            // The form is optional: /herobrine summon on its own gives you the stalker rather
+            // than a syntax error.
+            root.then(op("summon")
+                    .executes(context -> summon(context, "stalker"))
                     .then(Commands.argument("form", StringArgumentType.word())
                             .suggests(FORM_SUGGESTIONS)
-                            .executes(HerobrineCommand::summon)));
+                            .executes(context -> summon(context,
+                                    StringArgumentType.getString(context, "form")))));
 
-            root.then(Commands.literal("haunt")
+            root.then(op("haunt")
                     .executes(HerobrineCommand::hauntSelf)
                     .then(Commands.argument("player", EntityArgument.player())
                             .executes(HerobrineCommand::hauntTarget)));
 
-            root.then(Commands.literal("leaves").executes(context -> trace(context, "leaves")));
-            root.then(Commands.literal("tunnel").executes(context -> trace(context, "tunnel")));
-            root.then(Commands.literal("structure")
+            root.then(op("leaves").executes(context -> trace(context, "leaves")));
+            root.then(op("tunnel").executes(context -> trace(context, "tunnel")));
+            root.then(op("structure")
                     .executes(context -> trace(context, "structure"))
                     .then(Commands.literal("water").executes(context -> trace(context, "structure.water"))));
-            root.then(Commands.literal("tree").executes(context -> trace(context, "tree")));
-            root.then(Commands.literal("cobble").executes(context -> trace(context, "cobble")));
-            root.then(Commands.literal("warts").executes(context -> trace(context, "warts")));
-            root.then(Commands.literal("gravel").executes(context -> trace(context, "gravel")));
-            root.then(Commands.literal("marker").executes(context -> trace(context, "marker")));
-            root.then(Commands.literal("herd").executes(context -> trace(context, "herd")));
-            root.then(Commands.literal("miner").executes(context -> trace(context, "miner")));
-            root.then(Commands.literal("window").executes(context -> trace(context, "window")));
+            root.then(op("tree").executes(context -> trace(context, "tree")));
+            root.then(op("cobble").executes(context -> trace(context, "cobble")));
+            root.then(op("warts").executes(context -> trace(context, "warts")));
+            root.then(op("gravel").executes(context -> trace(context, "gravel")));
+            root.then(op("marker").executes(context -> trace(context, "marker")));
+            root.then(op("herd").executes(context -> trace(context, "herd")));
+            root.then(op("miner").executes(context -> trace(context, "miner")));
+            root.then(op("window").executes(context -> trace(context, "window")));
 
-            root.then(Commands.literal("steve")
-                    .executes(HerobrineCommand::steveStatus)
-                    .then(Commands.literal("spawn").executes(HerobrineCommand::steveSpawn))
-                    .then(Commands.literal("dismiss").executes(HerobrineCommand::steveDismiss))
-                    .then(Commands.literal("stay").executes(context -> steveStay(context, true)))
-                    .then(Commands.literal("follow").executes(context -> steveStay(context, false))));
+            root.then(op("steve")
+                    .executes(context -> companionStatus(context, STEVE_COMPANION))
+                    .then(Commands.literal("spawn")
+                            .executes(context -> companionSpawn(context, STEVE_COMPANION)))
+                    .then(Commands.literal("dismiss")
+                            .executes(context -> companionDismiss(context, STEVE_COMPANION)))
+                    .then(Commands.literal("stay")
+                            .executes(context -> companionStay(context, STEVE_COMPANION, true)))
+                    .then(Commands.literal("follow")
+                            .executes(context -> companionStay(context, STEVE_COMPANION, false))));
 
-            root.then(Commands.literal("config")
-                    .executes(HerobrineCommand::configStatus)
-                    .then(Commands.literal("herd").executes(context -> toggleHerd(context)))
-                    .then(Commands.literal("miner").executes(context -> toggleMiner(context)))
-                    .then(Commands.literal("arson").executes(context -> toggleArson(context)))
-                    .then(Commands.literal("music").executes(context -> toggleMusic(context)))
-                    .then(Commands.literal("musicvolume")
-                            .executes(HerobrineCommand::cycleMusicVolume)
-                            .then(Commands.argument("percent", IntegerArgumentType.integer(0, 100))
-                                    .executes(HerobrineCommand::setMusicVolume))));
-            root.then(Commands.literal("torches").executes(context -> trace(context, "torches")));
-            root.then(Commands.literal("curse").executes(context -> trace(context, "curse")));
-            root.then(Commands.literal("candles").executes(context -> trace(context, "candles")));
-            root.then(Commands.literal("sign").executes(context -> trace(context, "sign")));
-            root.then(Commands.literal("donation").executes(context -> trace(context, "donation")));
-            root.then(Commands.literal("door").executes(context -> trace(context, "door")));
-            root.then(Commands.literal("fire").executes(context -> trace(context, "fire")));
+            root.then(op("alex")
+                    .executes(context -> companionStatus(context, ALEX_COMPANION))
+                    .then(Commands.literal("spawn")
+                            .executes(context -> companionSpawn(context, ALEX_COMPANION)))
+                    .then(Commands.literal("dismiss")
+                            .executes(context -> companionDismiss(context, ALEX_COMPANION)))
+                    .then(Commands.literal("stay")
+                            .executes(context -> companionStay(context, ALEX_COMPANION, true)))
+                    .then(Commands.literal("follow")
+                            .executes(context -> companionStay(context, ALEX_COMPANION, false))));
 
-            root.then(Commands.literal("phantom")
+            root.then(configBranch());
+            root.then(op("torches").executes(context -> trace(context, "torches")));
+            root.then(op("curse").executes(context -> trace(context, "curse")));
+            root.then(op("candles").executes(context -> trace(context, "candles")));
+            root.then(op("sign").executes(context -> trace(context, "sign")));
+            root.then(op("donation").executes(context -> trace(context, "donation")));
+            root.then(op("door").executes(context -> trace(context, "door")));
+            root.then(op("fire").executes(context -> trace(context, "fire")));
+
+            root.then(op("phantom")
                     .executes(HerobrineCommand::phantomStatus)
                     .then(Commands.literal("add").executes(HerobrineCommand::phantomAdd))
                     .then(Commands.literal("clear").executes(HerobrineCommand::phantomClear)));
 
-            root.then(Commands.literal("mode")
+            root.then(op("mode")
                     .executes(HerobrineCommand::modeStatus)
                     .then(Commands.literal("full").executes(context -> setMode(context, false)))
-                    .then(Commands.literal("purist").executes(context -> setMode(context, true))));
+                    .then(Commands.literal("purist").executes(context -> setMode(context, true)))
+                    .then(Commands.literal("toggle").executes(context ->
+                            setMode(context, !HerobrineSettings.purist(context.getSource().getLevel())))));
 
-            root.then(Commands.literal("apparition")
+            root.then(op("apparition")
                     .then(Commands.argument("type", StringArgumentType.word())
                             .suggests(APPARITION_SUGGESTIONS)
                             .executes(HerobrineCommand::apparitionSelf)
                             .then(Commands.argument("player", EntityArgument.player())
                                     .executes(HerobrineCommand::apparitionTarget))));
 
-            root.then(Commands.literal("schizo")
+            root.then(op("schizo")
                     .executes(HerobrineCommand::toggleSchizo)
                     .then(Commands.literal("on").executes(context -> setSchizo(context, true)))
                     .then(Commands.literal("off").executes(context -> setSchizo(context, false))));
 
-            root.then(Commands.literal("hauntstate").executes(HerobrineCommand::hauntState));
+            root.then(op("hauntstate").executes(HerobrineCommand::hauntState));
 
-            root.then(Commands.literal("banish")
+            root.then(op("banish")
                     .executes(HerobrineCommand::toggleBanish)
                     .then(Commands.literal("on").executes(context -> setBanish(context, true)))
                     .then(Commands.literal("off").executes(context -> setBanish(context, false))));
 
-            root.then(Commands.literal("church").executes(HerobrineCommand::buildChurch));
+            root.then(op("church").executes(HerobrineCommand::buildChurch));
 
-            root.then(Commands.literal("give")
-                    .then(Commands.argument("item", StringArgumentType.word())
-                            .suggests(GIVE_SUGGESTIONS)
-                            .executes(HerobrineCommand::give)));
-
-            root.then(Commands.literal("shrine")
+            root.then(op("shrine")
                     .executes(context -> buildShrine(context, "gold"))
                     .then(Commands.argument("ring", StringArgumentType.word())
                             .suggests(RING_SUGGESTIONS)
@@ -187,15 +243,26 @@ public final class HerobrineCommand {
         });
     }
 
-    private static int summon(CommandContext<CommandSourceStack> context) {
+    /**
+     * A branch that changes the world, the haunting or the mod, so it stays behind the operator
+     * permission. Nested literals are covered by their parent: Brigadier never descends into a
+     * node whose requirement failed.
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> op(String name) {
+        return Commands.literal(name).requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS));
+    }
+
+    private static int summon(CommandContext<CommandSourceStack> context, String word) {
         CommandSourceStack source = context.getSource();
-        String form = StringArgumentType.getString(context, "form").toLowerCase(Locale.ROOT);
+        String asked = word.toLowerCase(Locale.ROOT);
+        String form = FORMS.get(asked);
         ServerLevel level = source.getLevel();
         Vec3 pos = source.getPosition();
 
-        if (!form.equals("stalker") && !form.equals("hostile") && !form.equals("elite")
-                && !form.equals("inferno") && !form.equals("watcher")) {
-            source.sendFailure(Component.translatable("herobrine.command.summon.unknown_form", form));
+        if (form == null) {
+            source.sendFailure(REMOVED_FORMS.contains(asked)
+                    ? Component.translatable("herobrine.command.summon.removed_form", asked)
+                    : Component.translatable("herobrine.command.summon.unknown_form", asked));
             return 0;
         }
 
@@ -210,8 +277,6 @@ public final class HerobrineCommand {
 
         if (form.equals("stalker")) {
             herobrine.setHostile(false);
-        } else if (form.equals("inferno")) {
-            herobrine.setInferno(true);
         } else if (form.equals("watcher")) {
             herobrine.setWatcher(true);
         } else {
@@ -225,8 +290,8 @@ public final class HerobrineCommand {
         herobrine.finalizeSpawn(level, level.getCurrentDifficultyAt(herobrine.blockPosition()),
                 EntitySpawnReason.COMMAND, null);
 
-        // A freshly spawned elite or inferno has the base 60 HP of the normal mob until topped up.
-        if (herobrine.isElite() || herobrine.isInferno()) {
+        // A freshly spawned elite has the base 60 HP of the normal mob until topped up.
+        if (herobrine.isElite()) {
             herobrine.setHealth(herobrine.getMaxHealth());
         }
 
@@ -264,6 +329,11 @@ public final class HerobrineCommand {
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel level = source.getLevel();
         RandomSource random = level.getRandom();
+        Feature feature = TRACE_FEATURES.getOrDefault(trace, Feature.FIRE);
+
+        if (switchedOff(source, feature)) {
+            return 0;
+        }
 
         switch (trace) {
             case "leaves" -> HauntingEvents.stripLeaves(level, player, random);
@@ -286,7 +356,7 @@ public final class HerobrineCommand {
             case "torches" -> Sabotage.snuffLights(level, player, random);
             case "curse" -> Sabotage.curseLights(level, player, random);
             case "candles" -> Sabotage.douseFlames(level, player, random);
-            case "sign" -> Sabotage.creepySign(level, player, random);
+            case "sign" -> Sabotage.creepySign(level, player, random, HerobrineSettings.name(level));
             case "donation" -> Sabotage.donation(level, player, random);
             case "door" -> Sabotage.ghostDoor(level, player, random);
             default -> Sabotage.arson(level, player, random);
@@ -356,7 +426,13 @@ public final class HerobrineCommand {
             return 0;
         }
 
-        ServerLevel level = source.getLevel();
+        if (switchedOff(source, apparition.feature())) {
+            return 0;
+        }
+
+        // The command can target a player in another dimension; search and spawn in their world,
+        // not the world from which the command was run.
+        ServerLevel level = (ServerLevel) target.level();
         HerobrineEntity herobrine = Apparitions.spawn(level, target, apparition, level.getRandom());
 
         if (herobrine == null) {
@@ -412,8 +488,8 @@ public final class HerobrineCommand {
         CommandSourceStack source = context.getSource();
         ServerLevel level = source.getLevel();
         HerobrineSettings settings = HerobrineSettings.of(level);
-        long chase = HerobrineSettings.chaseRemainingTicks(level) / 20L;
-        int stage = source.getEntity() instanceof ServerPlayer player ? HauntingEvents.stageOf(player) : 0;
+        long chase = chaseSeconds(level);
+        int stage = stageOf(source);
         int interval = HauntingEvents.intervalFor(level, stage);
 
         source.sendSuccess(() -> Component.translatable("herobrine.command.state.mode",
@@ -422,14 +498,32 @@ public final class HerobrineCommand {
                         ? "herobrine.command.state.banished" : "herobrine.command.state.haunted"),
                 Component.translatable(onOffKey(settings.isSchizo()))), false);
 
-        if (chase > 0L) {
-            source.sendSuccess(() -> Component.translatable("herobrine.command.state.chase.active", chase), false);
-        } else {
-            source.sendSuccess(() -> Component.translatable("herobrine.command.state.chase.idle"), false);
+        source.sendSuccess(() -> chaseLine(chase), false);
+        source.sendSuccess(() -> Component.translatable("herobrine.command.state.interval", interval, stage), false);
+
+        if (settings.enabled(Feature.ESCALATION)) {
+            source.sendSuccess(() -> Component.translatable("herobrine.command.state.dread",
+                    settings.dread(), HerobrineSettings.MAX_DREAD, Dread.tierOf(settings.dread())), false);
         }
 
-        source.sendSuccess(() -> Component.translatable("herobrine.command.state.interval", interval, stage), false);
         return 1;
+    }
+
+    /** Seconds left in the current chase frenzy; 0 when he is not chasing anyone. */
+    private static long chaseSeconds(ServerLevel level) {
+        return HerobrineSettings.chaseRemainingTicks(level) / 20L;
+    }
+
+    /** The chase line, used by {@code /herobrine hauntstate}. */
+    private static Component chaseLine(long chaseSeconds) {
+        return chaseSeconds > 0L
+                ? Component.translatable("herobrine.command.state.chase.active", chaseSeconds)
+                : Component.translatable("herobrine.command.state.chase.idle");
+    }
+
+    /** The escalation stage, which is tracked per player and is 0 for anything else. */
+    private static int stageOf(CommandSourceStack source) {
+        return source.getEntity() instanceof ServerPlayer player ? HauntingEvents.stageOf(player) : 0;
     }
 
     private static String onOffKey(boolean value) {
@@ -458,129 +552,294 @@ public final class HerobrineCommand {
         return purist ? "herobrine.command.mode.purist" : "herobrine.command.mode.full";
     }
 
-    private static int configStatus(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        HerobrineSettings settings = HerobrineSettings.of(source.getLevel());
+    /**
+     * {@code /herobrine config}: one branch that flips a single switch, plus the branches that set
+     * them all at once, rename him, and put everything back. Every literal under it is built from
+     * {@link Feature#commandIds()}, so adding a switch to the enum is all it takes to add its
+     * command - and the old names ({@code arson}, {@code fog}) stay where they have always been.
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> configBranch() {
+        LiteralArgumentBuilder<CommandSourceStack> config = op("config")
+                .executes(HerobrineCommand::configStatus)
+                .then(Commands.literal("reset").executes(HerobrineCommand::resetConfig))
+                .then(Commands.literal("all")
+                        .then(Commands.literal("on").executes(context -> setAllFeatures(context, true)))
+                        .then(Commands.literal("off").executes(context -> setAllFeatures(context, false))))
+                .then(Commands.literal("name")
+                        .executes(HerobrineCommand::showName)
+                        .then(Commands.literal("reset").executes(HerobrineCommand::resetName))
+                        .then(Commands.argument("value", StringArgumentType.word())
+                                .executes(HerobrineCommand::setName)))
+                .then(Commands.literal("musicvolume")
+                        .executes(HerobrineCommand::cycleMusicVolume)
+                        .then(Commands.argument("percent", IntegerArgumentType.integer(0, 100))
+                                .executes(HerobrineCommand::setMusicVolume)))
+                .then(Commands.literal("musictest").executes(HerobrineCommand::musicTest));
 
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.status",
-                Component.translatable(onOffKey(settings.isHerd())),
-                Component.translatable(onOffKey(settings.isMiner())),
-                Component.translatable(onOffKey(settings.isArson())),
-                Component.translatable(onOffKey(settings.isMusic()))), false);
+        for (String id : Feature.commandIds()) {
+            config.then(Commands.literal(id).executes(context -> toggleFeature(context, id)));
+        }
+
+        return config;
+    }
+
+    /** Flips one switch and says so. */
+    private static int toggleFeature(CommandContext<CommandSourceStack> context, String id) {
+        CommandSourceStack source = context.getSource();
+        Feature feature = Feature.byCommandId(id);
+        boolean on = HerobrineSettings.toggle(source.getLevel(), feature);
+
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
+                Component.translatable(feature.titleKey()),
+                Component.translatable(onOffKey(on))), true);
+        return on ? 1 : 0;
+    }
+
+    /** Every switch at once: {@code /herobrine config all on|off}. */
+    private static int setAllFeatures(CommandContext<CommandSourceStack> context, boolean on) {
+        CommandSourceStack source = context.getSource();
+        HerobrineSettings.setAll(source.getLevel(), on);
+
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.all",
+                Component.translatable(onOffKey(on))), true);
         return 1;
     }
 
-    private static int toggleHerd(CommandContext<CommandSourceStack> context) {
+    private static int showName(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        boolean on = HerobrineSettings.toggleHerd(source.getLevel());
 
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
-                Component.translatable("herobrine.command.config.herd"),
-                Component.translatable(onOffKey(on))), true);
-        return on ? 1 : 0;
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.name.show",
+                HerobrineSettings.name(source.getLevel())), false);
+        return 1;
     }
 
-    private static int toggleMiner(CommandContext<CommandSourceStack> context) {
+    /**
+     * {@code /herobrine config name <text>}: the name he goes by. One short line when the name will
+     * not do, rather than a silent correction to something he never said.
+     */
+    private static int setName(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        boolean on = HerobrineSettings.toggleMiner(source.getLevel());
+        String value = StringArgumentType.getString(context, "value");
 
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
-                Component.translatable("herobrine.command.config.miner"),
-                Component.translatable(onOffKey(on))), true);
-        return on ? 1 : 0;
+        if (!HerobrineName.isValid(value)) {
+            source.sendFailure(Component.translatable("herobrine.command.config.name.invalid",
+                    HerobrineName.MAX_LENGTH));
+            return 0;
+        }
+
+        HerobrineSettings.of(source.getLevel()).setName(value);
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.name.set", value), true);
+        return 1;
     }
 
-    /** Every Steve belonging to this player, in this dimension. */
-    private static List<SteveFriendEntity> mySteves(ServerLevel level, ServerPlayer player) {
-        return level.getEntitiesOfClass(SteveFriendEntity.class,
-                player.getBoundingBox().inflate(64.0),
-                steve -> steve.isOwnedBy(player));
+    /** {@code /herobrine config name reset}: back to the name he has always gone by. */
+    private static int resetName(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        HerobrineSettings.of(source.getLevel()).setName(HerobrineName.DEFAULT);
+
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.name.reset",
+                Component.translatable("herobrine.name.default")), true);
+        return 1;
     }
 
-    /** Summons the friendly Steve three blocks in front of you. One per player, not a crowd. */
-    private static int steveSpawn(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+    /**
+     * True when this part of the haunting is switched off in the sender's dimension, having told
+     * them so. Used by every command that reaches for a feature directly.
+     */
+    private static boolean switchedOff(CommandSourceStack source, Feature feature) {
+        if (HerobrineSettings.enabled(source.getLevel(), feature)) {
+            return false;
+        }
+
+        source.sendFailure(Component.translatable("herobrine.command.feature.off",
+                Component.translatable(feature.titleKey())));
+        return true;
+    }
+
+    /** Restore the user-facing settings to the defaults for this dimension. */
+    private static int resetConfig(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
+        HerobrineSettings settings = HerobrineSettings.of(source.getLevel());
+
+        for (Feature feature : Feature.values()) {
+            settings.setEnabled(feature, feature.defaultOn());
+        }
+
+        settings.setMusicVolume(70);
+        settings.setPurist(false);
+        settings.setBanished(false);
+        settings.setName(HerobrineName.DEFAULT);
+        source.sendSuccess(() -> Component.translatable("herobrine.command.config.reset"), true);
+        return 1;
+    }
+
+    /**
+     * {@code /herobrine config musictest}: plays the haunting track there and then, at the volume
+     * the dimension is set to, skipping the two things that normally gate it - he has to be within
+     * 28 blocks, and he has not played it in the last five minutes. If you hear it, the sound and
+     * the volume are fine and what you are really looking at is how rarely those conditions line
+     * up; if you hear nothing, the switch or the volume is what is wrong.
+     */
+    private static int musicTest(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        ServerLevel level = source.getLevel();
+        HerobrineSettings settings = HerobrineSettings.of(level);
+
+        // A test that answers "you switched it off" is not much of a test. The point of pressing
+        // Play is to hear the track, so the two things that silence it are put right first and
+        // then reported - otherwise **All off** turns this into an error, which is what it looked
+        // like when it was really the switch doing its job.
+        boolean musicWasOff = !settings.isMusic();
+        boolean volumeWasSilent = settings.musicVolume() <= 0;
+
+        if (musicWasOff) {
+            settings.setMusic(true);
+        }
+
+        if (volumeWasSilent) {
+            settings.setMusicVolume(HerobrineSettings.DEFAULT_MUSIC_VOLUME);
+        }
+
+        // Read once: the message below is built in a lambda, and a local it captures has to be
+        // effectively final.
+        boolean revived = musicWasOff || volumeWasSilent;
+        float volume = HauntingEvents.musicTestVolume(level);
+
+        if (volume <= 0.0F) {
+            source.sendFailure(Component.translatable("herobrine.command.config.musictest.silent",
+                    Component.translatable(onOffKey(settings.isMusic())),
+                    Component.literal(settings.musicVolume() + "%")));
+            return 0;
+        }
+
+        Vec3 at = source.getPosition();
+        level.playSound(null, at.x(), at.y(), at.z(), ModSounds.MUSIC_HAUNT, SoundSource.MUSIC, volume, 1.0F);
+        source.sendSuccess(() -> Component.translatable(revived
+                        ? "herobrine.command.config.musictest.revived"
+                        : "herobrine.command.config.musictest.playing",
+                Component.literal(Math.round(volume * 100) + "%")), false);
+        return 1;
+    }
+
+    /**
+     * {@code /herobrine config} on its own: a one line reminder of what the branch does.
+     */
+    private static int configStatus(CommandContext<CommandSourceStack> context) {
+        context.getSource().sendSuccess(
+                () -> Component.translatable("herobrine.command.config.status"), false);
+        return 1;
+    }
+
+    /**
+     * The two companions. They follow, defend and wait identically - that is the point of them -
+     * so the four commands are written once against this and registered for each in turn.
+     */
+    private record Companion<T extends SteveFriendEntity>(Class<T> type, EntityType<T> entityType,
+                                                         Feature feature, String key) {
+        private List<T> mine(ServerLevel level, ServerPlayer player) {
+            return level.getEntitiesOfClass(this.type, player.getBoundingBox().inflate(64.0),
+                    companion -> companion.isOwnedBy(player));
+        }
+
+        private MutableComponent message(String suffix, Object... args) {
+            return Component.translatable("herobrine.command." + this.key + "." + suffix, args);
+        }
+    }
+
+    private static final Companion<SteveFriendEntity> STEVE_COMPANION =
+            new Companion<>(SteveFriendEntity.class, ModEntities.STEVE_FRIEND, Feature.STEVE, "steve");
+
+    private static final Companion<AlexFriendEntity> ALEX_COMPANION =
+            new Companion<>(AlexFriendEntity.class, ModEntities.ALEX_FRIEND, Feature.ALEX, "alex");
+
+    /** Summons the companion three blocks in front of you. One of each per player, not a crowd. */
+    private static <T extends SteveFriendEntity> int companionSpawn(
+            CommandContext<CommandSourceStack> context, Companion<T> companion)
+            throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
+
+        if (switchedOff(source, companion.feature())) {
+            return 0;
+        }
+
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel level = source.getLevel();
 
-        for (SteveFriendEntity existing : mySteves(level, player)) {
+        for (T existing : companion.mine(level, player)) {
             if (existing.isAlive()) {
-                source.sendFailure(Component.translatable("herobrine.command.steve.already"));
+                source.sendFailure(companion.message("already"));
                 return 0;
             }
         }
 
         Vec3 ahead = player.position().add(player.getLookAngle().multiply(3.0, 0.0, 3.0));
-        SteveFriendEntity steve = new SteveFriendEntity(ModEntities.STEVE_FRIEND, level);
-        steve.setPos(ahead.x, player.getY(), ahead.z);
-        steve.setYRot(player.getYRot());
-        steve.setOwner(player);
-        steve.setHealth(steve.getMaxHealth());
-        level.addFreshEntity(steve);
+        T friend = companion.entityType().create(level, EntitySpawnReason.COMMAND);
 
-        source.sendSuccess(() -> Component.translatable("herobrine.command.steve.spawned"), true);
-        return 1;
-    }
-
-    private static int steveDismiss(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        CommandSourceStack source = context.getSource();
-        ServerPlayer player = source.getPlayerOrException();
-        List<SteveFriendEntity> steves = mySteves(source.getLevel(), player);
-
-        if (steves.isEmpty()) {
-            source.sendFailure(Component.translatable("herobrine.command.steve.none"));
+        if (friend == null) {
+            source.sendFailure(companion.message("help"));
             return 0;
         }
 
-        steves.forEach(Entity::discard);
-        source.sendSuccess(() -> Component.translatable("herobrine.command.steve.dismissed"), true);
+        friend.setPos(ahead.x, player.getY(), ahead.z);
+        friend.setYRot(player.getYRot());
+        friend.setOwner(player);
+        friend.setHealth(friend.getMaxHealth());
+        level.addFreshEntity(friend);
+
+        source.sendSuccess(() -> companion.message("spawned"), true);
         return 1;
     }
 
-    private static int steveStay(CommandContext<CommandSourceStack> context, boolean stay)
+    private static <T extends SteveFriendEntity> int companionDismiss(
+            CommandContext<CommandSourceStack> context, Companion<T> companion)
             throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
         ServerPlayer player = source.getPlayerOrException();
-        List<SteveFriendEntity> steves = mySteves(source.getLevel(), player);
+        List<T> friends = companion.mine(source.getLevel(), player);
 
-        if (steves.isEmpty()) {
-            source.sendFailure(Component.translatable("herobrine.command.steve.none"));
+        if (friends.isEmpty()) {
+            source.sendFailure(companion.message("none"));
             return 0;
         }
 
-        steves.forEach(steve -> steve.setStaying(stay));
-        source.sendSuccess(() -> Component.translatable(stay
-                ? "herobrine.command.steve.stay"
-                : "herobrine.command.steve.follow"), true);
+        friends.forEach(Entity::discard);
+        source.sendSuccess(() -> companion.message("dismissed"), true);
         return 1;
     }
 
-    private static int steveStatus(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+    private static <T extends SteveFriendEntity> int companionStay(
+            CommandContext<CommandSourceStack> context, Companion<T> companion, boolean stay)
+            throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
         ServerPlayer player = source.getPlayerOrException();
-        List<SteveFriendEntity> steves = mySteves(source.getLevel(), player);
+        List<T> friends = companion.mine(source.getLevel(), player);
 
-        if (steves.isEmpty()) {
-            source.sendSuccess(() -> Component.translatable("herobrine.command.steve.help"), false);
+        if (friends.isEmpty()) {
+            source.sendFailure(companion.message("none"));
+            return 0;
+        }
+
+        friends.forEach(friend -> friend.setStaying(stay));
+        source.sendSuccess(() -> companion.message(stay ? "stay" : "follow"), true);
+        return 1;
+    }
+
+    private static <T extends SteveFriendEntity> int companionStatus(
+            CommandContext<CommandSourceStack> context, Companion<T> companion)
+            throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
+        ServerPlayer player = source.getPlayerOrException();
+        List<T> friends = companion.mine(source.getLevel(), player);
+
+        if (friends.isEmpty()) {
+            source.sendSuccess(() -> companion.message("help"), false);
             return 1;
         }
 
-        boolean staying = steves.stream().allMatch(SteveFriendEntity::isStaying);
-        source.sendSuccess(() -> Component.translatable("herobrine.command.steve.status",
-                Component.translatable(staying
-                        ? "herobrine.command.steve.state.stay"
-                        : "herobrine.command.steve.state.follow")), false);
+        boolean staying = friends.stream().allMatch(SteveFriendEntity::isStaying);
+        source.sendSuccess(() -> companion.message("status",
+                companion.message(staying ? "state.stay" : "state.follow")), false);
         return 1;
-    }
-
-    private static int toggleMusic(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        boolean on = HerobrineSettings.toggleMusic(source.getLevel());
-
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
-                Component.translatable("herobrine.command.config.music"),
-                Component.translatable(onOffKey(on))), true);
-        return on ? 1 : 0;
     }
 
     private static int cycleMusicVolume(CommandContext<CommandSourceStack> context) {
@@ -600,19 +859,14 @@ public final class HerobrineCommand {
         return volume;
     }
 
-    private static int toggleArson(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        boolean on = HerobrineSettings.toggleArson(source.getLevel());
-
-        source.sendSuccess(() -> Component.translatable("herobrine.command.config.set",
-                Component.translatable("herobrine.command.config.arson"),
-                Component.translatable(onOffKey(on))), true);
-        return on ? 1 : 0;
-    }
-
     /** Raises a church (and its holy water) eight blocks in front of the player. */
     private static int buildChurch(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
+
+        if (switchedOff(source, Feature.CHURCHES)) {
+            return 0;
+        }
+
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel level = source.getLevel();
         BlockPos ahead = player.blockPosition().relative(player.getDirection(), 8);
@@ -629,39 +883,15 @@ public final class HerobrineCommand {
         return 1;
     }
 
-    private static int give(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        CommandSourceStack source = context.getSource();
-        ServerPlayer player = source.getPlayerOrException();
-        ServerLevel level = source.getLevel();
-        String name = StringArgumentType.getString(context, "item").toLowerCase(Locale.ROOT);
-
-        Item item = switch (name) {
-            case "iron_stick" -> ModItems.IRON_STICK;
-            case "holy_water" -> ModItems.HOLY_WATER;
-            case "the_cross", "cross" -> ModItems.THE_CROSS;
-            default -> null;
-        };
-
-        if (item == null) {
-            source.sendFailure(Component.translatable("herobrine.command.give.unknown", name));
-            return 0;
-        }
-
-        ItemStack stack = new ItemStack(item);
-
-        if (!player.getInventory().add(stack)) {
-            level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), stack));
-        }
-
-        source.sendSuccess(() -> Component.translatable("herobrine.command.give.success",
-                stack.getHoverName(), player.getDisplayName()), true);
-        return 1;
-    }
-
-    /** Builds the eight-block gold shrine two blocks in front of the player. */
+    /** Builds the eight-block gold shrine two blocks in front of the player, sunk into the ground. */
     private static int buildShrine(CommandContext<CommandSourceStack> context, String ring)
             throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
+
+        if (switchedOff(source, Feature.SHRINE)) {
+            return 0;
+        }
+
 
         if (!ring.equals("gold")) {
             source.sendFailure(Component.translatable("herobrine.command.shrine.unknown_ring", ring));
@@ -671,14 +901,17 @@ public final class HerobrineCommand {
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel level = source.getLevel();
 
-        // Two blocks ahead of the player, so the netherrack is not placed where they stand.
-        BlockPos center = player.blockPosition().relative(player.getDirection(), 2);
+        // Two blocks ahead of the player, so the netherrack is not placed where they stand, and one
+        // down: the shrine is sunk in a shallow pit. The plate sits below the surface with only the
+        // netherrack and the four torches showing at the rim.
+        BlockPos center = player.blockPosition().relative(player.getDirection(), 2).below();
 
         level.setBlock(center, Blocks.NETHERRACK.defaultBlockState(), 3);
         level.setBlock(center.above(), Blocks.AIR.defaultBlockState(), 3);
         level.setBlock(center.above(2), Blocks.AIR.defaultBlockState(), 3);
 
-        // The full ring: all eight horizontal neighbours, not just the four sides.
+        // The full ring: all eight horizontal neighbours, not just the four sides. The block above
+        // each one is cleared so the pit is open and the torches have somewhere to stand.
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 if (dx == 0 && dz == 0) {
@@ -686,6 +919,7 @@ public final class HerobrineCommand {
                 }
 
                 level.setBlock(center.offset(dx, 0, dz), Blocks.GOLD_BLOCK.defaultBlockState(), 3);
+                level.setBlock(center.offset(dx, 1, dz), Blocks.AIR.defaultBlockState(), 3);
             }
         }
 

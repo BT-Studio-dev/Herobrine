@@ -4,10 +4,12 @@ import dev.btstudio.herobrine.command.HerobrineCommand;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
 import dev.btstudio.herobrine.event.BedWatcher;
+import dev.btstudio.herobrine.event.Dread;
 import dev.btstudio.herobrine.event.HauntingEvents;
 import dev.btstudio.herobrine.event.HolyWater;
 import dev.btstudio.herobrine.event.NotchAppleRitual;
 import dev.btstudio.herobrine.item.ModItems;
+import dev.btstudio.herobrine.network.HerobrineNetwork;
 import dev.btstudio.herobrine.sound.ModSounds;
 import dev.btstudio.herobrine.event.ShrineHandler;
 
@@ -41,6 +43,8 @@ public class HerobrineMod implements ModInitializer {
 
         HerobrineCommand.register();
         HauntingEvents.register();
+        // Escalation: the grudge he keeps, and the four tiers hanging off it.
+        Dread.register();
         ShrineHandler.register();
         // Burning a Notch Apple on a netherrack fire banishes him - or calls him back.
         NotchAppleRitual.register();
@@ -50,6 +54,8 @@ public class HerobrineMod implements ModInitializer {
         BedWatcher.register();
         // The mod's own sound set (assets/herobrine/sounds.json).
         ModSounds.register();
+        // Tells each client whether the fog may close in, and what he is called.
+        HerobrineNetwork.register();
 
         // "No sleep": a bed does not work while he is standing nearby.
         EntitySleepEvents.ALLOW_SLEEPING.register((player, sleepingPos) ->

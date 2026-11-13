@@ -1,7 +1,10 @@
 package dev.btstudio.herobrine.event;
 
+import dev.btstudio.herobrine.compat.Mc;
 import dev.btstudio.herobrine.entity.HerobrineEntity;
 import dev.btstudio.herobrine.entity.ModEntities;
+import dev.btstudio.herobrine.world.Feature;
+import dev.btstudio.herobrine.world.HerobrineSettings;
 
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 
@@ -9,25 +12,28 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.item.Items;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
 
 /**
- * The summoning shrine: netherrack in the centre, a full ring of <b>eight</b> gold blocks around it,
- * and a redstone torch on top of each of the four cardinal gold blocks.
+ * The summoning shrine, sunk one block into the ground: netherrack in the centre, a full ring of
+ * <b>eight</b> gold blocks around it at the same level, and a redstone torch standing on each of the
+ * four cardinal gold blocks. The plate is recessed, so the torches sit at the pit's rim and only
+ * they and the netherrack break the surface.
  *
  * <pre>
- *   G G G          G = gold block (8 of them)
- *   G N G          N = netherrack (centre)
- *   G G G          the four cardinals carry a redstone torch on top
+ *   from above:       side on:
+ *     . T .             ~ T ~          G = gold block (8 of them), below the surface
+ *     T N T             G N G          N = netherrack (centre), below the surface
+ *     . T .             ~ ~ ~          T = redstone torch (4 of them), at the rim
+ *                                      ~ = the surface the pit is cut into
  * </pre>
  *
  * Light the top of the netherrack with flint and steel. The lightning is visual only; what arrives
- * is the red-eyed hostile Herobrine. The old four-block iron rite is gone - the elite and inferno
- * forms are summoned with {@code /herobrine summon elite|inferno} instead.
+ * is the red-eyed hostile Herobrine. The old four-block iron rite is gone - the elite form is
+ * summoned with {@code /herobrine summon elite} instead.
  */
 public final class ShrineHandler {
     private ShrineHandler() {
@@ -43,7 +49,9 @@ public final class ShrineHandler {
 
             BlockPos center = hit.getBlockPos();
 
-            if (serverLevel.getBlockState(center).is(Blocks.NETHERRACK) && isShrine(serverLevel, center)) {
+            if (HerobrineSettings.enabled(serverLevel, Feature.SHRINE)
+                    && serverLevel.getBlockState(center).is(Blocks.NETHERRACK)
+                    && isShrine(serverLevel, center)) {
                 summon(serverLevel, center);
             }
 
@@ -80,7 +88,7 @@ public final class ShrineHandler {
         double y = center.getY() + 1.0;
         double z = center.getZ() + 0.5;
 
-        LightningBolt bolt = EntityTypes.LIGHTNING_BOLT.create(level, EntitySpawnReason.TRIGGERED);
+        LightningBolt bolt = Mc.createLightning(level);
 
         if (bolt != null) {
             bolt.setPos(x, y, z);

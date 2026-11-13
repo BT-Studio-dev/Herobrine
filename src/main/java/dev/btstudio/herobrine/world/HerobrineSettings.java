@@ -1,8 +1,13 @@
 package dev.btstudio.herobrine.world;
 
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import dev.btstudio.herobrine.compat.Mc;
 import dev.btstudio.herobrine.HerobrineMod;
 
 import net.minecraft.server.level.ServerLevel;
@@ -20,63 +25,117 @@ import net.minecraft.world.level.saveddata.SavedDataType;
  *   <li><b>banished</b> - the <i>Him</i> ritual result. A Notch Apple burned on a netherrack fire
  *       sends him to the void: no apparitions, no sabotage, nothing at all until an apple is burned
  *       again to call him back.</li>
- *   <li><b>schizo</b> - the random footsteps and cave noises that follow you around.</li>
  *   <li><b>chaseUntil</b> - game time at which the current <i>chase mode</i> frenzy runs out. While
  *       it is running, apparitions come three times as often.</li>
- *   <li><b>herd</b> - the haunted herd: he may possess a passive animal and make it watch you.</li>
- *   <li><b>miner</b> - the ghost miner: pickaxe sounds in stone that nobody is making.</li>
- *   <li><b>music</b> - the fifty second haunting track that plays when he is close. Off by
- *       default on servers? No: on by default, at 70%.</li>
- *   <li><b>arson</b> - whether he may start a fire near you. The only event that can damage a
- *       build, so it is the one that gets its own switch, exposed in the settings screen.</li>
+ *   <li><b>dread</b> - how provoked he is, 0 to {@value #MAX_DREAD}, while the escalation switch is
+ *       on. Provoking him raises it and warding him off lowers it, and the tier it sits in is what
+ *       the haunting reads as its escalation stage. See {@link #dread()}.</li>
+ *   <li><b>musicVolume</b> - how loud the haunting track plays, 0-100.</li>
+ *   <li><b>name</b> - the name he goes by when he pretends to be a player. See
+ *       {@link HerobrineName}.</li>
  * </ul>
+ *
+ * <p>Everything else is a {@link Feature} switch. Five of them are still stored under the top-level
+ * keys they had before the feature map existed ({@code schizo}, {@code herd}, {@code miner},
+ * {@code arson} and {@code music}) so that a world saved by an older version
+ * keeps them exactly as they were; the rest live in the {@code features} map, which only ever
+ * records the switches that were moved off their default.
  */
 public class HerobrineSettings extends SavedData {
+    /** The volume a fresh world starts on, and the one a silenced track is put back to. */
+    public static final int DEFAULT_MUSIC_VOLUME = 70;
+
+    /**
+     * The top of the dread scale: how provoked he can get before the haunting is as bad as it ever
+     * becomes. Kept here rather than with the rules that move it, because this is the side that
+     * saves it.
+     */
+    public static final int MAX_DREAD = 100;
+
+    private static final Codec<Map<String, Boolean>> FEATURES_CODEC =
+            Codec.unboundedMap(Codec.STRING, Codec.BOOL);
+
     public static final Codec<HerobrineSettings> CODEC = RecordCodecBuilder.create(instance -> instance
             .group(
                     Codec.BOOL.optionalFieldOf("purist", false).forGetter(HerobrineSettings::isPurist),
                     Codec.BOOL.optionalFieldOf("banished", false).forGetter(HerobrineSettings::isBanished),
-                    Codec.BOOL.optionalFieldOf("schizo", true).forGetter(HerobrineSettings::isSchizo),
                     Codec.LONG.optionalFieldOf("chase_until", 0L).forGetter(HerobrineSettings::chaseUntil),
-                    Codec.BOOL.optionalFieldOf("herd", true).forGetter(HerobrineSettings::isHerd),
-                    Codec.BOOL.optionalFieldOf("miner", true).forGetter(HerobrineSettings::isMiner),
-                    Codec.BOOL.optionalFieldOf("arson", true).forGetter(HerobrineSettings::isArson),
-                    Codec.BOOL.optionalFieldOf("music", true).forGetter(HerobrineSettings::isMusic),
-                    Codec.INT.optionalFieldOf("music_volume", 70).forGetter(HerobrineSettings::musicVolume))
+                    Codec.INT.optionalFieldOf("dread", 0).forGetter(HerobrineSettings::dread),
+                    Codec.INT.optionalFieldOf("music_volume", DEFAULT_MUSIC_VOLUME).forGetter(HerobrineSettings::musicVolume),
+                    // The five switches that predate the feature map keep their original keys.
+                    Codec.BOOL.optionalFieldOf("schizo", true).forGetter(s -> s.enabled(Feature.SOUNDS)),
+                    Codec.BOOL.optionalFieldOf("herd", true).forGetter(s -> s.enabled(Feature.HERD)),
+                    Codec.BOOL.optionalFieldOf("miner", true).forGetter(s -> s.enabled(Feature.MINER)),
+                    Codec.BOOL.optionalFieldOf("arson", true).forGetter(s -> s.enabled(Feature.FIRE)),
+                    Codec.BOOL.optionalFieldOf("music", true).forGetter(s -> s.enabled(Feature.MUSIC)),
+                    FEATURES_CODEC.optionalFieldOf("features", Map.of())
+                            .forGetter(HerobrineSettings::savedFeatures),
+                    Codec.STRING.optionalFieldOf("name", HerobrineName.DEFAULT)
+                            .forGetter(HerobrineSettings::name))
             .apply(instance, HerobrineSettings::new));
 
-    public static final SavedDataType<HerobrineSettings> TYPE = new SavedDataType<>(
-            HerobrineMod.id("settings"),
-            HerobrineSettings::new,
-            CODEC,
-            DataFixTypes.SAVED_DATA_WANDERING_TRADER);
+    public static final SavedDataType<HerobrineSettings> TYPE =
+            Mc.savedDataType("settings", HerobrineSettings::new, CODEC);
 
+    private final Map<Feature, Boolean> features = new EnumMap<>(Feature.class);
     private boolean purist;
     private boolean banished;
-    private boolean schizo;
     private long chaseUntil;
-    private boolean herd;
-    private boolean miner;
-    private boolean arson;
-    private boolean music;
+    private int dread;
     private int musicVolume;
+    private String name;
 
     public HerobrineSettings() {
-        this(false, false, true, 0L, true, true, true, true, 70);
+        this(false, false, 0L, 0, DEFAULT_MUSIC_VOLUME, true, true, true, true, true,
+                Map.of(), HerobrineName.DEFAULT);
     }
 
-    public HerobrineSettings(boolean purist, boolean banished, boolean schizo, long chaseUntil,
-                             boolean herd, boolean miner, boolean arson, boolean music,
-                             int musicVolume) {
+    private HerobrineSettings(boolean purist, boolean banished, long chaseUntil, int dread, int musicVolume,
+                              boolean schizo, boolean herd, boolean miner, boolean arson, boolean music,
+                              Map<String, Boolean> stored, String name) {
+        for (Feature feature : Feature.values()) {
+            this.features.put(feature, feature.defaultOn());
+        }
+
+        // The top-level keys win over the defaults, so an old world loads as it was left.
+        this.features.put(Feature.SOUNDS, schizo);
+        this.features.put(Feature.HERD, herd);
+        this.features.put(Feature.MINER, miner);
+        this.features.put(Feature.FIRE, arson);
+        this.features.put(Feature.MUSIC, music);
+
+        for (Map.Entry<String, Boolean> entry : stored.entrySet()) {
+            Feature feature = Feature.byKey(entry.getKey());
+
+            // A legacy switch is owned by its own top-level key, so it is never read twice, and a
+            // key we do not recognise is simply ignored.
+            if (feature != null && feature.legacyKey() == null && entry.getValue() != null) {
+                this.features.put(feature, entry.getValue());
+            }
+        }
+
         this.purist = purist;
         this.banished = banished;
-        this.schizo = schizo;
         this.chaseUntil = chaseUntil;
-        this.herd = herd;
-        this.miner = miner;
-        this.arson = arson;
-        this.music = music;
-        this.musicVolume = musicVolume;
+        this.dread = Math.max(0, Math.min(MAX_DREAD, dread));
+        this.musicVolume = Math.max(0, Math.min(100, musicVolume));
+        this.name = HerobrineName.sanitize(name);
+    }
+
+    /**
+     * The switches worth writing back: everything moved off its default, except the six that belong
+     * to their own top-level keys. A world nobody has touched saves an empty map.
+     */
+    private Map<String, Boolean> savedFeatures() {
+        Map<String, Boolean> saved = new LinkedHashMap<>();
+
+        for (Feature feature : Feature.values()) {
+            if (feature.legacyKey() == null && this.enabled(feature) != feature.defaultOn()) {
+                saved.put(feature.key(), this.enabled(feature));
+            }
+        }
+
+        return saved;
     }
 
     public boolean isPurist() {
@@ -101,59 +160,98 @@ public class HerobrineSettings extends SavedData {
         }
     }
 
-    public boolean isSchizo() {
-        return this.schizo;
+    /** Whether this one part of the haunting is allowed to happen. */
+    public boolean enabled(Feature feature) {
+        return Boolean.TRUE.equals(this.features.get(feature));
     }
 
-    public void setSchizo(boolean schizo) {
-        if (this.schizo != schizo) {
-            this.schizo = schizo;
+    /** Turns a single feature on or off. */
+    public void setEnabled(Feature feature, boolean enabled) {
+        if (this.enabled(feature) != enabled) {
+            this.features.put(feature, enabled);
+            this.setDirty();
+        }
+    }
+
+    /** Flips one feature and returns its new state. */
+    public boolean toggle(Feature feature) {
+        this.setEnabled(feature, !this.enabled(feature));
+        return this.enabled(feature);
+    }
+
+    /** Every switch at once: {@code /herobrine config all on|off} and the matching screen button. */
+    public void setAll(boolean enabled) {
+        for (Feature feature : Feature.values()) {
+            this.features.put(feature, enabled);
+        }
+
+        this.setDirty();
+    }
+
+    /** True only when every switch is on, so the "All on" button can show it. */
+    public boolean allEnabled() {
+        for (Feature feature : Feature.values()) {
+            if (!this.enabled(feature)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** The name he goes by when he pretends to be a player. */
+    public String name() {
+        return this.name;
+    }
+
+    /** Ignored unless it is a usable name; see {@link HerobrineName#isValid(String)}. */
+    public void setName(String name) {
+        String clean = HerobrineName.sanitize(name);
+
+        if (!clean.equals(this.name)) {
+            this.name = clean;
             this.setDirty();
         }
     }
 
     public boolean isHerd() {
-        return this.herd;
+        return this.enabled(Feature.HERD);
     }
 
     public void setHerd(boolean herd) {
-        if (this.herd != herd) {
-            this.herd = herd;
-            this.setDirty();
-        }
+        this.setEnabled(Feature.HERD, herd);
     }
 
     public boolean isMiner() {
-        return this.miner;
+        return this.enabled(Feature.MINER);
     }
 
     public void setMiner(boolean miner) {
-        if (this.miner != miner) {
-            this.miner = miner;
-            this.setDirty();
-        }
+        this.setEnabled(Feature.MINER, miner);
     }
 
     public boolean isArson() {
-        return this.arson;
+        return this.enabled(Feature.FIRE);
     }
 
     public void setArson(boolean arson) {
-        if (this.arson != arson) {
-            this.arson = arson;
-            this.setDirty();
-        }
+        this.setEnabled(Feature.FIRE, arson);
+    }
+
+    public boolean isSchizo() {
+        return this.enabled(Feature.SOUNDS);
+    }
+
+    public void setSchizo(boolean schizo) {
+        this.setEnabled(Feature.SOUNDS, schizo);
     }
 
     public boolean isMusic() {
-        return this.music;
+        return this.enabled(Feature.MUSIC);
     }
 
     public void setMusic(boolean music) {
-        if (this.music != music) {
-            this.music = music;
-            this.setDirty();
-        }
+        this.setEnabled(Feature.MUSIC, music);
     }
 
     /** 0-100. Anything else is clamped, so a hand-edited world file cannot blow the speakers. */
@@ -172,6 +270,28 @@ public class HerobrineSettings extends SavedData {
 
     public long chaseUntil() {
         return this.chaseUntil;
+    }
+
+    /**
+     * How provoked he is, 0 to {@value #MAX_DREAD}. Rises when you provoke him, falls when you
+     * ward him off, and is only ever read while the escalation switch is on.
+     */
+    public int dread() {
+        return this.dread;
+    }
+
+    /** Moves the score by any amount, positive or negative, pinned to 0 and {@value #MAX_DREAD}. */
+    public void addDread(int amount) {
+        this.setDread(this.dread + amount);
+    }
+
+    public void setDread(int dread) {
+        int clamped = Math.max(0, Math.min(MAX_DREAD, dread));
+
+        if (this.dread != clamped) {
+            this.dread = clamped;
+            this.setDirty();
+        }
     }
 
     public void setChaseUntil(long chaseUntil) {
@@ -224,55 +344,60 @@ public class HerobrineSettings extends SavedData {
         return true;
     }
 
+    /** Whether one part of the haunting is allowed to happen in this dimension. */
+    public static boolean enabled(ServerLevel level, Feature feature) {
+        return of(level).enabled(feature);
+    }
+
+    /** Flips one feature and returns its new state. */
+    public static boolean toggle(ServerLevel level, Feature feature) {
+        return of(level).toggle(feature);
+    }
+
+    public static void setEnabled(ServerLevel level, Feature feature, boolean enabled) {
+        of(level).setEnabled(feature, enabled);
+    }
+
+    /** Every switch at once, as {@code /herobrine config all on|off} asks for. */
+    public static void setAll(ServerLevel level, boolean enabled) {
+        of(level).setAll(enabled);
+    }
+
     public static boolean schizo(ServerLevel level) {
-        return of(level).isSchizo();
+        return enabled(level, Feature.SOUNDS);
     }
 
     public static boolean toggleSchizo(ServerLevel level) {
-        HerobrineSettings settings = of(level);
-        settings.setSchizo(!settings.isSchizo());
-        return settings.isSchizo();
+        return toggle(level, Feature.SOUNDS);
     }
 
     public static boolean setSchizo(ServerLevel level, boolean schizo) {
-        HerobrineSettings settings = of(level);
-
-        if (settings.isSchizo() == schizo) {
-            return false;
-        }
-
-        settings.setSchizo(schizo);
-        return true;
+        setEnabled(level, Feature.SOUNDS, schizo);
+        return schizo;
     }
 
     public static boolean herd(ServerLevel level) {
-        return of(level).isHerd();
+        return enabled(level, Feature.HERD);
     }
 
     public static boolean toggleHerd(ServerLevel level) {
-        HerobrineSettings settings = of(level);
-        settings.setHerd(!settings.isHerd());
-        return settings.isHerd();
+        return toggle(level, Feature.HERD);
     }
 
     public static boolean miner(ServerLevel level) {
-        return of(level).isMiner();
+        return enabled(level, Feature.MINER);
     }
 
     public static boolean toggleMiner(ServerLevel level) {
-        HerobrineSettings settings = of(level);
-        settings.setMiner(!settings.isMiner());
-        return settings.isMiner();
+        return toggle(level, Feature.MINER);
     }
 
     public static boolean music(ServerLevel level) {
-        return of(level).isMusic();
+        return enabled(level, Feature.MUSIC);
     }
 
     public static boolean toggleMusic(ServerLevel level) {
-        HerobrineSettings settings = of(level);
-        settings.setMusic(!settings.isMusic());
-        return settings.isMusic();
+        return toggle(level, Feature.MUSIC);
     }
 
     public static int musicVolume(ServerLevel level) {
@@ -299,17 +424,24 @@ public class HerobrineSettings extends SavedData {
     }
 
     public static boolean arson(ServerLevel level) {
-        return of(level).isArson();
+        return enabled(level, Feature.FIRE);
     }
 
     public static boolean toggleArson(ServerLevel level) {
-        HerobrineSettings settings = of(level);
-        settings.setArson(!settings.isArson());
-        return settings.isArson();
+        return toggle(level, Feature.FIRE);
     }
 
-    public static boolean isChasing(ServerLevel level) {
-        return chaseRemainingTicks(level) > 0L;
+    /** The name he goes by in this dimension. */
+    public static String name(ServerLevel level) {
+        return of(level).name();
+    }
+
+    /**
+     * True while a chase frenzy is running. It needs the world as well as the settings, because a
+     * frenzy is a deadline in game time rather than a flag that is switched off when it expires.
+     */
+    public boolean isChasing(ServerLevel level) {
+        return Math.max(0L, this.chaseUntil - level.getLevelData().getGameTime()) > 0L;
     }
 
     public static long chaseRemainingTicks(ServerLevel level) {

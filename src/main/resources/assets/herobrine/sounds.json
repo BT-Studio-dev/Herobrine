@@ -121,5 +121,24 @@
         "stream": true
       }
     ]
+  },
+  "music_alex": {
+    "category": "music",
+    "subtitle": "subtitles.herobrine.music_alex",
+    "sounds": [
+      {
+        "name": "herobrine:music_alex",
+        "stream": true
+      }
+    ]
+  },
+  "music_disc.herobrine": {
+    "category": "record",
+    "sounds": [
+      {
+        "name": "herobrine:music_disc/herobrine",
+        "stream": true
+      }
+    ]
   }
 }

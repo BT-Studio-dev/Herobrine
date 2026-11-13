@@ -26,7 +26,10 @@ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 
+import dev.btstudio.herobrine.event.IronWard;
 import dev.btstudio.herobrine.sound.ModSounds;
+import dev.btstudio.herobrine.world.HerobrineName;
+import dev.btstudio.herobrine.world.HerobrineSettings;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -37,15 +40,13 @@ import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Herobrine has three forms:
+ * Herobrine has four forms:
  * <ul>
  *   <li><b>Stalker</b> (default, spawned by haunting events): stands motionless, stares at the
  *       nearest player and vanishes if looked at for too long, approached, or after ~20s.</li>
  *   <li><b>Hostile</b> (gold shrine): red eyes, hunts and attacks players.</li>
  *   <li><b>Elite</b> ({@code /herobrine summon elite}): black and red, tougher than the
  *       gold shrine's Herobrine.</li>
- *   <li><b>Inferno</b>: charred black with burning eyes - immune to fire, sets whatever it hits
- *       alight and leaves a trail of flame behind it.</li>
  *   <li><b>Watcher</b>: the <i>True Herobrine</i> form. He does nothing but stand still and look
  *       at you for two full minutes, and vanishes the moment you come within 25 blocks.</li>
  * </ul>
@@ -55,17 +56,27 @@ public class HerobrineEntity extends Monster {
             SynchedEntityData.defineId(HerobrineEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> ELITE =
             SynchedEntityData.defineId(HerobrineEntity.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Boolean> INFERNO =
-            SynchedEntityData.defineId(HerobrineEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> WATCHER =
             SynchedEntityData.defineId(HerobrineEntity.class, EntityDataSerializers.BOOLEAN);
 
     /** ~20 seconds at 20 ticks per second. */
+    /** How often the name setting is re-read, in ticks. He ticks twenty times a second and the
+     *  name changes perhaps once in a world's lifetime. */
+    private static final int NAME_CHECK_INTERVAL = 20;
+
     private static final int MAX_STALK_TICKS = 400;
     /** ~1.5 seconds of being stared at. */
     private static final int MAX_STARE_TICKS = 30;
     private static final double VANISH_DISTANCE = 7.0;
     private static final double SEARCH_RANGE = 64.0;
+    /**
+     * A hostile Herobrine has no timer of his own - he hunts until he is killed, driven off with
+     * iron or banished - so he needs one rule of his own to stop him lasting forever. This is how
+     * far he can sense a player, and how long he keeps looking with nobody in range before he
+     * gives up: three minutes.
+     */
+    private static final double HOSTILE_SEARCH_RANGE = 48.0;
+    private static final int HOSTILE_ABANDON_TICKS = 3_600;
 
     // Attributes of the elite version.
     private static final double ELITE_MAX_HEALTH = 120.0;
@@ -73,12 +84,6 @@ public class HerobrineEntity extends Monster {
     private static final double ELITE_ARMOR = 12.0;
     private static final double ELITE_KNOCKBACK_RESISTANCE = 0.8;
     private static final double ELITE_MOVEMENT_SPEED = 0.34;
-
-    // Attributes of the inferno form.
-    private static final double INFERNO_MAX_HEALTH = 100.0;
-    private static final double INFERNO_ATTACK_DAMAGE = 12.0;
-    private static final double INFERNO_ARMOR = 6.0;
-    private static final double INFERNO_MOVEMENT_SPEED = 0.36;
 
     /** True Herobrine rules: he watches for two full minutes. */
     private static final int WATCHER_MAX_TICKS = 2400;
@@ -123,8 +128,14 @@ public class HerobrineEntity extends Monster {
     private static final float STRIKE_DAMAGE = 3.0F;
 
     private int lifeTicks;
+    /** Ticks spent hunting with nobody in range. See {@link #HOSTILE_ABANDON_TICKS}. */
+    private int abandonedTicks;
     private int stareTicks;
     private Apparition apparition = Apparition.WATCH;
+
+    /** The name last written to the nametag, so the tick compares strings instead of components. */
+    private String appliedName;
+    private int nameCheckTicks;
 
     public HerobrineEntity(EntityType<? extends HerobrineEntity> type, Level level) {
         super(type, level);
@@ -143,7 +154,6 @@ public class HerobrineEntity extends Monster {
         super.defineSynchedData(builder);
         builder.define(HOSTILE, false);
         builder.define(ELITE, false);
-        builder.define(INFERNO, false);
         builder.define(WATCHER, false);
     }
 
@@ -162,7 +172,11 @@ public class HerobrineEntity extends Monster {
         return this.entityData.get(HOSTILE);
     }
 
-    /** Hostile Herobrine hunts players; stalker Herobrine only watches, then vanishes. */
+    /**
+     * Hostile Herobrine hunts players; stalker Herobrine only watches, then vanishes. A hostile
+     * one has no timer, but gives up and vanishes if nobody comes within sight for three minutes
+     * - see {@link #tickHostile(ServerLevel)}.
+     */
     public void setHostile(boolean hostile) {
         this.entityData.set(HOSTILE, hostile);
         // Stalkers stand perfectly still.
@@ -227,40 +241,21 @@ public class HerobrineEntity extends Monster {
         this.apparition = apparition == null ? Apparition.WATCH : apparition;
     }
 
-    /** True for the inferno form, which burns everything it touches. */
-    public boolean isInferno() {
-        return this.entityData.get(INFERNO);
-    }
-
-    /** Turns this Herobrine into the burning form: fire immune, sets its victims alight. */
-    public void setInferno(boolean inferno) {
-        this.entityData.set(INFERNO, inferno);
-
-        if (!inferno) {
-            return;
-        }
-
-        // The inferno form always hunts - it is the one that stopped pretending.
-        this.entityData.set(HOSTILE, true);
-        this.setNoAi(false);
-        this.setAttributeBase(Attributes.MAX_HEALTH, INFERNO_MAX_HEALTH);
-        this.setAttributeBase(Attributes.ATTACK_DAMAGE, INFERNO_ATTACK_DAMAGE);
-        this.setAttributeBase(Attributes.ARMOR, INFERNO_ARMOR);
-        this.setAttributeBase(Attributes.MOVEMENT_SPEED, INFERNO_MOVEMENT_SPEED);
-        this.setPersistenceRequired();
-    }
-
-    @Override
-    public boolean fireImmune() {
-        return this.isInferno() || super.fireImmune();
-    }
-
     /**
      * "Don't hit him." Any hit lands on an apparition, so the apparition drops its act: the scare
      * that was only standing behind you turns into a hunter.
+     *
+     * <p>Unless the hit came from iron. Iron-stick gear repels him: an apparition struck with it
+     * recoils and is gone, and the hunting form is driven back a few blocks
+     * ({@link dev.btstudio.herobrine.event.IronWard}).
      */
     @Override
     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+        if (IronWard.repel(level, this, source)) {
+            // He is already gone; there is nothing left to hurt.
+            return true;
+        }
+
         if (!this.isHostile()) {
             this.setHostile(true);
         }
@@ -272,12 +267,8 @@ public class HerobrineEntity extends Monster {
     public boolean doHurtTarget(ServerLevel level, Entity target) {
         boolean hit = super.doHurtTarget(level, target);
 
-        if (hit && target != null) {
-            if (this.isInferno()) {
-                target.igniteForSeconds(8.0F);
-            } else if (this.isElite()) {
-                target.igniteForSeconds(4.0F);
-            }
+        if (hit && target != null && this.isElite()) {
+            target.igniteForSeconds(4.0F);
         }
 
         return hit;
@@ -295,9 +286,16 @@ public class HerobrineEntity extends Monster {
     public void tick() {
         super.tick();
 
-        if (!(this.level() instanceof ServerLevel serverLevel) || this.isHostile()) {
+        if (!(this.level() instanceof ServerLevel serverLevel)) {
             return;
         }
+
+        if (this.isHostile()) {
+            this.tickHostile(serverLevel);
+            return;
+        }
+
+        this.refreshName(serverLevel);
 
         this.lifeTicks++;
 
@@ -318,7 +316,54 @@ public class HerobrineEntity extends Monster {
         }
     }
 
+    /**
+     * Keeps his name in step with the setting: the one the world has given him is the one on his
+     * nametag, on his death messages and in the chat lines he sends. It is stored as a custom name
+     * rather than looked up on demand, because that is the part Minecraft syncs to every client -
+     * and it is deliberately not made visible, so he still does not walk around with a label over
+     * his head. Vanilla shows the nametag of a named entity you are looking straight at, which is
+     * exactly when you want to see it.
+     */
+    private void refreshName(ServerLevel level) {
+        // Nothing has been applied yet, so look immediately; after that, once a second is plenty.
+        if (this.appliedName != null && --this.nameCheckTicks > 0) {
+            return;
+        }
+
+        this.nameCheckTicks = NAME_CHECK_INTERVAL;
+
+        String wanted = HerobrineSettings.name(level);
+
+        if (wanted.equals(this.appliedName)) {
+            return;
+        }
+
+        this.appliedName = wanted;
+        this.setCustomName(HerobrineName.component(wanted));
+    }
+
     /** The classic sighting: stand still, stare, and be gone once you get close. */
+    /**
+     * Hostile Herobrine hunts, and unlike the apparitions he has no timer that ends him. He used
+     * to be permanent for that reason: a fight you ran away from left him standing in the world
+     * for the rest of its life, still persistent, still ticking, and not even counted against the
+     * cap on new sightings.
+     *
+     * <p>So he gets one rule instead: nobody within {@link #HOSTILE_SEARCH_RANGE} for three
+     * minutes and he gives up. He leaves the way everything else does - smoke, and the fog sound.
+     * Being hurt still turns him hostile, and he still hunts for as long as you are there.
+     */
+    private void tickHostile(ServerLevel level) {
+        if (level.getNearestPlayer(this, HOSTILE_SEARCH_RANGE) != null) {
+            this.abandonedTicks = 0;
+            return;
+        }
+
+        if (++this.abandonedTicks >= HOSTILE_ABANDON_TICKS) {
+            this.vanish(level);
+        }
+    }
+
     private void tickWatch(ServerLevel serverLevel, Player player) {
         boolean watcher = this.isWatcher();
         boolean lurking = this.apparition == Apparition.LURKING;
@@ -537,7 +582,6 @@ public class HerobrineEntity extends Monster {
         super.addAdditionalSaveData(output);
         output.putBoolean("Hostile", this.isHostile());
         output.putBoolean("Elite", this.isElite());
-        output.putBoolean("Inferno", this.isInferno());
         output.putBoolean("Watcher", this.isWatcher());
         output.putString("Apparition", this.apparition.name());
     }
@@ -548,7 +592,7 @@ public class HerobrineEntity extends Monster {
         // Attributes and health are restored by super, so elite only re-applies the base values.
         this.setHostile(input.getBooleanOr("Hostile", false));
         this.setElite(input.getBooleanOr("Elite", false));
-        this.setInferno(input.getBooleanOr("Inferno", false));
+        // "Inferno" is gone: an old save that still carries the key simply has it ignored.
         this.setWatcher(input.getBooleanOr("Watcher", false));
         Apparition saved = Apparition.byName(input.getStringOr("Apparition", Apparition.WATCH.name()));
         this.apparition = saved == null ? Apparition.WATCH : saved;
